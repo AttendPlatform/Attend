@@ -175,7 +175,7 @@ export default async function ProfilePage() {
 
   const avatarUrl =
     profile?.avatar_url ||
-    profile?.avatar ||
+    profile?.avatar_url ||
     user.user_metadata
       ?.avatar_url ||
     user.user_metadata

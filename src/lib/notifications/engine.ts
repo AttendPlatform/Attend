@@ -59,7 +59,7 @@ export async function processCampaignActivity(
             "View campaign",
 
           p_event_id:
-            activity.eventId ?? null,
+            activity.eventId ?? undefined,
 
           p_campaign_id:
             activity.campaignId,
@@ -118,7 +118,7 @@ export async function processCampaignActivity(
             "View campaign",
 
           p_event_id:
-            activity.eventId ?? null,
+            activity.eventId ?? undefined,
 
           p_campaign_id:
             activity.campaignId,
@@ -192,7 +192,7 @@ export async function processCampaignActivity(
             "View insights",
 
           p_event_id:
-            activity.eventId ?? null,
+            activity.eventId ?? undefined,
 
           p_campaign_id:
             activity.campaignId,
@@ -265,7 +265,7 @@ export async function processCampaignActivity(
             "View campaign",
 
           p_event_id:
-            activity.eventId ?? null,
+            activity.eventId ?? undefined,
 
           p_campaign_id:
             activity.campaignId,
@@ -335,7 +335,7 @@ export async function processCampaignActivity(
             "View insights",
 
           p_event_id:
-            activity.eventId ?? null,
+            activity.eventId ?? undefined,
 
           p_campaign_id:
             activity.campaignId,

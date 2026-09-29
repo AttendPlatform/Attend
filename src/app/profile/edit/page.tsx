@@ -58,7 +58,7 @@ export default function EditProfilePage() {
         setLocation(profile.location || "");
         setWebsite(profile.website || "");
         setTwitter(profile.twitter || "");
-        setAvatarUrl(profile.avatar_url || profile.avatar || "");
+        setAvatarUrl(profile.avatar_url || profile.avatar_url || "");
         setCoverUrl(profile.cover_url || "");
       }
 

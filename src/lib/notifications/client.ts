@@ -9,7 +9,7 @@ export async function getNotifications(
 
   const { data, error } = await supabase.rpc("get_my_notifications", {
     p_limit: limit,
-    p_category: category === "all" ? null : category,
+    p_category: category === "all" ? undefined : category,
   });
 
   if (error) {
@@ -17,7 +17,7 @@ export async function getNotifications(
     throw error;
   }
 
-  return data ?? [];
+  return (data as unknown as Notification[]) ?? [];
 }
 
 export async function getUnreadNotificationCount(): Promise<number> {

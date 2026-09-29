@@ -196,13 +196,13 @@ export default function NotificationSettingsPage() {
 
           p_quiet_hours_start:
             preferences.quiet_hours_enabled
-              ? preferences.quiet_hours_start || null
-              : null,
+              ? preferences.quiet_hours_start || undefined
+              : undefined,
 
           p_quiet_hours_end:
             preferences.quiet_hours_enabled
-              ? preferences.quiet_hours_end || null
-              : null,
+              ? preferences.quiet_hours_end || undefined
+              : undefined,
         }
       );
 

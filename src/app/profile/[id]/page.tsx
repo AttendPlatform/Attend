@@ -29,7 +29,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
     .order("start_at", { ascending: true });
 
   const profileName = profile.full_name || profile.name || "Attend Creator";
-  const avatarUrl = profile.avatar_url || profile.avatar || null;
+  const avatarUrl = profile.avatar_url || profile.avatar_url || null;
   const coverUrl = profile.cover_url || null;
 
   return (

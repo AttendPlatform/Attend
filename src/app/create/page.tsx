@@ -146,7 +146,7 @@ export default function CreateEventPage() {
         title,
         slug,
         description,
-        start_at: startAt || null,
+        start_at: startAt,
         end_at: endAt || null,
         venue_name: isOnline ? null : venueName || null,
         address: isOnline ? null : address || null,

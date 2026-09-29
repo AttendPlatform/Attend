@@ -1983,7 +1983,7 @@ export default function CampaignBuilder({
               originalHeight,
 
             canvas_config:
-              buildCanvasConfig(),
+              buildCanvasConfig() as any,
 
             version: 1,
 
@@ -2252,7 +2252,7 @@ export default function CampaignBuilder({
             originalHeight,
 
           canvas_config:
-            config,
+            config as any,
 
           version:
             nextVersion,
