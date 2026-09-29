@@ -13,6 +13,8 @@ import {
   User,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils/errorHandler";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -58,7 +60,7 @@ export default function EditProfilePage() {
         setLocation(profile.location || "");
         setWebsite(profile.website || "");
         setTwitter(profile.twitter || "");
-        setAvatarUrl(profile.avatar_url || profile.avatar_url || "");
+        setAvatarUrl(profile.avatar_url || "");
         setCoverUrl(profile.cover_url || "");
       }
 
@@ -93,8 +95,9 @@ export default function EditProfilePage() {
       } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
       setter(publicUrl);
-    } catch (err: any) {
-      alert("Error uploading image: " + err.message);
+      toast.success("Image uploaded successfully!");
+    } catch (err: unknown) {
+      toast.error(err, "Error uploading image");
     } finally {
       setUploading(false);
     }
@@ -123,8 +126,9 @@ export default function EditProfilePage() {
     setSaving(false);
 
     if (error) {
-      alert("Failed to update profile: " + error.message);
+      toast.error(error, "Failed to update profile");
     } else {
+      toast.success("Profile updated successfully!");
       router.push("/profile");
       router.refresh();
     }
