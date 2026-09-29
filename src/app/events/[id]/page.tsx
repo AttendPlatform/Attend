@@ -10,7 +10,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getEventById, getCampaignsByEventId } from "@/services";
 
 type Campaign = {
   id: string;
@@ -33,55 +33,14 @@ export default async function EventPage({
 }) {
   const { id } = await params;
 
-  const supabase = await createClient();
+  const [event, campaigns] = await Promise.all([
+    getEventById(id),
+    getCampaignsByEventId(id),
+  ]);
 
-  /*
-   * ---------------------------------------------------------
-   * LOAD EVENT
-   * ---------------------------------------------------------
-   */
-
-  const { data: event, error: eventError } = await supabase
-    .from("events")
-    .select(`
-      *,
-      event_categories (
-        name,
-        slug
-      )
-    `)
-    .eq("id", id)
-    .single();
-
-  if (eventError || !event) {
+  if (!event) {
     notFound();
   }
-
-  /*
-   * ---------------------------------------------------------
-   * LOAD CAMPAIGNS
-   * ---------------------------------------------------------
-   */
-
-  const { data: campaigns } = await supabase
-    .from("campaigns")
-    .select(`
-      id,
-      event_id,
-      title,
-      description,
-      slug,
-      status,
-      views,
-      generations,
-      downloads,
-      participants,
-      created_at
-    `)
-    .eq("event_id", id)
-    .order("created_at", {
-      ascending: false,
-    });
 
   const eventCampaigns = (campaigns || []) as Campaign[];
 
