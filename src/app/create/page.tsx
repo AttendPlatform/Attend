@@ -11,6 +11,8 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils/errorHandler";
 
 type Category = {
   id: string;
@@ -117,120 +119,115 @@ export default function CreateEventPage() {
     setLoading(true);
     setError("");
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    if (!categoryId) {
-      setError("Please select an event category.");
-      setLoading(false);
-      return;
-    }
-
-    const slug = `${title
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")}-${Date.now()}`;
-
-    const { data: event, error: eventError } = await supabase
-      .from("events")
-      .insert({
-        creator_id: user.id,
-        category_id: categoryId,
-        title,
-        slug,
-        description,
-        start_at: startAt,
-        end_at: endAt || null,
-        venue_name: isOnline ? null : venueName || null,
-        address: isOnline ? null : address || null,
-        city: isOnline ? null : city || null,
-        state: isOnline ? null : state || null,
-        country: isOnline ? null : country || null,
-        is_online: isOnline,
-        online_url: isOnline ? onlineUrl || null : null,
-        status: "published",
-      })
-      .select("id, title")
-      .single();
-
-    if (eventError || !event) {
-      console.error(eventError);
-      setError(eventError?.message || "Could not create event.");
-      setLoading(false);
-      return;
-    }
-
-    if (cover) {
-      const extension = cover.name.split(".").pop() || "jpg";
-      const filePath = `${user.id}/${event.id}/cover.${extension}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("event-covers")
-        .upload(filePath, cover, {
-          cacheControl: "3600",
-          upsert: true,
-          contentType: cover.type,
-        });
-
-      if (uploadError) {
-        console.error(uploadError);
-
-        await supabase
-          .from("events")
-          .delete()
-          .eq("id", event.id);
-
-        setError(uploadError.message);
-        setLoading(false);
-        return;
-      }
-
+    try {
       const {
-        data: { publicUrl },
-      } = supabase.storage
-        .from("event-covers")
-        .getPublicUrl(filePath);
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      const { error: updateError } = await supabase
-        .from("events")
-        .update({
-          cover_image: publicUrl,
-        })
-        .eq("id", event.id);
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
-      if (updateError) {
-        console.error(updateError);
-
-        await supabase.storage
-          .from("event-covers")
-          .remove([filePath]);
-
-        await supabase
-          .from("events")
-          .delete()
-          .eq("id", event.id);
-
-        setError(updateError.message);
+      if (!categoryId) {
+        const msg = "Please select an event category.";
+        setError(msg);
+        toast.error(msg);
         setLoading(false);
         return;
       }
+
+      if (!startAt) {
+        const msg = "Please provide an event start date and time.";
+        setError(msg);
+        toast.error(msg);
+        setLoading(false);
+        return;
+      }
+
+      const slug = `${title
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")}-${Date.now()}`;
+
+      const { data: event, error: eventError } = await supabase
+        .from("events")
+        .insert({
+          creator_id: user.id,
+          category_id: categoryId,
+          title,
+          slug,
+          description,
+          start_at: startAt,
+          end_at: endAt || null,
+          venue_name: isOnline ? null : venueName || null,
+          address: isOnline ? null : address || null,
+          city: isOnline ? null : city || null,
+          state: isOnline ? null : state || null,
+          country: isOnline ? null : country || null,
+          is_online: isOnline,
+          online_url: isOnline ? onlineUrl || null : null,
+          status: "published",
+        })
+        .select("id, title")
+        .single();
+
+      if (eventError || !event) {
+        throw eventError || new Error("Could not create event.");
+      }
+
+      if (cover) {
+        const extension = cover.name.split(".").pop() || "jpg";
+        const filePath = `${user.id}/${event.id}/cover.${extension}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("event-covers")
+          .upload(filePath, cover, {
+            cacheControl: "3600",
+            upsert: true,
+            contentType: cover.type,
+          });
+
+        if (uploadError) {
+          await supabase.from("events").delete().eq("id", event.id);
+          throw uploadError;
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("event-covers").getPublicUrl(filePath);
+
+        const { error: updateError } = await supabase
+          .from("events")
+          .update({
+            cover_image: publicUrl,
+          })
+          .eq("id", event.id);
+
+        if (updateError) {
+          await supabase.storage.from("event-covers").remove([filePath]);
+          await supabase.from("events").delete().eq("id", event.id);
+          throw updateError;
+        }
+      }
+
+      await supabase.from("notifications").insert({
+        user_id: user.id,
+        title: "Event Created",
+        message: `Your event "${event.title}" has been successfully created.`,
+        type: "event",
+      });
+
+      toast.success("Event created successfully!");
+      router.push(`/events/${event.id}`);
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, "Failed to create event. Please try again.");
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
     }
-
-    await supabase.from("notifications").insert({
-      user_id: user.id,
-      title: "Event Created",
-      message: `Your event "${event.title}" has been successfully created.`,
-      type: "event",
-    });
-
-    router.push(`/events/${event.id}`);
   }
 
   return (

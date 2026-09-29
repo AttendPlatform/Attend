@@ -5,7 +5,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getHomeEvents, getHomeCampaigns } from "@/services";
 import HomeDiscover from "@/components/HomeDiscover"
 
 type Category = {
@@ -74,93 +74,10 @@ function getCategory(
 }
 
 export default async function Home() {
-  const supabase = await createClient();
-
-  /*
-   * ---------------------------------------------------------
-   * FETCH PUBLIC EVENTS
-   * ---------------------------------------------------------
-   */
-
-  const {
-    data: eventData,
-    error: eventError,
-  } = await supabase
-    .from("events")
-    .select(`
-      id,
-      title,
-      description,
-      cover_image,
-      start_at,
-      city,
-      state,
-      is_online,
-      event_categories (
-        id,
-        name,
-        slug
-      )
-    `)
-    .order("start_at", {
-      ascending: true,
-      nullsFirst: false,
-    })
-    .limit(50);
-
-  /*
-   * ---------------------------------------------------------
-   * FETCH PUBLISHED CAMPAIGNS
-   * ---------------------------------------------------------
-   */
-
-  const {
-    data: campaignData,
-    error: campaignError,
-  } = await supabase
-    .from("campaigns")
-    .select(`
-      id,
-      event_id,
-      title,
-      slug,
-      description,
-      status,
-      views,
-      generations,
-      downloads,
-      participants,
-
-      events (
-        id,
-        title,
-        description,
-        cover_image,
-        start_at,
-        city,
-        state,
-        is_online,
-        event_categories (
-          id,
-          name,
-          slug
-        )
-      ),
-
-      campaign_templates (
-        id,
-        asset_url,
-        width,
-        height,
-        version,
-        is_active
-      )
-    `)
-    .eq("status", "published")
-    .order("created_at", {
-      ascending: false,
-    })
-    .limit(50);
+  const [eventData, campaignData] = await Promise.all([
+    getHomeEvents(50),
+    getHomeCampaigns(50),
+  ]);
 
   /*
    * ---------------------------------------------------------
@@ -370,12 +287,8 @@ export default async function Home() {
         events={events}
         campaigns={validCampaigns}
         categories={categories}
-        eventError={
-          eventError?.message || ""
-        }
-        campaignError={
-          campaignError?.message || ""
-        }
+        eventError=""
+        campaignError=""
       />
 
       {/* =====================================================

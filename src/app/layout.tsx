@@ -19,6 +19,8 @@ export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
+import { Toaster } from "@/components/ui/toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,8 +29,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-      <GoogleAnalytics />
+        <GoogleAnalytics />
         <AppShell>{children}</AppShell>
+        <Toaster />
       </body>
     </html>
   );
