@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Globe, MapPin, UserRound } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getProfileById, getPublicProfileEvents } from "@/services";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -9,27 +9,17 @@ interface PageProps {
 
 export default async function PublicProfilePage({ params }: PageProps) {
   const { id } = await params;
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+  const [profile, events] = await Promise.all([
+    getProfileById(id),
+    getPublicProfileEvents(id),
+  ]);
 
   if (!profile) {
     notFound();
   }
 
-  const { data: events } = await supabase
-    .from("events")
-    .select("id, title, cover_image, start_at, city, state, is_online")
-    .eq("creator_id", id)
-    .eq("status", "published")
-    .order("start_at", { ascending: true });
-
   const profileName = profile.full_name || profile.name || "Attend Creator";
-  const avatarUrl = profile.avatar_url || profile.avatar_url || null;
+  const avatarUrl = profile.avatar_url || null;
   const coverUrl = profile.cover_url || null;
 
   return (

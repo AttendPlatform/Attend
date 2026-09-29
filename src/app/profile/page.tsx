@@ -14,7 +14,7 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile, getUserEvents, getUserCampaigns } from "@/services";
 
 type Event = {
   id: string;
@@ -124,129 +124,45 @@ function getInitials(
 }
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-
-  /*
-   * ---------------------------------------------------------
-   * AUTHENTICATED USER
-   * ---------------------------------------------------------
-   */
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, profile } = await getCurrentUserProfile();
 
   if (!user) {
     redirect("/login");
   }
 
-  /*
-   * ---------------------------------------------------------
-   * PROFILE
-   * ---------------------------------------------------------
-   *
-   * We intentionally use select("*") here so this page
-   * remains compatible with the existing profile table.
-   */
-
-  const {
-    data: profile,
-  } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  /*
-   * ---------------------------------------------------------
-   * USER DISPLAY INFORMATION
-   * ---------------------------------------------------------
-   */
-
   const profileName =
     profile?.full_name ||
     profile?.name ||
-    user.user_metadata
-      ?.full_name ||
-    user.user_metadata
-      ?.name ||
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
     user.email?.split("@")[0] ||
     "Attend user";
 
   const avatarUrl =
     profile?.avatar_url ||
-    profile?.avatar_url ||
-    user.user_metadata
-      ?.avatar_url ||
-    user.user_metadata
-      ?.picture ||
+    user.user_metadata?.avatar_url ||
+    user.user_metadata?.picture ||
     null;
 
-  /*
-   * ---------------------------------------------------------
-   * EVENTS
-   * ---------------------------------------------------------
-   */
+  let eventsData: any[] = [];
+  let campaignsData: any[] = [];
+  let eventsError = false;
+  let campaignsError = false;
 
-  const {
-    data: eventsData,
-    error: eventsError,
-  } = await supabase
-    .from("events")
-    .select(`
-      id,
-      title,
-      description,
-      cover_image,
-      start_at,
-      city,
-      state,
-      is_online,
-      status,
-      event_categories (
-        name,
-        slug
-      )
-    `)
-    .eq("creator_id", user.id)
-    .order("start_at", {
-      ascending: true,
-      nullsFirst: false,
-    })
-    .limit(6);
+  try {
+    eventsData = await getUserEvents(user.id, 6);
+  } catch {
+    eventsError = true;
+  }
 
-  const events =
-    (eventsData || []) as Event[];
+  try {
+    campaignsData = await getUserCampaigns(user.id, 6);
+  } catch {
+    campaignsError = true;
+  }
 
-  /*
-   * ---------------------------------------------------------
-   * CAMPAIGNS
-   * ---------------------------------------------------------
-   */
-
-  const {
-    data: campaignsData,
-    error: campaignsError,
-  } = await supabase
-    .from("campaigns")
-    .select(`
-      id,
-      event_id,
-      title,
-      slug,
-      status,
-      views,
-      generations,
-      downloads
-    `)
-    .eq("creator_id", user.id)
-    .order("created_at", {
-      ascending: false,
-    })
-    .limit(6);
-
-  const campaigns =
-    (campaignsData || []) as Campaign[];
+  const events = (eventsData || []) as Event[];
+  const campaigns = (campaignsData || []) as Campaign[];
 
   /*
    * ---------------------------------------------------------
