@@ -41,97 +41,20 @@ import {
   Textbox,
   type FabricObject,
 } from "fabric";
+import { useCampaignBuilderStore } from "@/stores/useCampaignBuilderStore";
 
-/*
- * ---------------------------------------------------------
- * TYPES
- * ---------------------------------------------------------
- */
-
-type FieldType = "photo" | "name";
-type PhotoShape = "rectangle" | "circle";
-
-type FieldData = {
-  type: FieldType;
-  shape?: PhotoShape;
-};
-
-type FieldObject = FabricObject & {
-  data?: FieldData;
-};
-
-type EventData = {
-  id: string;
-  title: string;
-  cover_image: string | null;
-};
-
-export type CampaignBuilderCampaign = {
-  id: string;
-  event_id: string;
-  creator_id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  status?: string;
-};
-
-export type CampaignBuilderTemplate = {
-  id: string;
-  campaign_id: string;
-  name: string;
-  asset_url: string;
-  width: number;
-  height: number;
-  canvas_config: any;
-  version: number;
-  is_active: boolean;
-};
-
-export type CampaignBuilderProps = {
-  mode: "create" | "edit";
-  eventId: string;
-  campaign?: CampaignBuilderCampaign;
-  template?: CampaignBuilderTemplate;
-};
-
-/*
- * ---------------------------------------------------------
- * FONTS
- * ---------------------------------------------------------
- */
-
-const FONT_OPTIONS = [
-  "Arial",
-  "Helvetica",
-  "Georgia",
-  "Times New Roman",
-  "Courier New",
-  "Verdana",
-  "Trebuchet MS",
-];
-
-/*
- * ---------------------------------------------------------
- * NAME STYLE
- * ---------------------------------------------------------
- */
-
-type NameStyle = {
-  fontFamily: string;
-  fontSize: number;
-  color: string;
-  bold: boolean;
-  textAlign: "left" | "center" | "right";
-};
-
-const DEFAULT_NAME_STYLE: NameStyle = {
-  fontFamily: "Arial",
-  fontSize: 32,
-  color: "#111111",
-  bold: true,
-  textAlign: "center",
-};
+import type {
+  CampaignBuilderCampaign,
+  CampaignBuilderProps,
+  CampaignBuilderTemplate,
+  EventData,
+  FieldData,
+  FieldObject,
+  FieldType,
+  NameStyle,
+  PhotoShape,
+} from "@/types/campaign-builder";
+import { DEFAULT_NAME_STYLE, FONT_OPTIONS } from "@/types/campaign-builder";
 
 /*
  * ---------------------------------------------------------
@@ -198,55 +121,24 @@ export default function CampaignBuilder({
    * -------------------------------------------------------
    */
 
-  const [event, setEvent] =
-    useState<EventData | null>(null);
-
-  const [title, setTitle] =
-    useState("");
-
-  const [description, setDescription] =
-    useState("");
-
-  const [designFile, setDesignFile] =
-    useState<File | null>(null);
-
-  const [designUrl, setDesignUrl] =
-    useState("");
-
-  const [originalWidth, setOriginalWidth] =
-    useState(1080);
-
-  const [originalHeight, setOriginalHeight] =
-    useState(1080);
-
-  const [editorWidth, setEditorWidth] =
-    useState(700);
-
-  const [editorHeight, setEditorHeight] =
-    useState(700);
-
-  const [zoom, setZoom] =
-    useState(1);
-
-  const [selectedField, setSelectedField] =
-    useState<FieldType | null>(null);
-
-  const [nameStyle, setNameStyle] =
-    useState<NameStyle>(
-      DEFAULT_NAME_STYLE
-    );
-
-  const [photoShape, setPhotoShape] =
-    useState<PhotoShape>("rectangle");
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
+  const {
+    event, setEvent,
+    title, setTitle,
+    description, setDescription,
+    designFile, setDesignFile,
+    designUrl, setDesignUrl,
+    originalWidth, setOriginalWidth,
+    originalHeight, setOriginalHeight,
+    editorWidth, setEditorWidth,
+    editorHeight, setEditorHeight,
+    zoom, setZoom,
+    selectedField, setSelectedField,
+    nameStyle, setNameStyle, updateNameStyle,
+    photoShape, setPhotoShape,
+    saving, setSaving,
+    loading, setLoading,
+    error, setError
+  } = useCampaignBuilderStore();
 
   /*
    * ---------------------------------------------------------
@@ -1672,14 +1564,14 @@ export default function CampaignBuilder({
   function changeZoom(
     amount: number
   ) {
-    setZoom((current) =>
+    setZoom(
       Math.min(
         1.8,
         Math.max(
           0.6,
           Number(
             (
-              current +
+              zoom +
               amount
             ).toFixed(2)
           )
