@@ -5,27 +5,20 @@ import Image from "next/image";
 
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
-interface HeaderProps {
-  user?: {
-    id?: string;
-    name?: string;
-    full_name?: string;
-    avatarUrl?: string;
-    avatar_url?: string;
-    avatar?: string;
-  } | null;
-}
+import { useAuthStore } from "@/stores/useAuthStore";
 
-export function Header({ user }: HeaderProps) {
+export function Header() {
+  const { user } = useAuthStore();
+  
   /*
    * =========================================================
    * AVATAR
    * =========================================================
    */
   const avatarSrc =
-    user?.avatarUrl ||
-    user?.avatar_url ||
-    user?.avatar;
+    user?.user_metadata?.avatarUrl ||
+    user?.user_metadata?.avatar_url ||
+    user?.user_metadata?.avatar;
 
   /*
    * =========================================================
@@ -33,8 +26,8 @@ export function Header({ user }: HeaderProps) {
    * =========================================================
    */
   const displayName =
-    user?.full_name ||
-    user?.name ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
     "";
 
   const initial = displayName
