@@ -3,7 +3,7 @@ import { ImagePlus, Upload, Move, Info } from "lucide-react";
 import { useCampaignBuilderStore } from "@/stores/useCampaignBuilderStore";
 
 type CanvasProps = {
-  canvasElement: RefObject<HTMLCanvasElement>;
+  canvasElement: RefObject<HTMLCanvasElement | null>;
   handleDesignUpload: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 
