@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
   const supabase = createClient();
@@ -14,15 +15,11 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
 
     setLoading(true);
-    setError("");
-    setMessage("");
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -35,15 +32,12 @@ export default function SignupPage() {
     });
 
     if (error) {
-      setError(error.message);
+      toast.error(error.message);
       setLoading(false);
       return;
     }
 
-    setMessage(
-      "Account created. Check your email."
-    );
-
+    toast.success("Account created. Check your email.");
     setLoading(false);
   }
 
@@ -126,17 +120,6 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {error && (
-              <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-                {error}
-              </div>
-            )}
-
-            {message && (
-              <div className="rounded-xl bg-violet-50 px-4 py-3 text-sm text-violet-700">
-                {message}
-              </div>
-            )}
 
             <button
               type="submit"
