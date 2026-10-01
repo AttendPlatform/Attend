@@ -8,57 +8,14 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-};
-
-type Event = {
-  id: string;
-  title: string;
-  description: string | null;
-  cover_image: string | null;
-  start_at: string | null;
-  city: string | null;
-  state: string | null;
-  is_online: boolean | null;
-  event_categories:
-    | Category
-    | Category[]
-    | null;
-};
-
-type CampaignTemplate = {
-  id: string;
-  asset_url: string;
-  width: number;
-  height: number;
-  version: number;
-  is_active: boolean;
-};
-
-type Campaign = {
-  id: string;
-  event_id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  status: string;
-  views: number;
-  generations: number;
-  downloads: number;
-  participants: number;
-  events:
-    | Event
-    | Event[]
-    | null;
-  campaign_templates:
-    | CampaignTemplate
-    | CampaignTemplate[]
-    | null;
-};
+import type { Category, Event, Campaign, CampaignTemplate } from "@/types/home";
+import {
+  getCategory,
+  getCampaignEvent,
+  getTemplate,
+  formatDate,
+  formatLocation,
+} from "@/lib/utils/home-helpers";
 
 type Props = {
   events: Event[];
@@ -67,106 +24,6 @@ type Props = {
   eventError?: string;
   campaignError?: string;
 };
-
-function getCategory(
-  event: Event | null
-): Category | null {
-  if (!event?.event_categories) {
-    return null;
-  }
-
-  if (
-    Array.isArray(
-      event.event_categories
-    )
-  ) {
-    return (
-      event.event_categories[0] ||
-      null
-    );
-  }
-
-  return event.event_categories;
-}
-
-function getCampaignEvent(
-  campaign: Campaign
-): Event | null {
-  if (!campaign.events) {
-    return null;
-  }
-
-  if (Array.isArray(campaign.events)) {
-    return campaign.events[0] || null;
-  }
-
-  return campaign.events;
-}
-
-function getTemplate(
-  campaign: Campaign
-): CampaignTemplate | null {
-  if (!campaign.campaign_templates) {
-    return null;
-  }
-
-  if (
-    Array.isArray(
-      campaign.campaign_templates
-    )
-  ) {
-    return (
-      campaign.campaign_templates.find(
-        (template) =>
-          template.is_active
-      ) || null
-    );
-  }
-
-  return campaign.campaign_templates.is_active
-    ? campaign.campaign_templates
-    : null;
-}
-
-function formatDate(
-  date: string | null
-) {
-  if (!date) {
-    return "Date TBA";
-  }
-
-  const value = new Date(date);
-
-  if (Number.isNaN(value.getTime())) {
-    return "Date TBA";
-  }
-
-  return value.toLocaleDateString(
-    undefined,
-    {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }
-  );
-}
-
-function formatLocation(
-  event: Event
-) {
-  if (event.is_online) {
-    return "Online event";
-  }
-
-  const location = [
-    event.city,
-    event.state,
-  ]
-    .filter(Boolean)
-    .join(", ");
-
-  return location || "Location TBA";
-}
 
 export default function HomeDiscover({
   events,
