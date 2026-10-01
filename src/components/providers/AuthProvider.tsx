@@ -1,18 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { Database } from "@/lib/supabase/database.types";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setSession, setLoading } = useAuthStore();
 
   useEffect(() => {
-    const supabase = createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-    );
+    const supabase = createClient();
 
     const {
       data: { subscription },

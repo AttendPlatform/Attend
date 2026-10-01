@@ -87,59 +87,64 @@ export function Header() {
             RIGHT SIDE
         ===================================================== */}
         <div className="flex items-center gap-2">
+          {user ? (
+            <>
+              {/* ===================================================
+                  NOTIFICATIONS
+              =================================================== */}
+              <NotificationBell />
 
-          {/* ===================================================
-              NOTIFICATIONS
-          =================================================== */}
-          <NotificationBell />
+              {/* ===================================================
+                  SAVED
+              =================================================== */}
+              <Link
+                href="/saved"
+                className="hidden rounded-full px-4 py-2 text-sm font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 sm:block"
+              >
+                Saved
+              </Link>
 
-
-          {/* ===================================================
-              SAVED
-          =================================================== */}
-          <Link
-            href="/saved"
-            className="hidden rounded-full px-4 py-2 text-sm font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 sm:block"
-          >
-            Saved
-          </Link>
-
-
-          {/* ===================================================
-              PROFILE
-          =================================================== */}
-          <Link
-            href="/profile"
-            className="group flex items-center gap-2 rounded-full p-1 transition hover:bg-neutral-50 sm:px-3 sm:py-1.5"
-          >
-
-            {avatarSrc ? (
-
-              <Image
-                src={avatarSrc}
-                alt={
-                  displayName ||
-                  "User profile"
-                }
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-violet-600/10"
-              />
-
-            ) : (
-
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700">
-                {initial}
-              </div>
-
-            )}
-
-            <span className="hidden text-sm font-medium text-neutral-700 group-hover:text-neutral-900 md:inline">
-              Profile
-            </span>
-
-          </Link>
-
+              {/* ===================================================
+                  PROFILE
+              =================================================== */}
+              <Link
+                href="/profile"
+                className="group flex items-center gap-2 rounded-full p-1 transition hover:bg-neutral-50 sm:px-3 sm:py-1.5"
+              >
+                {avatarSrc ? (
+                  <Image
+                    src={avatarSrc}
+                    alt={displayName || "User profile"}
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 rounded-full object-cover ring-2 ring-violet-600/10"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700">
+                    {initial}
+                  </div>
+                )}
+                <span className="hidden text-sm font-medium text-neutral-700 group-hover:text-neutral-900 md:inline">
+                  Profile
+                </span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="rounded-full px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-700"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
         </div>
 
       </div>
