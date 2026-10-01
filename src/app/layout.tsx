@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { AppShell } from "@/components/navigation/app-shell";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import "./globals.css";
 import GoogleAnalytics from "@/components/analytics/google-analytics";
 
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <GoogleAnalytics />
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>
