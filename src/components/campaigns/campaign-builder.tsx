@@ -2326,15 +2326,6 @@ export default function CampaignBuilder({
               handleDesignUpload={handleDesignUpload} 
             />
             
-            {/* BOTTOM TIP */}
-            {designUrl && (
-              <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
-                <div className="flex items-center gap-2 rounded-full border border-neutral-200 bg-white/90 px-4 py-2 text-[11px] font-medium text-neutral-500 shadow-sm backdrop-blur">
-                  <Info className="h-3.5 w-3.5 text-violet-500" />
-                  Place fields where attendees should appear
-                </div>
-              </div>
-            )}
           </section>
         </div>
       </div>
