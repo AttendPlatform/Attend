@@ -292,6 +292,45 @@ export type Database = {
         }
         Relationships: []
       }
+      event_organizers: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          role: Database["public"]["Enums"]["organizer_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          role?: Database["public"]["Enums"]["organizer_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          role?: Database["public"]["Enums"]["organizer_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_organizers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_organizers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_participants: {
         Row: {
           created_at: string
@@ -334,6 +373,7 @@ export type Database = {
       events: {
         Row: {
           address: string | null
+          allow_participant_campaigns: boolean
           category_id: string | null
           city: string | null
           country: string | null
@@ -345,9 +385,12 @@ export type Database = {
           id: string
           is_online: boolean
           latitude: number | null
+          location_place_id: string | null
           longitude: number | null
           online_url: string | null
           participant_count: number
+          participation_config: Json
+          participation_model: Database["public"]["Enums"]["participation_model"]
           slug: string
           start_at: string
           state: string | null
@@ -359,6 +402,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          allow_participant_campaigns?: boolean
           category_id?: string | null
           city?: string | null
           country?: string | null
@@ -370,9 +414,12 @@ export type Database = {
           id?: string
           is_online?: boolean
           latitude?: number | null
+          location_place_id?: string | null
           longitude?: number | null
           online_url?: string | null
           participant_count?: number
+          participation_config?: Json
+          participation_model?: Database["public"]["Enums"]["participation_model"]
           slug: string
           start_at: string
           state?: string | null
@@ -384,6 +431,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          allow_participant_campaigns?: boolean
           category_id?: string | null
           city?: string | null
           country?: string | null
@@ -395,9 +443,12 @@ export type Database = {
           id?: string
           is_online?: boolean
           latitude?: number | null
+          location_place_id?: string | null
           longitude?: number | null
           online_url?: string | null
           participant_count?: number
+          participation_config?: Json
+          participation_model?: Database["public"]["Enums"]["participation_model"]
           slug?: string
           start_at?: string
           state?: string | null
@@ -848,6 +899,42 @@ export type Database = {
           },
         ]
       }
+      saved_campaigns: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_campaigns_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_campaigns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1078,7 +1165,16 @@ export type Database = {
     }
     Enums: {
       campaign_status: "draft" | "published" | "paused" | "archived"
-      event_status: "draft" | "published" | "paused" | "rejected" | "archived"
+      event_status:
+        | "draft"
+        | "published"
+        | "paused"
+        | "rejected"
+        | "archived"
+        | "cancelled"
+        | "completed"
+      organizer_role: "owner" | "organizer" | "manager" | "moderator"
+      participation_model: "free" | "registration" | "paid" | "external"
       report_status: "pending" | "reviewed" | "resolved" | "dismissed"
     }
     CompositeTypes: {
@@ -1208,7 +1304,17 @@ export const Constants = {
   public: {
     Enums: {
       campaign_status: ["draft", "published", "paused", "archived"],
-      event_status: ["draft", "published", "paused", "rejected", "archived"],
+      event_status: [
+        "draft",
+        "published",
+        "paused",
+        "rejected",
+        "archived",
+        "cancelled",
+        "completed",
+      ],
+      organizer_role: ["owner", "organizer", "manager", "moderator"],
+      participation_model: ["free", "registration", "paid", "external"],
       report_status: ["pending", "reviewed", "resolved", "dismissed"],
     },
   },
