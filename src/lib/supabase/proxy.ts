@@ -32,7 +32,27 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data?.user) {
+      user = data.user;
+    } else if (error) {
+      const allCookies = request.cookies.getAll();
+      allCookies.forEach((cookie) => {
+        if (cookie.name.includes("-auth-token")) {
+          response.cookies.delete(cookie.name);
+        }
+      });
+    }
+  } catch {
+    const allCookies = request.cookies.getAll();
+    allCookies.forEach((cookie) => {
+      if (cookie.name.includes("-auth-token")) {
+        response.cookies.delete(cookie.name);
+      }
+    });
+  }
 
   const protectedRoutes = ["/create", "/profile", "/settings"];
   const isProtectedRoute = protectedRoutes.some((route) =>

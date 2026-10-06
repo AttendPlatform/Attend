@@ -337,6 +337,9 @@ export type Database = {
           event_id: string
           id: string
           name: string | null
+          participation_type: Database["public"]["Enums"]["event_participation_type"]
+          registration_data: Json
+          status: Database["public"]["Enums"]["event_attendance_status"]
           user_id: string | null
         }
         Insert: {
@@ -344,6 +347,9 @@ export type Database = {
           event_id: string
           id?: string
           name?: string | null
+          participation_type?: Database["public"]["Enums"]["event_participation_type"]
+          registration_data?: Json
+          status?: Database["public"]["Enums"]["event_attendance_status"]
           user_id?: string | null
         }
         Update: {
@@ -351,6 +357,9 @@ export type Database = {
           event_id?: string
           id?: string
           name?: string | null
+          participation_type?: Database["public"]["Enums"]["event_participation_type"]
+          registration_data?: Json
+          status?: Database["public"]["Enums"]["event_attendance_status"]
           user_id?: string | null
         }
         Relationships: [
@@ -1173,6 +1182,13 @@ export type Database = {
         | "archived"
         | "cancelled"
         | "completed"
+      event_attendance_status:
+        | "attending"
+        | "registered"
+        | "ticketed"
+        | "cancelled"
+        | "attended"
+      event_participation_type: "attendee" | "registrant" | "ticket_holder"
       organizer_role: "owner" | "organizer" | "manager" | "moderator"
       participation_model: "free" | "registration" | "paid" | "external"
       report_status: "pending" | "reviewed" | "resolved" | "dismissed"
@@ -1313,6 +1329,14 @@ export const Constants = {
         "cancelled",
         "completed",
       ],
+      event_attendance_status: [
+        "attending",
+        "registered",
+        "ticketed",
+        "cancelled",
+        "attended",
+      ],
+      event_participation_type: ["attendee", "registrant", "ticket_holder"],
       organizer_role: ["owner", "organizer", "manager", "moderator"],
       participation_model: ["free", "registration", "paid", "external"],
       report_status: ["pending", "reviewed", "resolved", "dismissed"],

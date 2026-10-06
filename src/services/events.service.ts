@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
 export type EventRow = Database["public"]["Tables"]["events"]["Row"];
@@ -10,10 +10,20 @@ export interface DiscoverEvent extends EventRow {
 
 export async function getEventCategories(): Promise<EventCategoryRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("event_categories")
     .select("*")
     .order("name", { ascending: true });
+
+  if (error && (error.code === "PGRST303" || error.code === "PGRST301")) {
+    const publicClient = createPublicClient();
+    const fallback = await publicClient
+      .from("event_categories")
+      .select("*")
+      .order("name", { ascending: true });
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     throw error;
@@ -66,7 +76,7 @@ export async function getDiscoverEvents(): Promise<DiscoverEvent[]> {
 
 export async function getHomeEvents(limit = 50) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("events")
     .select(`
       id,
@@ -88,6 +98,34 @@ export async function getHomeEvents(limit = 50) {
       nullsFirst: false,
     })
     .limit(limit);
+
+  if (error && (error.code === "PGRST303" || error.code === "PGRST301")) {
+    const publicClient = createPublicClient();
+    const fallback = await publicClient
+      .from("events")
+      .select(`
+        id,
+        title,
+        description,
+        cover_image,
+        start_at,
+        city,
+        state,
+        is_online,
+        event_categories (
+          id,
+          name,
+          slug
+        )
+      `)
+      .order("start_at", {
+        ascending: true,
+        nullsFirst: false,
+      })
+      .limit(limit);
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     throw error;

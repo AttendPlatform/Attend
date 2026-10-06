@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
 export type CampaignRow = Database["public"]["Tables"]["campaigns"]["Row"];
@@ -6,7 +6,7 @@ export type CampaignTemplateRow = Database["public"]["Tables"]["campaign_templat
 
 export async function getHomeCampaigns(limit = 50) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("campaigns")
     .select(`
       id,
@@ -48,6 +48,54 @@ export async function getHomeCampaigns(limit = 50) {
       ascending: false,
     })
     .limit(limit);
+
+  if (error && (error.code === "PGRST303" || error.code === "PGRST301")) {
+    const publicClient = createPublicClient();
+    const fallback = await publicClient
+      .from("campaigns")
+      .select(`
+        id,
+        event_id,
+        title,
+        slug,
+        description,
+        status,
+        views,
+        generations,
+        downloads,
+        participants,
+        events (
+          id,
+          title,
+          description,
+          cover_image,
+          start_at,
+          city,
+          state,
+          is_online,
+          event_categories (
+            id,
+            name,
+            slug
+          )
+        ),
+        campaign_templates (
+          id,
+          asset_url,
+          width,
+          height,
+          version,
+          is_active
+        )
+      `)
+      .eq("status", "published")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(limit);
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     throw error;
