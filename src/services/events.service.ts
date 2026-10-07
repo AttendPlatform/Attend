@@ -185,6 +185,97 @@ export async function getUserEvents(userId: string, limit = 6) {
   return data ?? [];
 }
 
+export async function getEventBySlug(slug: string) {
+  const supabase = await createClient();
+  let { data, error } = await supabase
+    .from("events")
+    .select(`
+      *,
+      event_categories (
+        name,
+        slug
+      )
+    `)
+    .eq("slug", slug)
+    .single();
+
+  if (error && (error.code === "PGRST303" || error.code === "PGRST301")) {
+    const publicClient = createPublicClient();
+    const fallback = await publicClient
+      .from("events")
+      .select(`
+        *,
+        event_categories (
+          name,
+          slug
+        )
+      `)
+      .eq("slug", slug)
+      .single();
+    data = fallback.data;
+    error = fallback.error;
+  }
+
+  if (error || !data) {
+    return null;
+  }
+  return data;
+}
+
+export async function getRelatedEvents(
+  eventId: string,
+  categoryId?: string | null,
+  city?: string | null,
+  limit = 4
+) {
+  const publicClient = createPublicClient();
+  let query = publicClient
+    .from("events")
+    .select(`
+      id,
+      title,
+      slug,
+      cover_image,
+      start_at,
+      city,
+      state,
+      is_online,
+      participation_model,
+      event_categories (
+        name,
+        slug
+      )
+    `)
+    .eq("status", "published")
+    .neq("id", eventId)
+    .limit(limit);
+
+  if (categoryId) {
+    query = query.eq("category_id", categoryId);
+  } else if (city) {
+    query = query.eq("city", city);
+  }
+
+  const { data } = await query;
+  return data ?? [];
+}
+
+export async function cancelEvent(
+  eventId: string,
+  userId: string
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("events")
+    .update({ status: "cancelled" })
+    .eq("id", eventId)
+    .eq("creator_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function getPublicProfileEvents(creatorId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -199,3 +290,4 @@ export async function getPublicProfileEvents(creatorId: string) {
   }
   return data ?? [];
 }
+
