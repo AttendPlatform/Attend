@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build  --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify:m0": "node --experimental-strip-types scripts/verify-milestone0.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
