@@ -23,7 +23,6 @@ export async function getEventAttendees(
       name,
       participation_type,
       status,
-      registration_data,
       created_at,
       profiles (
         id,
@@ -48,7 +47,6 @@ export async function getEventAttendees(
         name,
         participation_type,
         status,
-        registration_data,
         created_at,
         profiles (
           id,
@@ -64,6 +62,42 @@ export async function getEventAttendees(
     data = fallback.data;
     error = fallback.error;
   }
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).map((row: any) => ({
+    ...row,
+    registration_data: {},
+    profile: Array.isArray(row.profiles) ? row.profiles[0] : row.profiles,
+  })) as EventParticipantWithProfile[];
+}
+
+export async function getOrganizerEventRegistrations(
+  eventId: string
+): Promise<EventParticipantWithProfile[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("event_participants")
+    .select(`
+      id,
+      event_id,
+      user_id,
+      name,
+      participation_type,
+      status,
+      registration_data,
+      created_at,
+      profiles (
+        id,
+        display_name,
+        avatar_url,
+        username
+      )
+    `)
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
 
   if (error) {
     throw error;
