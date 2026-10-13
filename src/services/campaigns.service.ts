@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
 export type CampaignRow = Database["public"]["Tables"]["campaigns"]["Row"];
@@ -6,7 +6,7 @@ export type CampaignTemplateRow = Database["public"]["Tables"]["campaign_templat
 
 export async function getHomeCampaigns(limit = 50) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("campaigns")
     .select(`
       id,
@@ -48,6 +48,54 @@ export async function getHomeCampaigns(limit = 50) {
       ascending: false,
     })
     .limit(limit);
+
+  if (error && (error.code === "PGRST303" || error.code === "PGRST301")) {
+    const publicClient = createPublicClient();
+    const fallback = await publicClient
+      .from("campaigns")
+      .select(`
+        id,
+        event_id,
+        title,
+        slug,
+        description,
+        status,
+        views,
+        generations,
+        downloads,
+        participants,
+        events (
+          id,
+          title,
+          description,
+          cover_image,
+          start_at,
+          city,
+          state,
+          is_online,
+          event_categories (
+            id,
+            name,
+            slug
+          )
+        ),
+        campaign_templates (
+          id,
+          asset_url,
+          width,
+          height,
+          version,
+          is_active
+        )
+      `)
+      .eq("status", "published")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(limit);
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     throw error;
@@ -214,8 +262,8 @@ export async function getUserCampaigns(userId: string, limit = 6) {
 }
 
 export async function getCampaignBySlug(slug: string) {
-  const supabase = await createClient();
-  const { data: campaign, error: campaignError } = await supabase
+  let supabase = await createClient();
+  let { data: campaign, error: campaignError } = await supabase
     .from("campaigns")
     .select(`
       id,
@@ -234,17 +282,72 @@ export async function getCampaignBySlug(slug: string) {
         title,
         slug,
         cover_image,
-        start_at
+        start_at,
+        venue_name,
+        city,
+        state,
+        is_online,
+        allow_participant_campaigns,
+        status
+      ),
+      profiles:creator_id (
+        id,
+        display_name,
+        avatar_url,
+        username
       )
     `)
     .eq("slug", slug)
     .single();
 
+  if (campaignError && (campaignError.code === "PGRST303" || campaignError.code === "PGRST301")) {
+    const publicClient = createPublicClient();
+    const fallback = await publicClient
+      .from("campaigns")
+      .select(`
+        id,
+        event_id,
+        creator_id,
+        title,
+        slug,
+        description,
+        status,
+        views,
+        generations,
+        downloads,
+        participants,
+        events (
+          id,
+          title,
+          slug,
+          cover_image,
+          start_at,
+          venue_name,
+          city,
+          state,
+          is_online,
+          allow_participant_campaigns,
+          status
+        ),
+        profiles:creator_id (
+          id,
+          display_name,
+          avatar_url,
+          username
+        )
+      `)
+      .eq("slug", slug)
+      .single();
+    campaign = fallback.data;
+    campaignError = fallback.error;
+  }
+
   if (campaignError || !campaign) {
     return null;
   }
 
-  const { data: template } = await supabase
+  const publicClient = createPublicClient();
+  const { data: template } = await publicClient
     .from("campaign_templates")
     .select("*")
     .eq("campaign_id", campaign.id)
@@ -258,3 +361,21 @@ export async function getCampaignBySlug(slug: string) {
     template,
   };
 }
+
+export async function canCreateParticipantCampaign(
+  eventId: string
+): Promise<boolean> {
+  const publicClient = createPublicClient();
+  const { data } = await publicClient
+    .from("events")
+    .select("allow_participant_campaigns, status")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (!data || data.status !== "published") {
+    return false;
+  }
+
+  return Boolean(data.allow_participant_campaigns);
+}
+
