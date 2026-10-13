@@ -93,8 +93,11 @@ CREATE POLICY "Event owners can manage event organizers"
     )
   );
 
--- Backfill event creators as owners in event_organizers
+-- Backfill event creators as owners in event_organizers only if creator exists in profiles
 INSERT INTO event_organizers (event_id, user_id, role)
-SELECT id, creator_id, 'owner'::organizer_role
-FROM events
+SELECT e.id, e.creator_id, 'owner'::organizer_role
+FROM events e
+INNER JOIN profiles p ON e.creator_id = p.id
+WHERE e.creator_id IS NOT NULL
 ON CONFLICT (event_id, user_id) DO NOTHING;
+

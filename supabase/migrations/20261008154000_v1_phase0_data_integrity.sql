@@ -11,32 +11,36 @@ WHERE
   OR participation_config IS NULL
   OR allow_participant_campaigns IS NULL;
 
--- Backfill missing event owners into event_organizers
+-- Backfill missing event owners into event_organizers only for valid profile creators
 INSERT INTO event_organizers (event_id, user_id, role)
-SELECT id, creator_id, 'owner'::organizer_role
-FROM events
+SELECT e.id, e.creator_id, 'owner'::organizer_role
+FROM events e
+INNER JOIN profiles p ON e.creator_id = p.id
+WHERE e.creator_id IS NOT NULL
 ON CONFLICT (event_id, user_id) DO NOTHING;
 
--- Enforce campaign to parent event referential integrity
--- Re-link any orphaned campaign to the oldest published event to preserve campaign content and analytics
-DO $$
-DECLARE
-  fallback_event_id UUID;
-BEGIN
-  SELECT id INTO fallback_event_id
-  FROM events
-  WHERE status = 'published'
-  ORDER BY created_at ASC
-  LIMIT 1;
+-- Resolve duplicate event participation records before constraint enforcement
+DELETE FROM event_participants a
+USING event_participants b
+WHERE a.id < b.id
+  AND a.event_id = b.event_id
+  AND a.user_id = b.user_id
+  AND a.user_id IS NOT NULL;
 
-  IF fallback_event_id IS NOT NULL THEN
-    UPDATE campaigns
-    SET event_id = fallback_event_id
-    WHERE event_id NOT IN (SELECT id FROM events);
-  END IF;
-END $$;
+-- Allow campaigns to exist unlinked when parent events are deleted or missing
+ALTER TABLE campaigns ALTER COLUMN event_id DROP NOT NULL;
 
--- Add foreign key constraint on campaigns.event_id if not present
+-- Identify orphaned campaigns referencing missing events and safely unlink them
+-- Set status to archived so they are not treated as active campaigns or attached to unrelated events
+UPDATE campaigns
+SET
+  event_id = NULL,
+  status = 'archived'
+WHERE
+  event_id IS NOT NULL
+  AND event_id NOT IN (SELECT id FROM events);
+
+-- Enforce campaign to parent event referential integrity with ON DELETE SET NULL
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -47,6 +51,6 @@ BEGIN
       ADD CONSTRAINT campaigns_event_id_fkey
       FOREIGN KEY (event_id)
       REFERENCES events(id)
-      ON DELETE CASCADE;
+      ON DELETE SET NULL;
   END IF;
 END $$;

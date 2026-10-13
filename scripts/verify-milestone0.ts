@@ -132,13 +132,13 @@ async function runVerification() {
     });
     check("Remote events query response status", eventsRes.status === 200);
 
-    const campaignsRes = await fetch(`${supabaseUrl}/rest/v1/campaigns?select=id,title,event_id&limit=5`, {
+    const campaignsRes = await fetch(`${supabaseUrl}/rest/v1/campaigns?select=id,title,event_id,status&status=eq.published&limit=5`, {
       headers: { apikey: apiKey, Authorization: `Bearer ${apiKey}` },
     });
     check("Remote campaigns query response status", campaignsRes.status === 200);
 
     if (campaignsRes.ok) {
-      const campaigns = (await campaignsRes.json()) as Array<{ id: string; title: string; event_id: string }>;
+      const campaigns = (await campaignsRes.json()) as Array<{ id: string; title: string; event_id: string; status: string }>;
       const allHaveParent = campaigns.every((c) => Boolean(c.event_id));
       check("All active campaigns contain parent event_id reference", allHaveParent);
     }
