@@ -9,7 +9,8 @@
     "lint": "eslint",
     "verify:m0": "node --experimental-strip-types scripts/verify-milestone0.ts",
     "verify:location": "node --experimental-strip-types scripts/verify-location-layer.ts",
-    "verify:picker": "node --experimental-strip-types scripts/verify-location-picker.ts"
+    "verify:picker": "node --experimental-strip-types scripts/verify-location-picker.ts",
+    "verify:create": "node --experimental-strip-types scripts/verify-event-creation.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

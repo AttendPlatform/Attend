@@ -1,3 +1,5 @@
+"use server";
+
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -290,4 +292,97 @@ export async function getPublicProfileEvents(creatorId: string) {
   }
   return data ?? [];
 }
+
+export interface CreateEventInput {
+  creator_id: string;
+  category_id: string;
+  title: string;
+  slug?: string;
+  description?: string | null;
+  start_at: string;
+  end_at?: string | null;
+  venue_name?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  location_place_id?: string | null;
+  is_online?: boolean;
+  online_url?: string | null;
+  participation_model?: Database["public"]["Enums"]["participation_model"];
+  participation_config?: Record<string, unknown>;
+  allow_participant_campaigns?: boolean;
+  status?: Database["public"]["Enums"]["event_status"];
+  cover_image?: string | null;
+}
+
+export async function createEvent(
+  input: CreateEventInput,
+  client?: any
+): Promise<EventRow> {
+  const supabase = client || (await createClient());
+
+  const slug =
+    input.slug ||
+    `${input.title
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")}-${Date.now()}`;
+
+  const { data: event, error: eventError } = await supabase
+    .from("events")
+    .insert({
+      creator_id: input.creator_id,
+      category_id: input.category_id,
+      title: input.title,
+      slug,
+      description: input.description ?? null,
+      start_at: input.start_at,
+      end_at: input.end_at ?? null,
+      venue_name: input.is_online ? null : input.venue_name ?? null,
+      address: input.is_online ? null : input.address ?? null,
+      city: input.is_online ? null : input.city ?? null,
+      state: input.is_online ? null : input.state ?? null,
+      country: input.is_online ? null : input.country ?? "Nigeria",
+      latitude: input.is_online ? null : input.latitude ?? null,
+      longitude: input.is_online ? null : input.longitude ?? null,
+      location_place_id: input.is_online ? null : input.location_place_id ?? null,
+      is_online: Boolean(input.is_online),
+      online_url: input.is_online ? input.online_url ?? null : null,
+      participation_model: input.participation_model ?? "free",
+      participation_config: (input.participation_config ?? {}) as any,
+      allow_participant_campaigns: input.allow_participant_campaigns ?? true,
+      status: input.status ?? "published",
+      cover_image: input.cover_image ?? null,
+    })
+    .select("*")
+    .single();
+
+  if (eventError || !event) {
+    throw eventError || new Error("Could not create event.");
+  }
+
+  await supabase
+    .from("event_organizers")
+    .insert({
+      event_id: event.id,
+      user_id: input.creator_id,
+      role: "owner",
+    })
+    .select()
+    .maybeSingle();
+
+  await supabase.from("notifications").insert({
+    user_id: input.creator_id,
+    title: "Event Created",
+    message: `Your event "${event.title}" has been created (${event.status}).`,
+    type: "event",
+  });
+
+  return event;
+}
+
 
