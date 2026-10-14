@@ -189,32 +189,29 @@ export default function CreateEventPage() {
         return;
       }
 
-      const created = await createEvent(
-        {
-          creator_id: user.id,
-          category_id: categoryId,
-          title: title.trim(),
-          description: description.trim() || null,
-          start_at: startAt,
-          end_at: endAt || null,
-          venue_name: location.is_online ? null : location.venue_name,
-          address: location.is_online ? null : location.address,
-          city: location.is_online ? null : location.city,
-          state: location.is_online ? null : location.state,
-          country: location.is_online ? null : location.country || "Nigeria",
-          latitude: location.is_online ? null : location.latitude,
-          longitude: location.is_online ? null : location.longitude,
-          location_place_id: location.is_online ? null : location.place_id,
-          is_online: location.is_online,
-          online_url: location.is_online ? location.online_url : null,
-          participation_model: participationModel,
-          participation_config: participationConfig,
-          allow_participant_campaigns: allowParticipantCampaigns,
-          status: eventStatus,
-          cover_image: null,
-        },
-        supabase
-      );
+      const created = await createEvent({
+        creator_id: user.id,
+        category_id: categoryId,
+        title: title.trim(),
+        description: description.trim() || null,
+        start_at: startAt,
+        end_at: endAt || null,
+        venue_name: location.is_online ? null : location.venue_name,
+        address: location.is_online ? null : location.address,
+        city: location.is_online ? null : location.city,
+        state: location.is_online ? null : location.state,
+        country: location.is_online ? null : location.country || "Nigeria",
+        latitude: location.is_online ? null : location.latitude,
+        longitude: location.is_online ? null : location.longitude,
+        location_place_id: location.is_online ? null : location.place_id,
+        is_online: location.is_online,
+        online_url: location.is_online ? location.online_url : null,
+        participation_model: participationModel,
+        participation_config: participationConfig,
+        allow_participant_campaigns: allowParticipantCampaigns,
+        status: eventStatus,
+        cover_image: null,
+      });
 
       if (cover) {
         const extension = cover.name.split(".").pop() || "jpg";

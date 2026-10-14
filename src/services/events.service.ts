@@ -1,3 +1,5 @@
+"use server";
+
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
