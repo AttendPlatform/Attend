@@ -946,8 +946,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+  public_event_attendees: {
+    Row: {
+      created_at: string
+      event_id: string
+      id: string
+      name: string | null
+      participation_type: Database["public"]["Enums"]["event_participation_type"]
+      profile_avatar_url: string | null
+      profile_display_name: string | null
+      profile_id: string | null
+      profile_username: string | null
+      status: Database["public"]["Enums"]["event_attendance_status"]
+      user_id: string | null
     }
+    Relationships: []
+  }
+}
     Functions: {
       create_my_notification: {
         Args: {
