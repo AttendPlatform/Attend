@@ -4,27 +4,33 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  Globe,
+  Calendar,
   ImagePlus,
+  Layers,
   Loader2,
+  MapPin,
+  Sparkles,
   Type,
   X,
+  FileEdit,
+  Send
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils/errorHandler";
-
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-};
+import { LocationPicker } from "@/components/location/LocationPicker";
+import {
+  ParticipationModelSelector,
+  ParticipationModelType
+} from "@/components/events/ParticipationModelSelector";
+import { StructuredLocation } from "@/lib/location";
+import { createEvent, EventCategoryRow } from "@/services/events.service";
 
 export default function CreateEventPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<EventCategoryRow[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
   const [title, setTitle] = useState("");
@@ -34,14 +40,30 @@ export default function CreateEventPage() {
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
 
-  const [venueName, setVenueName] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [country, setCountry] = useState("Nigeria");
+  const [location, setLocation] = useState<StructuredLocation>({
+    venue_name: null,
+    address: null,
+    city: null,
+    state: null,
+    country: "Nigeria",
+    latitude: null,
+    longitude: null,
+    place_id: null,
+    is_online: false,
+    online_url: null
+  });
 
-  const [isOnline, setIsOnline] = useState(false);
-  const [onlineUrl, setOnlineUrl] = useState("");
+  const [participationModel, setParticipationModel] =
+    useState<ParticipationModelType>("free");
+  const [participationConfig, setParticipationConfig] = useState<
+    Record<string, any>
+  >({});
+
+  const [allowParticipantCampaigns, setAllowParticipantCampaigns] =
+    useState<boolean>(true);
+  const [eventStatus, setEventStatus] = useState<"published" | "draft">(
+    "published"
+  );
 
   const [cover, setCover] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState("");
@@ -51,7 +73,6 @@ export default function CreateEventPage() {
 
   useEffect(() => {
     async function initPage() {
-      // Check authentication first on load
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -61,10 +82,9 @@ export default function CreateEventPage() {
         return;
       }
 
-      // Load categories if authenticated
       const { data, error } = await supabase
         .from("event_categories")
-        .select("id, name, slug")
+        .select("*")
         .order("name");
 
       if (error) {
@@ -113,7 +133,7 @@ export default function CreateEventPage() {
     setCoverPreview("");
   }
 
-  async function createEvent(e: React.FormEvent) {
+  async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     setLoading(true);
@@ -126,6 +146,14 @@ export default function CreateEventPage() {
 
       if (!user) {
         router.push("/login");
+        return;
+      }
+
+      if (!title.trim()) {
+        const msg = "Please provide an event title.";
+        setError(msg);
+        toast.error(msg);
+        setLoading(false);
         return;
       }
 
@@ -145,41 +173,52 @@ export default function CreateEventPage() {
         return;
       }
 
-      const slug = `${title
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")}-${Date.now()}`;
+      if (location.is_online && !location.online_url) {
+        const msg = "Please provide a virtual meeting or stream link for this online event.";
+        setError(msg);
+        toast.error(msg);
+        setLoading(false);
+        return;
+      }
 
-      const { data: event, error: eventError } = await supabase
-        .from("events")
-        .insert({
+      if (participationModel === "external" && !participationConfig.external_ticket_url) {
+        const msg = "Please provide the external ticket purchase URL.";
+        setError(msg);
+        toast.error(msg);
+        setLoading(false);
+        return;
+      }
+
+      const created = await createEvent(
+        {
           creator_id: user.id,
           category_id: categoryId,
-          title,
-          slug,
-          description,
+          title: title.trim(),
+          description: description.trim() || null,
           start_at: startAt,
           end_at: endAt || null,
-          venue_name: isOnline ? null : venueName || null,
-          address: isOnline ? null : address || null,
-          city: isOnline ? null : city || null,
-          state: isOnline ? null : state || null,
-          country: isOnline ? null : country || null,
-          is_online: isOnline,
-          online_url: isOnline ? onlineUrl || null : null,
-          status: "published",
-        })
-        .select("id, title")
-        .single();
-
-      if (eventError || !event) {
-        throw eventError || new Error("Could not create event.");
-      }
+          venue_name: location.is_online ? null : location.venue_name,
+          address: location.is_online ? null : location.address,
+          city: location.is_online ? null : location.city,
+          state: location.is_online ? null : location.state,
+          country: location.is_online ? null : location.country || "Nigeria",
+          latitude: location.is_online ? null : location.latitude,
+          longitude: location.is_online ? null : location.longitude,
+          location_place_id: location.is_online ? null : location.place_id,
+          is_online: location.is_online,
+          online_url: location.is_online ? location.online_url : null,
+          participation_model: participationModel,
+          participation_config: participationConfig,
+          allow_participant_campaigns: allowParticipantCampaigns,
+          status: eventStatus,
+          cover_image: null,
+        },
+        supabase
+      );
 
       if (cover) {
         const extension = cover.name.split(".").pop() || "jpg";
-        const filePath = `${user.id}/${event.id}/cover.${extension}`;
+        const filePath = `${user.id}/${created.id}/cover.${extension}`;
 
         const { error: uploadError } = await supabase.storage
           .from("event-covers")
@@ -190,37 +229,25 @@ export default function CreateEventPage() {
           });
 
         if (uploadError) {
-          await supabase.from("events").delete().eq("id", event.id);
-          throw uploadError;
-        }
+          console.error("Cover upload warning:", uploadError);
+        } else {
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("event-covers").getPublicUrl(filePath);
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("event-covers").getPublicUrl(filePath);
-
-        const { error: updateError } = await supabase
-          .from("events")
-          .update({
-            cover_image: publicUrl,
-          })
-          .eq("id", event.id);
-
-        if (updateError) {
-          await supabase.storage.from("event-covers").remove([filePath]);
-          await supabase.from("events").delete().eq("id", event.id);
-          throw updateError;
+          await supabase
+            .from("events")
+            .update({ cover_image: publicUrl })
+            .eq("id", created.id);
         }
       }
 
-      await supabase.from("notifications").insert({
-        user_id: user.id,
-        title: "Event Created",
-        message: `Your event "${event.title}" has been successfully created.`,
-        type: "event",
-      });
-
-      toast.success("Event created successfully!");
-      router.push(`/events/${event.id}`);
+      toast.success(
+        eventStatus === "published"
+          ? "Event published successfully!"
+          : "Event draft saved successfully!"
+      );
+      router.push(`/events/${created.id}`);
     } catch (err: unknown) {
       const msg = getErrorMessage(err, "Failed to create event. Please try again.");
       setError(msg);
@@ -234,107 +261,105 @@ export default function CreateEventPage() {
     <main className="min-h-[calc(100vh-4rem)] bg-neutral-50 px-5 py-10 sm:px-6">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
-          <p className="text-sm font-semibold text-violet-600">
-            CREATE
+          <p className="text-xs font-bold uppercase tracking-wider text-violet-600">
+            EVENT BUILDER
           </p>
 
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl">
             Create your event
           </h1>
 
-          <p className="mt-2 text-neutral-500">
-            Add your event details and an optional cover image.
+          <p className="mt-2 text-sm text-neutral-500">
+            Configure your event details, location coordinates, participation model, and community permissions.
           </p>
         </div>
 
         <form
-          onSubmit={createEvent}
-          className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+          onSubmit={handleFormSubmit}
+          className="space-y-8 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
         >
-          <div className="space-y-7">
-            {/* COVER */}
-            <div>
-              <label className="mb-2 block text-sm font-medium">
-                Event cover
-              </label>
+          {/* 1. COVER IMAGE */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-neutral-900">
+              Event Cover Image
+            </label>
 
-              {coverPreview ? (
-                <div className="relative overflow-hidden rounded-2xl border border-neutral-200">
-                  <img
-                    src={coverPreview}
-                    alt="Event cover preview"
-                    className="aspect-[16/7] w-full object-cover"
-                  />
+            {coverPreview ? (
+              <div className="relative overflow-hidden rounded-2xl border border-neutral-200 shadow-sm">
+                <img
+                  src={coverPreview}
+                  alt="Event cover preview"
+                  className="aspect-[16/7] w-full object-cover"
+                />
 
-                  <button
-                    type="button"
-                    onClick={removeCover}
-                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur transition hover:bg-black"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                <button
+                  type="button"
+                  onClick={removeCover}
+                  aria-label="Remove cover image"
+                  className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/75 text-white backdrop-blur transition hover:bg-black"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex aspect-[16/7] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50/70 transition hover:border-violet-400 hover:bg-violet-50/30">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
+                  <ImagePlus className="h-5 w-5 text-violet-600" />
                 </div>
-              ) : (
-                <label className="flex aspect-[16/7] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 transition hover:border-violet-300 hover:bg-violet-50/30">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
-                    <ImagePlus className="h-5 w-5 text-violet-600" />
-                  </div>
 
-                  <p className="mt-3 text-sm font-semibold">
-                    Upload event cover
-                  </p>
+                <p className="mt-3 text-sm font-semibold text-neutral-800">
+                  Upload event cover
+                </p>
 
-                  <p className="mt-1 text-xs text-neutral-500">
-                    PNG, JPG or WebP · Max 8MB
-                  </p>
+                <p className="mt-1 text-xs text-neutral-500">
+                  PNG, JPG or WebP (Max 8MB)
+                </p>
 
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    onChange={handleCoverChange}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleCoverChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
 
-            {/* EVENT NAME */}
+          {/* 2. BASIC EVENT INFO */}
+          <div className="space-y-5">
             <div>
-              <label className="mb-2 block text-sm font-medium">
-                Event name
+              <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                Event Title
               </label>
 
               <div className="relative">
                 <Type className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-
                 <input
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Attend Pilot Launch"
-                  className="h-12 w-full rounded-xl border border-neutral-200 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
+                  placeholder="e.g. Lagos Tech Meetup 2026"
+                  className="h-12 w-full rounded-xl border border-neutral-200 bg-white pl-11 pr-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
                 />
               </div>
             </div>
 
-            {/* DESCRIPTION */}
             <div>
-              <label className="mb-2 block text-sm font-medium">
+              <label className="mb-2 block text-sm font-semibold text-neutral-900">
                 Description
               </label>
 
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Tell people what this event is about..."
-                rows={5}
-                className="w-full resize-none rounded-xl border border-neutral-200 p-4 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
+                placeholder="Give attendees context on what to expect, speakers, schedule, and activities..."
+                rows={4}
+                className="w-full resize-none rounded-xl border border-neutral-200 p-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
               />
             </div>
 
-            {/* CATEGORY */}
             <div>
-              <label className="mb-2 block text-sm font-medium">
+              <label className="mb-2 block text-sm font-semibold text-neutral-900">
                 Category
               </label>
 
@@ -343,7 +368,7 @@ export default function CreateEventPage() {
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
                 disabled={loadingCategories}
-                className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50 disabled:bg-neutral-50"
+                className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50 disabled:bg-neutral-50"
               >
                 {loadingCategories ? (
                   <option>Loading categories...</option>
@@ -357,164 +382,195 @@ export default function CreateEventPage() {
               </select>
             </div>
 
-            {/* DATE */}
             <div>
-              <label className="mb-2 block text-sm font-medium">
-                Date & time
+              <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                Date & Schedule
               </label>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="mb-2 text-xs text-neutral-500">
-                    Starts
-                  </p>
+                  <div className="flex items-center gap-1.5 mb-1.5 text-xs font-medium text-neutral-600">
+                    <Calendar className="h-3.5 w-3.5 text-violet-600" />
+                    <span>Starts</span>
+                  </div>
 
                   <input
                     type="datetime-local"
                     required
                     value={startAt}
                     onChange={(e) => setStartAt(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
+                    className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
                   />
                 </div>
 
                 <div>
-                  <p className="mb-2 text-xs text-neutral-500">
-                    Ends
-                  </p>
+                  <div className="flex items-center gap-1.5 mb-1.5 text-xs font-medium text-neutral-600">
+                    <Calendar className="h-3.5 w-3.5 text-neutral-400" />
+                    <span>Ends (Optional)</span>
+                  </div>
 
                   <input
                     type="datetime-local"
                     value={endAt}
                     onChange={(e) => setEndAt(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
+                    className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
                   />
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* ONLINE */}
-            <div className="rounded-2xl border border-neutral-200 p-4">
-              <label className="flex cursor-pointer items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-                    <Globe className="h-5 w-5 text-violet-600" />
+          {/* 3. STRUCTURED LOCATION PICKER */}
+          <div className="pt-2">
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5 text-white shadow-md">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+                  <MapPin className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Event Location</h3>
+                  <p className="text-xs text-neutral-400">
+                    Auto-suggest venues, select Nigerian hubs, or set virtual online link
+                  </p>
+                </div>
+              </div>
+
+              <LocationPicker
+                value={location}
+                onChange={(newLoc) => setLocation(newLoc)}
+              />
+            </div>
+          </div>
+
+          {/* 4. PARTICIPATION MODEL SELECTOR */}
+          <div className="pt-2">
+            <ParticipationModelSelector
+              model={participationModel}
+              config={participationConfig}
+              onChangeModel={setParticipationModel}
+              onChangeConfig={setParticipationConfig}
+            />
+          </div>
+
+          {/* 5. CAMPAIGN PERMISSIONS & PUBLISH STATUS */}
+          <div className="space-y-4 pt-2">
+            <label className="block text-sm font-semibold text-neutral-900">
+              Community & Publishing Controls
+            </label>
+
+            <div className="rounded-2xl border border-neutral-200 bg-neutral-50/70 p-4 transition-all">
+              <label className="flex cursor-pointer items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                    <Sparkles className="h-4 w-4" />
                   </div>
-
                   <div>
-                    <p className="text-sm font-semibold">
-                      Online event
+                    <p className="text-sm font-semibold text-neutral-900">
+                      Allow participant campaigns
                     </p>
-
-                    <p className="text-xs text-neutral-500">
-                      This event takes place online
+                    <p className="text-xs text-neutral-500 mt-0.5 leading-relaxed">
+                      Enable attendees and creators to generate personalized promotional graphics and cards under this event.
                     </p>
                   </div>
                 </div>
 
                 <input
                   type="checkbox"
-                  checked={isOnline}
-                  onChange={(e) => setIsOnline(e.target.checked)}
-                  className="h-5 w-5 accent-violet-600"
+                  checked={allowParticipantCampaigns}
+                  onChange={(e) => setAllowParticipantCampaigns(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-neutral-300 text-violet-600 focus:ring-violet-500 accent-violet-600"
                 />
               </label>
             </div>
 
-            {/* LOCATION */}
-            {isOnline ? (
-              <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Event link
-                </label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setEventStatus("published")}
+                className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+                  eventStatus === "published"
+                    ? "border-violet-600 bg-violet-50/50 ring-2 ring-violet-600/20 shadow-sm"
+                    : "border-neutral-200 bg-white hover:border-neutral-300"
+                }`}
+              >
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                    eventStatus === "published"
+                      ? "bg-violet-600 text-white"
+                      : "bg-neutral-100 text-neutral-600"
+                  }`}
+                >
+                  <Send className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">
+                    Publish Immediately
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    Live immediately in discovery feeds and public event pages.
+                  </p>
+                </div>
+              </button>
 
-                <input
-                  type="url"
-                  value={onlineUrl}
-                  onChange={(e) => setOnlineUrl(e.target.value)}
-                  placeholder="https://zoom.us/..."
-                  className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-                />
-              </div>
+              <button
+                type="button"
+                onClick={() => setEventStatus("draft")}
+                className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+                  eventStatus === "draft"
+                    ? "border-violet-600 bg-violet-50/50 ring-2 ring-violet-600/20 shadow-sm"
+                    : "border-neutral-200 bg-white hover:border-neutral-300"
+                }`}
+              >
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                    eventStatus === "draft"
+                      ? "bg-violet-600 text-white"
+                      : "bg-neutral-100 text-neutral-600"
+                  }`}
+                >
+                  <FileEdit className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">
+                    Save as Draft
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    Hidden from discovery. Edit and publish later from your organizer dashboard.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* 6. ERROR DISPLAY */}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
+              {error}
+            </div>
+          )}
+
+          {/* 7. SUBMIT BUTTON */}
+          <button
+            type="submit"
+            disabled={loading || loadingCategories}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-md shadow-violet-600/20 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Processing event creation...</span>
+              </>
             ) : (
               <>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">
-                    Venue
-                  </label>
-
-                  <input
-                    value={venueName}
-                    onChange={(e) => setVenueName(e.target.value)}
-                    placeholder="e.g. International Conference Centre"
-                    className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium">
-                    Address
-                  </label>
-
-                  <input
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Street address"
-                    className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-                  />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <input
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="City"
-                    className="h-12 rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-                  />
-
-                  <input
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    placeholder="State"
-                    className="h-12 rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-                  />
-
-                  <input
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    placeholder="Country"
-                    className="h-12 rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-                  />
-                </div>
+                <span>
+                  {eventStatus === "published"
+                    ? "Publish Event"
+                    : "Save Event as Draft"}
+                </span>
+                <ArrowRight className="h-4 w-4" />
               </>
             )}
-
-            {/* ERROR */}
-            {error && (
-              <div className="rounded-xl bg-red-50 p-4 text-sm text-red-600">
-                {error}
-              </div>
-            )}
-
-            {/* SUBMIT */}
-            <button
-              type="submit"
-              disabled={loading || loadingCategories}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-600 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Creating event...
-                </>
-              ) : (
-                <>
-                  Create event
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
-          </div>
+          </button>
         </form>
       </div>
     </main>
