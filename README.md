@@ -67,26 +67,22 @@ npm run dev
 
 The application will be accessible at `http://localhost:3000`.
 
-## Automated Verification Suites
+## Testing and Quality Assurance
 
-The repository contains progressive test runners to validate domain services, database integrity, and UI components:
+Run the automated verification suite across all domain services, database integrity, and UI components:
 
 ```bash
-# Milestone 0: Phase 0 migrations, data integrity, and domain services
-npm run verify:m0
-
-# Week 2 Day 1: Location abstraction, Haversine calculations, and hubs
-npm run verify:location
-
-# Week 2 Day 2: LocationPicker, MapPreview, and database security fixes
-npm run verify:picker
-
-# Week 2 Day 3: Event creation flow, participation models, and draft support
-npm run verify:create
-
-# Milestone 1: Comprehensive checkpoint suite across all Phase 1 features
-npm run verify:m1
+npm test
 ```
+
+### Verification Checkpoints
+
+| Command | Scope | Coverage |
+| :--- | :--- | :--- |
+| `npm test` | Complete Test Suite | Runs all active milestone verification suites |
+| `npm run verify:m1` | Milestone 1 (Phase 1) | Location abstraction, event creation flow, and participation models |
+| `npm run verify:m0` | Milestone 0 (Phase 0) | Database schema migrations, referential integrity, and domain services |
+
 
 ## Production Build
 

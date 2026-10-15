@@ -7,6 +7,8 @@
     "build": "next build  --webpack",
     "start": "next start",
     "lint": "eslint",
+    "test": "npm run verify:m0 && npm run verify:m1",
+    "verify": "npm test",
     "verify:m0": "node --experimental-strip-types scripts/verify-milestone0.ts",
     "verify:location": "node --experimental-strip-types scripts/verify-location-layer.ts",
     "verify:picker": "node --experimental-strip-types scripts/verify-location-picker.ts",
