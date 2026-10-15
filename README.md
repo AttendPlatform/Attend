@@ -36,6 +36,79 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - Independent bookmarks for both events (`saved_events`) and campaigns (`saved_campaigns`)
 - Automated notification dispatch for event organizers and participants
 
+## Project Directory Structure
+
+```text
+Attend/
+├── public/                 # Static assets and PWA service worker
+│   ├── favicon.png
+│   ├── icon-192.png
+│   ├── icon-512.png
+│   └── sw.js
+├── scripts/                # Automated verification suites and CI runners
+│   ├── verify-milestone0.ts
+│   ├── verify-location-layer.ts
+│   ├── verify-location-picker.ts
+│   ├── verify-event-creation.ts
+│   └── verify-milestone1.ts
+├── src/
+│   ├── app/                # Next.js App Router pages and route handlers
+│   │   ├── campaign/       # Public campaign view and share route
+│   │   ├── create/         # Event creation flow with LocationPicker
+│   │   ├── discover/       # Public event discovery feed
+│   │   ├── events/         # Event detail and campaign management routes
+│   │   ├── login/          # User authentication login
+│   │   ├── notifications/  # User in-app notifications hub
+│   │   ├── profile/        # User and organizer profile management
+│   │   ├── settings/       # Account and notification preferences
+│   │   ├── signup/         # User registration
+│   │   ├── globals.css     # Global styles and Tailwind configuration
+│   │   ├── layout.tsx      # Root application layout with providers
+│   │   ├── manifest.ts     # PWA Web App Manifest
+│   │   └── page.tsx        # Home landing page with discover feed
+│   ├── components/         # Reusable modular UI components
+│   │   ├── analytics/      # Tracking and telemetry components
+│   │   ├── campaigns/      # Promotional campaign cards and canvas builder
+│   │   ├── events/         # Event cards and participation model selector
+│   │   ├── home/           # Landing page sections and filter controls
+│   │   ├── location/       # LocationPicker and MapPreview components
+│   │   ├── navigation/     # AppShell, Header, and MobileNav
+│   │   ├── notifications/  # Toast, bell, and dropdown notifications
+│   │   ├── providers/      # Context providers (Auth, Theme)
+│   │   └── ui/             # Primitives and shared UI controls
+│   ├── hooks/              # Custom React hooks (useNotifications, useToast)
+│   ├── lib/                # Core libraries and utility abstractions
+│   │   ├── campaigns/      # Campaign canvas renderer and template helpers
+│   │   ├── location/       # Pluggable location abstraction layer
+│   │   ├── notifications/  # Notification processing engine and client
+│   │   ├── supabase/       # Supabase browser, server, and proxy clients
+│   │   └── utils/          # Formatting helpers and error handlers
+│   ├── services/           # Domain services and Server Actions
+│   │   ├── attendance.service.ts
+│   │   ├── campaigns.service.ts
+│   │   ├── events.service.ts
+│   │   ├── profile.service.ts
+│   │   └── saved.service.ts
+│   ├── stores/             # Client-side Zustand state stores
+│   │   ├── useAuthStore.ts
+│   │   ├── useCampaignBuilderStore.ts
+│   │   └── useNotificationsStore.ts
+│   └── types/              # TypeScript domain types and contracts
+│       ├── attendance.ts
+│       ├── campaign-builder.ts
+│       ├── events.ts
+│       └── home.ts
+├── supabase/
+│   └── migrations/         # PostgreSQL schema migrations and RLS policies
+│       ├── 20261005195800_v1_phase0_tables.sql
+│       ├── 20261006171600_v1_phase0_attendance_schema.sql
+│       ├── 20261006171700_v1_phase0_indexes.sql
+│       └── 20261008154000_v1_phase0_data_integrity.sql
+├── package.json            # Scripts, dependencies, and project metadata
+├── tsconfig.json           # TypeScript configuration and path aliases
+└── README.md               # Project documentation and architecture guide
+```
+
 ## Getting Started
 
 ### Prerequisites
