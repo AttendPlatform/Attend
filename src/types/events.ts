@@ -20,6 +20,7 @@ export interface PaidParticipationConfig {
   ticket_price: number;
   currency: string;
   max_tickets?: number | null;
+  ticket_capacity?: number | null;
   ticket_tier_name?: string;
   refund_policy?: string | null;
 }

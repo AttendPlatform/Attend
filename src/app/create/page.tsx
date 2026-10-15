@@ -177,6 +177,14 @@ export default function CreateEventPage() {
         return;
       }
 
+      if (endAt && new Date(endAt) <= new Date(startAt)) {
+        const msg = "Event end date and time must be after the start date and time.";
+        setError(msg);
+        toast.error(msg);
+        setLoading(false);
+        return;
+      }
+
       if (location.is_online && !location.online_url) {
         const msg = "Please provide a virtual meeting or stream link for this online event.";
         setError(msg);

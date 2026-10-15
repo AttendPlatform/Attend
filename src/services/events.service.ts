@@ -332,8 +332,9 @@ export async function validateParticipationConfig(
     if (!config.currency || typeof config.currency !== "string") {
       errors.push("A valid currency must be selected.");
     }
-    if (config.max_tickets !== undefined && config.max_tickets !== null && config.max_tickets !== "") {
-      const maxTickets = Number(config.max_tickets);
+    const capacityVal = config.max_tickets !== undefined ? config.max_tickets : config.ticket_capacity;
+    if (capacityVal !== undefined && capacityVal !== null && capacityVal !== "") {
+      const maxTickets = Number(capacityVal);
       if (isNaN(maxTickets) || maxTickets <= 0) {
         errors.push("Max tickets must be a positive integer.");
       }
@@ -374,6 +375,10 @@ export async function createEvent(
 
   if (!validation.valid) {
     throw new Error(`Invalid participation configuration: ${validation.errors.join(", ")}`);
+  }
+
+  if (input.end_at && new Date(input.end_at) <= new Date(input.start_at)) {
+    throw new Error("Event end date and time must be after the start date and time.");
   }
 
   const supabase = client || (await createClient());
