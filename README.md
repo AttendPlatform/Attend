@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Attend
+
+Attend is an event discovery, participation, and campaign platform. It establishes the Event as the primary destination while providing a connected promotional campaign layer for organizers and community advocates.
+
+## Architecture & Core Technologies
+
+- Framework: Next.js 16 (App Router) with React 19
+- Styling: Tailwind CSS
+- Database & Backend: Supabase (PostgreSQL with Row Level Security, Auth, Storage)
+- Location Architecture: Pluggable provider abstraction with OpenStreetMap geocoding, Nigerian tech hubs, Haversine proximity algorithms, and navigation deep links
+- State & Services: Server Actions and domain service layers for events, attendance, campaigns, and saved items
+
+## Key System Modules
+
+### 1. Location Abstraction Layer (`src/lib/location`)
+- Pluggable provider interface supporting OpenStreetMap (Nominatim) and Google Places API compatibility
+- Preset hubs for key Nigerian tech centers: Lagos, Abuja, Port Harcourt, Ibadan, Enugu, Kano, Kaduna, and Benin City
+- Haversine distance calculation and proximity sorting
+- Native navigation URLs for Google Maps, Apple Maps, and Waze
+- Responsive MapPreview component with embedded OpenStreetMap views and directions links
+
+### 2. Multi-Tier Event Participation Engine (`src/components/events`, `src/services/events.service.ts`)
+- Free (Direct Attend): Instant RSVP for open events
+- Free with Registration: Form configuration with custom questions, phone requirements, and attendee capacity limits
+- Paid Tickets: Tiered pricing, multi-currency support (NGN, USD, GBP, EUR), capacity caps, and refund policies
+- External Provider: Direct deep linking to third-party ticketing platforms (e.g. Tix, Eventbrite, Luma)
+- Participant Campaign Permissions: Creator control allowing or restricting participant-led promotional campaigns
+
+### 3. Campaign & Promotion Layer (`src/services/campaigns.service.ts`, `src/app/campaign`)
+- Connected participant campaigns linked to parent events via database referential constraints
+- Canvas-based visual banner builder for personalized promotional assets
+- Analytics tracking for impressions, clicks, RSVPs, and referral conversions
+
+### 4. Attendance & Bookmark Systems (`src/services/attendance.service.ts`, `src/services/saved.service.ts`)
+- Granular attendance records protecting private registration data through Row Level Security
+- Independent bookmarks for both events (`saved_events`) and campaigns (`saved_campaigns`)
+- Automated notification dispatch for event organizers and participants
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 20 or higher
+- npm, pnpm, or yarn
 
+### Installation
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/AttendPlatform/Attend.git
+cd Attend
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Configure environment variables in `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start the local development server:
+```bash
+npm run dev
+```
 
-## Learn More
+The application will be accessible at `http://localhost:3000`.
 
-To learn more about Next.js, take a look at the following resources:
+## Automated Verification Suites
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The repository contains progressive test runners to validate domain services, database integrity, and UI components:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Milestone 0: Phase 0 migrations, data integrity, and domain services
+npm run verify:m0
 
-## Deploy on Vercel
+# Week 2 Day 1: Location abstraction, Haversine calculations, and hubs
+npm run verify:location
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Week 2 Day 2: LocationPicker, MapPreview, and database security fixes
+npm run verify:picker
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Week 2 Day 3: Event creation flow, participation models, and draft support
+npm run verify:create
+
+# Milestone 1: Comprehensive checkpoint suite across all Phase 1 features
+npm run verify:m1
+```
+
+## Production Build
+
+To run the TypeScript compiler check and produce the optimized production build:
+
+```bash
+# Typecheck
+npx tsc --noEmit
+
+# Production build
+npm run build
+```
