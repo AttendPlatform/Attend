@@ -24,7 +24,11 @@ import {
   ParticipationModelType
 } from "@/components/events/ParticipationModelSelector";
 import { StructuredLocation } from "@/lib/location";
-import { createEvent, EventCategoryRow } from "@/services/events.service";
+import {
+  createEvent,
+  validateParticipationConfig,
+  EventCategoryRow
+} from "@/services/events.service";
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -173,6 +177,14 @@ export default function CreateEventPage() {
         return;
       }
 
+      if (endAt && new Date(endAt) <= new Date(startAt)) {
+        const msg = "Event end date and time must be after the start date and time.";
+        setError(msg);
+        toast.error(msg);
+        setLoading(false);
+        return;
+      }
+
       if (location.is_online && !location.online_url) {
         const msg = "Please provide a virtual meeting or stream link for this online event.";
         setError(msg);
@@ -181,8 +193,13 @@ export default function CreateEventPage() {
         return;
       }
 
-      if (participationModel === "external" && !participationConfig.external_ticket_url) {
-        const msg = "Please provide the external ticket purchase URL.";
+      const validation = await validateParticipationConfig(
+        participationModel,
+        participationConfig
+      );
+
+      if (!validation.valid) {
+        const msg = validation.errors[0] || "Invalid participation configuration.";
         setError(msg);
         toast.error(msg);
         setLoading(false);

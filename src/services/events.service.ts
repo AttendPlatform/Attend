@@ -318,10 +318,69 @@ export interface CreateEventInput {
   cover_image?: string | null;
 }
 
+export async function validateParticipationConfig(
+  model: Database["public"]["Enums"]["participation_model"] = "free",
+  config: Record<string, any> = {}
+): Promise<{ valid: boolean; errors: string[] }> {
+  const errors: string[] = [];
+
+  if (model === "paid") {
+    const price = Number(config.ticket_price);
+    if (isNaN(price) || price <= 0) {
+      errors.push("Ticket price must be greater than zero.");
+    }
+    if (!config.currency || typeof config.currency !== "string") {
+      errors.push("A valid currency must be selected.");
+    }
+    const capacityVal = config.max_tickets !== undefined ? config.max_tickets : config.ticket_capacity;
+    if (capacityVal !== undefined && capacityVal !== null && capacityVal !== "") {
+      const maxTickets = Number(capacityVal);
+      if (isNaN(maxTickets) || maxTickets <= 0) {
+        errors.push("Max tickets must be a positive integer.");
+      }
+    }
+  } else if (model === "external") {
+    if (!config.external_ticket_url || typeof config.external_ticket_url !== "string") {
+      errors.push("External ticket URL is required.");
+    } else {
+      try {
+        new URL(config.external_ticket_url);
+      } catch {
+        errors.push("External ticket URL must be a valid web address.");
+      }
+    }
+  } else if (model === "registration") {
+    if (config.max_attendees !== undefined && config.max_attendees !== null && config.max_attendees !== "") {
+      const maxAttendees = Number(config.max_attendees);
+      if (isNaN(maxAttendees) || maxAttendees <= 0) {
+        errors.push("Max attendees must be a positive integer.");
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
 export async function createEvent(
   input: CreateEventInput,
   client?: any
 ): Promise<EventRow> {
+  const validation = await validateParticipationConfig(
+    input.participation_model ?? "free",
+    input.participation_config ?? {}
+  );
+
+  if (!validation.valid) {
+    throw new Error(`Invalid participation configuration: ${validation.errors.join(", ")}`);
+  }
+
+  if (input.end_at && new Date(input.end_at) <= new Date(input.start_at)) {
+    throw new Error("Event end date and time must be after the start date and time.");
+  }
+
   const supabase = client || (await createClient());
 
   const slug =
