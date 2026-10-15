@@ -24,7 +24,11 @@ import {
   ParticipationModelType
 } from "@/components/events/ParticipationModelSelector";
 import { StructuredLocation } from "@/lib/location";
-import { createEvent, EventCategoryRow } from "@/services/events.service";
+import {
+  createEvent,
+  validateParticipationConfig,
+  EventCategoryRow
+} from "@/services/events.service";
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -181,8 +185,13 @@ export default function CreateEventPage() {
         return;
       }
 
-      if (participationModel === "external" && !participationConfig.external_ticket_url) {
-        const msg = "Please provide the external ticket purchase URL.";
+      const validation = await validateParticipationConfig(
+        participationModel,
+        participationConfig
+      );
+
+      if (!validation.valid) {
+        const msg = validation.errors[0] || "Invalid participation configuration.";
         setError(msg);
         toast.error(msg);
         setLoading(false);
