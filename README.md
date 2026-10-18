@@ -40,6 +40,8 @@ Attend is an event discovery, participation, and campaign platform. It establish
 
 ```text
 Attend/
+├── .github/                # GitHub templates and workflows
+│   └── pull_request_template.md
 ├── docs/                   # Implementation roadmaps and architectural plans
 │   └── v1_implementation_plan.md
 ├── public/                 # Static assets and PWA service worker
@@ -106,6 +108,7 @@ Attend/
 │       ├── 20261006171600_v1_phase0_attendance_schema.sql
 │       ├── 20261006171700_v1_phase0_indexes.sql
 │       └── 20261008154000_v1_phase0_data_integrity.sql
+├── CONTRIBUTING.md         # Engineering contribution guide and daily PR workflow
 ├── package.json            # Scripts, dependencies, and project metadata
 ├── tsconfig.json           # TypeScript configuration and path aliases
 └── README.md               # Project documentation and architecture guide
@@ -170,3 +173,21 @@ npx tsc --noEmit
 # Production build
 npm run build
 ```
+
+## Contributing and Daily Development Workflow
+
+Development follows an accelerated 5-week progression roadmap executed by a 3-person team (Sanaullah as Tech Lead, Uzair and Hardik as Software Engineers) working 4 hours per day, 4 days per week.
+
+Detailed workflows, branch naming conventions, quality requirements, and daily operating procedures are documented in:
+- [CONTRIBUTING.md](CONTRIBUTING.md): Daily development protocol, branching strategy, and PR instructions
+- [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md): Complete phase-by-phase architectural roadmap and day-by-day objectives
+- [.github/pull_request_template.md](.github/pull_request_template.md): Standard Pull Request description template
+
+### Daily Workflow Summary
+1. Synchronize with the active weekly parent branch set up by Sanaullah (e.g. `feat/w3-phase2-public-event-attendance`).
+2. Create your daily feature branch (`feat/<name>-w<week>-d<day>-<feature>`).
+3. Implement the daily assignment from the implementation plan with clean atomic commits.
+4. Pass all verification checks (`npm test`, `npx tsc --noEmit`, `npm run build`).
+5. Open a Pull Request using the PR template and request review from Sanaullah.
+6. Once Sanaullah reviews and merges the PR, the day is officially concluded.
+
