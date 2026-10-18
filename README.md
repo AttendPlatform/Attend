@@ -40,6 +40,8 @@ Attend is an event discovery, participation, and campaign platform. It establish
 
 ```text
 Attend/
+├── docs/                   # Implementation roadmaps and architectural plans
+│   └── v1_implementation_plan.md
 ├── public/                 # Static assets and PWA service worker
 │   ├── favicon.png
 │   ├── icon-192.png
