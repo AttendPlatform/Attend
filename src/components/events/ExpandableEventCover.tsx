@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { X, Maximize2 } from "lucide-react";
 
 interface ExpandableEventCoverProps {
@@ -13,6 +13,25 @@ export default function ExpandableEventCover({
   alt,
 }: ExpandableEventCoverProps) {
   const [expanded, setExpanded] = useState(false);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      setExpanded(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!expanded) return;
+
+    window.addEventListener("keydown", handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [expanded, handleKeyDown]);
 
   if (!src) {
     return (
@@ -35,7 +54,7 @@ export default function ExpandableEventCover({
           alt={alt}
           className="aspect-[16/7] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
         />
-        <span className="absolute bottom-3 right-3 flex items-center gap-2 rounded-lg bg-black/65 px-3 py-2 text-sm text-white">
+        <span className="absolute right-3 top-3 flex items-center gap-2 rounded-lg bg-black/65 px-3 py-2 text-sm text-white shadow backdrop-blur-sm transition group-hover:bg-black/80">
           <Maximize2 size={16} />
           Expand photo
         </span>

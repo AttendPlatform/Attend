@@ -16,34 +16,42 @@ type Props = {
   eventId: string;
   fallbackCount?: number | null;
   label?: string;
+  initialAttendees?: PublicAttendee[];
 };
 
 export default function AvatarStack({
   eventId,
   fallbackCount = 0,
   label = "attending",
+  initialAttendees = [],
 }: Props) {
-  const [attendees, setAttendees] = useState<PublicAttendee[]>([]);
+  const [attendees, setAttendees] = useState<PublicAttendee[]>(initialAttendees);
   const [count, setCount] = useState(fallbackCount ?? 0);
 
   useEffect(() => {
     let active = true;
 
     async function loadAttendees() {
+      if (initialAttendees.length > 0) return;
+
       const supabase = createClient();
 
-      const { data, error } = await supabase
-        .from("public_event_attendees")
-        .select(
-          "user_id,name,profile_display_name,profile_avatar_url,profile_username"
-        )
-        .eq("event_id", eventId)
-        .limit(5);
+      try {
+        const { data, error } = await supabase
+          .from("public_event_attendees")
+          .select(
+            "user_id,name,profile_display_name,profile_avatar_url,profile_username"
+          )
+          .eq("event_id", eventId)
+          .limit(5);
 
-      if (!active || error || !data) return;
+        if (!active || error || !data) return;
 
-      setAttendees(data as PublicAttendee[]);
-      setCount(Math.max(fallbackCount ?? 0, data.length));
+        setAttendees(data as PublicAttendee[]);
+        setCount((prev) => Math.max(prev, data.length));
+      } catch {
+        // Fallback gracefully if public_event_attendees view is not present
+      }
     }
 
     void loadAttendees();
@@ -51,7 +59,7 @@ export default function AvatarStack({
     return () => {
       active = false;
     };
-  }, [eventId, fallbackCount]);
+  }, [eventId, initialAttendees]);
 
   const visibleAttendees = attendees.slice(0, 4);
 

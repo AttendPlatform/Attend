@@ -1,6 +1,5 @@
-
 import Link from "next/link";
-import { CalendarDays, MapPin, Bookmark } from "lucide-react";
+import { CalendarDays, MapPin } from "lucide-react";
 import type { Event } from "@/types/home";
 import {
   getCategory,
@@ -97,7 +96,7 @@ export function EventCard({ event }: { event: Event }) {
         <div className="min-w-0 flex-1">
           <AvatarStack
             eventId={event.id}
-            fallbackCount={null}
+            fallbackCount={event.participant_count ?? 0}
             label="attending"
           />
         </div>

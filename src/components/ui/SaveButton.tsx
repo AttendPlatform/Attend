@@ -21,8 +21,14 @@ export default function SaveButton({
   initialSaved = false,
 }: Props) {
   const [saved, setSaved] = useState(initialSaved);
+  const [prevInitialSaved, setPrevInitialSaved] = useState(initialSaved);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+
+  if (initialSaved !== prevInitialSaved) {
+    setPrevInitialSaved(initialSaved);
+    setSaved(initialSaved);
+  }
 
   function handleClick() {
     if (pending) return;
@@ -31,17 +37,27 @@ export default function SaveButton({
     setSaved(!previous);
 
     startTransition(async () => {
-      const result = await toggleSavedAction(targetType, targetId);
+      const currentPath =
+        typeof window !== "undefined"
+          ? window.location.pathname + window.location.search
+          : undefined;
+
+      const result = await toggleSavedAction(
+        targetType,
+        targetId,
+        typeof window !== "undefined" ? window.location.pathname : undefined
+      );
 
       if (result.requiresLogin) {
         setSaved(previous);
-        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        const nextUrl = currentPath || "/";
+        router.push(`/login?next=${encodeURIComponent(nextUrl)}`);
         return;
       }
 
       if (result.error || result.saved === undefined) {
         setSaved(previous);
-        window.alert(result.error ?? "Couldn't update saved items.");
+        console.warn(result.error ?? "Failed to update saved item.");
         return;
       }
 
