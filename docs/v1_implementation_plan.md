@@ -48,9 +48,9 @@ Attend is an event discovery and participation platform where **the Event is the
 | **Location Abstraction** | Pluggable provider with OpenStreetMap geocoding, 8 Nigerian tech hub presets, Haversine proximity, native directions. | Matches brief Section 18-20. | **DONE (Week 2)** |
 | **Location UI Components** | `LocationPicker.tsx` (hub presets, coordinate inputs, online toggle) and `MapPreview.tsx`. | Matches brief Section 19. | **DONE (Week 2)** |
 | **Event Creation Engine** | Rebuilt `/create` with 4 participation models, creator campaign toggle, draft/publish controls. | Matches brief Section 14 & 21. | **DONE (Week 2)** |
-| **Public Event Detail** | `/events/[id]` currently acts as an organizer view; needs conversion into public destination. | Brief Section 13 public page. | **SCHEDULED (Week 3)** |
-| **Social Proof & Action UI** | `AvatarStack`, `SaveButton`, `ShareButton` components. | Matches brief Section 10 & 11. | **SCHEDULED (Week 3)** |
-| **Event Participation CTAs**| Dynamic CTA controller for Free, Registration, Paid, and External ticket models. | Matches brief Section 14 & 37. | **SCHEDULED (Week 3)** |
+| **Public Event Detail** | Dedicated public destination at `/events/[id]` with hero banner, host info, map preview, calendar export, and OpenGraph metadata. | Brief Section 13 public page. | **DONE (Week 3 - Days 1-2)** |
+| **Social Proof & Action UI** | `AvatarStack`, `SaveButton`, `ShareButton`, `ExpandableEventCover` primitives with optimistic updates and fallbacks. | Matches brief Section 10 & 11. | **DONE (Week 3 - Days 1-2)** |
+| **Event Participation CTAs**| Dynamic `EventPrimaryAction` and RSVP server actions for Free, Paid, and External participation models. | Matches brief Section 14 & 37. | **IN PROGRESS (Week 3 - Days 3-4)** |
 | **Connected Campaign Detail** | `/campaign/[slug]` needs parent event banner, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **SCHEDULED (Week 4)** |
 | **Discover Experience** | Redesign `/discover` with search input, Nigerian city selector, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **SCHEDULED (Week 4)** |
 | **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **SCHEDULED (Week 5)** |
@@ -204,85 +204,56 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 ### Week 3 - Phase 2: Public Event Destination & Attendance CTAs
 **Focus**: Construct the public Event Detail page (`/events/[id]`), build shared UI primitives (`AvatarStack`, `SaveButton`, `ShareButton`), and wire up the dynamic 4-tier attendance state machine with registration dialogs.
 
-#### Day 1 (4 hrs) - UI Primitives & Attendance State Machine
-- **Sanaullah (Tech Lead / Supervisor)**:
-  - Draft contract for `AttendanceState` and `AttendanceModalProps` in `src/types/attendance.ts`.
-  - Review Uzair's social proof components and Hardik's attendance state machine.
-  - Set up branch `feat/w3-phase2-public-event-attendance`.
-- **Uzair (Software Engineer)**:
-  - Build `src/components/ui/AvatarStack.tsx`: Overlapping avatar circles with initials or profile images, dynamic count label (`+124 attending`, `+18 participating`), and private-profile fallback placeholders.
-  - Build `src/components/ui/SaveButton.tsx`: Optimistic bookmarking component supporting both `targetType: "event"` and `targetType: "campaign"`, integrated with `saved.service.ts`.
-  - Build `src/components/ui/ShareButton.tsx`: Native navigator share with fallback modal (copy link, WhatsApp, X, Facebook) and source tracking parameter (`?src=event_share`).
-- **Hardik (Software Engineer)**:
-  - Extend `src/services/attendance.service.ts`:
-    - `getUserEventStatus(eventId, userId)`: returns `'none' | 'attending' | 'registered' | 'ticketed'`.
-    - `attendFreeEvent(eventId, userId)`: one-click RSVP intent.
-    - `registerForEvent(eventId, userId, registrationData)`: validates against event form questions.
-    - `cancelAttendance(eventId, userId)`: cleanly marks attendance status as `'cancelled'`.
-    - `getEventAttendees(eventId, limit)`: retrieves public profile avatars for `AvatarStack`.
+> **Status Update**: Days 1 and 2 completed and verified. Days 3 and 4 reallocated below.
 
-#### Day 2 (4 hrs) - EventCard Upgrade & Dynamic Primary Action Controller
-- **Sanaullah (Tech Lead / Supervisor)**:
-  - Verify that `EventCard` correctly accepts both optimistic save handlers and the dynamic CTA controller.
-  - Code review Day 1 PRs from Uzair and Hardik; ensure zero regression on existing home feeds.
-  - Ensure RLS policies prevent users from modifying other users' attendance records.
-- **Uzair (Software Engineer)**:
-  - Rebuild `src/components/home/EventCard.tsx` (and `src/components/events/EventCard.tsx`):
-    - Standardize aspect ratio cover image with fallback styling.
-    - Category pill, date & time badges, venue name, and city.
-    - Integrate `AvatarStack` indicating verified attendees.
-    - Integrated top-right `SaveButton`.
-    - Dynamic action slot integrating Hardik's CTA controller.
-- **Hardik (Software Engineer)**:
-  - Build `src/components/events/EventPrimaryAction.tsx`:
-    - Evaluates `event.participation_model` (`free`, `registration`, `paid`, `external`) and current user attendance state.
-    - State 1 (Free): One-click `[ Attend ]` button -> transforms to `[ Attending ✓ ]` with cancel option.
-    - State 2 (Registration): `[ Register ]` button -> triggers `RegistrationModal`.
-    - State 3 (Paid): `[ Buy Ticket ]` button -> displays ticket tiers, pricing, and currency symbol (`₦`, `$`, `£`).
-    - State 4 (External): `[ Get Tickets ↗ ]` button -> deep-links to external ticketing provider URL.
-    - State 5 (Event Cancelled / Completed): Displays appropriate disabled state badges.
+#### Days 1 & 2 (8 hrs) - Completed Core UI Primitives, Public Layout & RSVP Controller [DONE]
+- **Completed Deliverables**:
+  - `AvatarStack.tsx`: Overlapping avatar circles with fallback initials, verified attendee counts, and server-side preloading support.
+  - `SaveButton.tsx` and `ShareButton.tsx`: Reusable optimistic bookmarking and native web sharing with `?src=event_share` tracking.
+  - `ExpandableEventCover.tsx`: Clickable full-bleed event cover with keyboard Escape dismissal, body scroll lock, and high-contrast trigger positioning.
+  - `src/app/actions/saved.ts`: Server action for saving events and campaigns with cache revalidation on `/saved` and `/profile`.
+  - `src/components/home/EventCard.tsx`: Upgraded card design respecting real event participant counts.
+  - `src/app/events/[id]/page.tsx`: Full public destination layout including organizer profile, `MapPreview` integration, Google Calendar and `.ics` download, connected campaigns gallery, and dynamic OpenGraph metadata via `generateMetadata`.
+  - `src/app/actions/attendance.ts` and `EventPrimaryAction.tsx`: Server actions and dynamic primary CTA supporting one-click Free RSVP, cancelled state, external tickets, and paid links.
 
-#### Day 3 (4 hrs) - Public Event Detail Destination Layout & Registration Modal
-- **Sanaullah (Tech Lead / Supervisor)**:
-  - Coordinate the route migration: Ensure the existing organizer code at `/events/[id]` is safely repositioned so `/events/[id]` becomes the **Public Event Destination** (Brief Section 13).
-  - Review Hardik's Zod schema validation for registration data.
-  - Supervise responsive viewports across iPhone, Android, tablet, and desktop.
-- **Uzair (Software Engineer)**:
-  - Transform `src/app/events/[id]/page.tsx` into the dedicated public destination:
-    - Hero cover banner with back button, category badge, and event title.
-    - Host/Organizer profile summary (avatar, display name, verified badge).
-    - Date & Time card with calendar export button (`.ics` and Google Calendar link).
-    - Location card featuring `MapPreview.tsx` and "Get Directions" link.
-    - Formatted event description with rich text presentation.
+#### Day 3 (4 hrs) - Custom Question Registration Modal & Responsive Mobile Action Bar [REASSIGNED]
 - **Hardik (Software Engineer)**:
   - Build `src/components/events/RegistrationModal.tsx`:
-    - Collects attendee name, email, phone number, and dynamic custom questions configured on the event.
+    - Collects attendee name, contact details, and dynamic custom questions configured on `event.participation_config.questions` (e.g., text, multiple-choice, dietary/size fields).
     - Validates inputs using Zod.
-    - Handles submission states: loading spinner, error alerts, and success confirmation screen.
-    - Integrates with `attendance.service.ts` and emits an in-app confirmation notification.
+    - Connects to `submitRegistrationAction` in `src/app/actions/attendance.ts`.
+    - Handles loading spinner, validation errors, and confirmation state.
+- **Uzair (Software Engineer)**:
+  - Build mobile sticky bottom action bar for `/events/[id]`:
+    - Ensure attendees on small screens can access `EventPrimaryAction` without scrolling past long descriptions or maps.
+    - Wire RSVP cancellation confirmation modal with non-destructive warning.
+- **Sanaullah (Tech Lead / Supervisor)**:
+  - Supervise registration data schemas and Zod validation rules.
+  - Review responsive layouts across mobile (iPhone/Android), tablet, and desktop viewports.
 
-#### Day 4 (4 hrs) - Connected Campaigns Gallery & Milestone 2 Checkpoint
+#### Day 4 (4 hrs) - Guest Sign-In Retention Flow & Milestone 2 Automated Verification [REASSIGNED]
+- **Hardik (Software Engineer)**:
+  - Implement guest sign-in intent retention:
+    - If an unauthenticated user clicks `[ Attend ]` or `[ Register ]`, preserve their intended action and payload so that returning from `/login` automatically completes their attendance or opens the registration modal.
+- **Uzair (Software Engineer)**:
+  - Final visual polish on `/events/[id]`:
+    - Refine connected campaign card transitions and hover states.
+    - Ensure empty states ("No campaigns published yet") align with event creator toggles.
 - **Sanaullah (Tech Lead / Supervisor)**:
   - Author and run automated verification suite `scripts/verify-milestone2.ts`:
-    - Tests all 4 participation paths (Free RSVP, Registration submission, Paid link, External link).
+    - Tests all 4 participation tiers (Free RSVP, Registration, Paid link, External link).
     - Tests `AvatarStack` count calculations and privacy masking.
     - Tests bookmark persistence in `saved_events`.
+    - Tests dynamic OpenGraph metadata generation on public event routes.
   - Conduct full PR review, merge `feat/w3-phase2-public-event-attendance` into `main`, and verify production build.
-- **Uzair (Software Engineer)**:
-  - Build "Connected Campaigns" section on the Public Event Detail page:
-    - Displays campaigns attached to this event.
-    - Adds "Create a Campaign" action button if `allow_participant_campaigns === true` or if viewer is the organizer.
-  - Polish layout spacing, sticky mobile bottom CTA bar, and smooth transitions.
-- **Hardik (Software Engineer)**:
-  - Implement guest user handling: If an unauthenticated user clicks `[ Attend ]` or `[ Register ]`, display an elegant auth-prompt modal that preserves their attendance intent after sign-in.
-  - Wire up cancellation dialog allowing users to confirm RSVP cancellation and restore CTA state.
 
 > **Week 3 Deliverables Checkpoint**:
-> - Reusable `AvatarStack`, `SaveButton`, and `ShareButton`.
-> - Rebuilt `EventCard` and dedicated Public Event Detail page at `/events/[id]`.
-> - Dynamic `EventPrimaryAction` handling all 4 participation tiers.
-> - Fully validated `RegistrationModal` with custom question support.
-> - Automated test suite `verify-milestone2.ts` passing 100%.
+> - Reusable `AvatarStack`, `SaveButton`, `ShareButton`, and `ExpandableEventCover` [DONE].
+> - Rebuilt `EventCard` and dedicated Public Event Detail page at `/events/[id]` [DONE].
+> - Dynamic `EventPrimaryAction` and attendance server actions [DONE].
+> - Fully validated `RegistrationModal` with custom question support [DAY 3].
+> - Guest intent preservation and mobile sticky action bar [DAY 4].
+> - Automated test suite `verify-milestone2.ts` passing 100% [DAY 4].
 
 ---
 
