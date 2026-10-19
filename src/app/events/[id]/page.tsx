@@ -1,4 +1,5 @@
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -10,13 +11,14 @@ import {
   Globe2,
   MapPin,
   Share2,
-  Ticket,
   Users,
   Image as ImageIcon,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCategory } from "@/lib/utils/home-helpers";
+import { isEventSaved } from "@/services/saved.service";
+import { getUserEventAttendance } from "@/services/attendance.service";
 import type { Event } from "@/types/home";
 
 import AvatarStack from "@/components/ui/AvatarStack";
@@ -24,10 +26,40 @@ import SaveButton from "@/components/ui/SaveButton";
 import ShareButton from "@/components/ui/ShareButton";
 import { MapPreview } from "@/components/location/MapPreview";
 import ExpandableEventCover from "@/components/events/ExpandableEventCover";
+import EventPrimaryAction from "@/components/events/EventPrimaryAction";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: event } = await supabase
+    .from("events")
+    .select("title, description, cover_image")
+    .eq("id", id)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (!event) {
+    return {
+      title: "Event Details | Attend",
+    };
+  }
+
+  return {
+    title: `${event.title} | Attend`,
+    description: event.description || "Join this event on Attend.",
+    openGraph: {
+      title: event.title,
+      description: event.description || "Join this event on Attend.",
+      images: event.cover_image ? [event.cover_image] : [],
+    },
+  };
+}
 
 type EventRecord = {
   id: string;
@@ -206,48 +238,62 @@ export default async function PublicEventPage({ params }: PageProps) {
 
   const event = rawEvent as unknown as EventRecord;
 
-  // Fetch category, organizer and published campaigns independently.
-  const [categoryResult, profileResult, campaignsResult] = await Promise.all([
-    event.category_id
-      ? supabase
-          .from("event_categories")
-          .select("id, name, slug")
-          .eq("id", event.category_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+  // Fetch category, organizer, campaigns, and authenticated user in parallel.
+  const [categoryResult, profileResult, campaignsResult, authResult] =
+    await Promise.all([
+      event.category_id
+        ? supabase
+            .from("event_categories")
+            .select("id, name, slug")
+            .eq("id", event.category_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
 
-    supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", event.creator_id)
-      .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", event.creator_id)
+        .maybeSingle(),
 
-    supabase
-      .from("campaigns")
-      .select(`
-        id,
-        event_id,
-        title,
-        slug,
-        description,
-        status,
-        views,
-        generations,
-        downloads,
-        participants,
-        campaign_templates (
+      supabase
+        .from("campaigns")
+        .select(`
           id,
-          asset_url,
-          is_active
-        )
-      `)
-      .eq("event_id", event.id)
-      .eq("status", "published")
-      .order("created_at", { ascending: false }),
-  ]);
+          event_id,
+          title,
+          slug,
+          description,
+          status,
+          views,
+          generations,
+          downloads,
+          participants,
+          campaign_templates (
+            id,
+            asset_url,
+            is_active
+          )
+        `)
+        .eq("event_id", event.id)
+        .eq("status", "published")
+        .order("created_at", { ascending: false }),
+
+      supabase.auth.getUser(),
+    ]);
 
   const category = categoryResult.data;
   const profile = (profileResult.data ?? {}) as ProfileRecord;
+  const user = authResult.data?.user ?? null;
+
+  const [isSaved, userAttendance] = await Promise.all([
+    user ? isEventSaved(event.id, user.id) : Promise.resolve(false),
+    user ? getUserEventAttendance(event.id, user.id) : Promise.resolve(null),
+  ]);
+
+  const attendanceStatus =
+    userAttendance && userAttendance.status !== "cancelled"
+      ? (userAttendance.status as "attending" | "registered" | "ticketed")
+      : "none";
 
   const organizerName =
     profile.display_name ||
@@ -278,17 +324,6 @@ export default async function PublicEventPage({ params }: PageProps) {
 
   const externalUrl = getExternalUrl(participationConfig);
   const participationModel = event.participation_model.toLowerCase();
-
-  const actionLabel =
-    participationModel === "paid"
-      ? "Get tickets"
-      : participationModel === "registration"
-        ? "Register for event"
-        : participationModel === "external"
-          ? "Join event"
-          : "Attend event";
-
-  const loginUrl = `/login?next=${encodeURIComponent(`/events/${event.id}`)}`;
 
   const startDate = new Date(event.start_at);
   const validStartDate = !Number.isNaN(startDate.getTime());
@@ -478,7 +513,11 @@ export default async function PublicEventPage({ params }: PageProps) {
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
-                <SaveButton targetId={event.id} targetType="event" />
+                <SaveButton
+                  targetId={event.id}
+                  targetType="event"
+                  initialSaved={isSaved}
+                />
                 <ShareButton
                   title={event.title}
                   path={`/events/${event.id}`}
@@ -605,33 +644,15 @@ export default async function PublicEventPage({ params }: PageProps) {
               </div>
 
               <div className="mt-6 border-t border-neutral-100 pt-5">
-                {externalUrl ? (
-                  <a
-                    href={externalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center gap-2 rounded-full bg-violet-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-violet-700"
-                  >
-                    {participationModel === "paid" ? (
-                      <Ticket className="h-4 w-4" />
-                    ) : (
-                      <ExternalLink className="h-4 w-4" />
-                    )}
-                    {actionLabel}
-                  </a>
-                ) : (
-                  <Link
-                    href={loginUrl}
-                    className="flex w-full items-center justify-center gap-2 rounded-full bg-violet-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-violet-700"
-                  >
-                    {participationModel === "paid" ? (
-                      <Ticket className="h-4 w-4" />
-                    ) : (
-                      <Users className="h-4 w-4" />
-                    )}
-                    {actionLabel}
-                  </Link>
-                )}
+                <EventPrimaryAction
+                  eventId={event.id}
+                  eventTitle={event.title}
+                  participationModel={participationModel}
+                  externalUrl={externalUrl}
+                  isLoggedIn={Boolean(user)}
+                  initialStatus={attendanceStatus}
+                  eventStatus={event.status}
+                />
 
                 <p className="mt-3 text-center text-xs leading-5 text-neutral-500">
                   {participationModel === "paid"

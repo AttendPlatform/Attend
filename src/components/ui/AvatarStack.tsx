@@ -37,7 +37,7 @@ export default function AvatarStack({
       const supabase = createClient();
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("public_event_attendees")
           .select(
             "user_id,name,profile_display_name,profile_avatar_url,profile_username"
@@ -47,8 +47,8 @@ export default function AvatarStack({
 
         if (!active || error || !data) return;
 
-        setAttendees(data as PublicAttendee[]);
-        setCount((prev) => Math.max(prev, data.length));
+        setAttendees(data as unknown as PublicAttendee[]);
+        setCount((prev) => Math.max(prev, (data as unknown[]).length));
       } catch {
         // Fallback gracefully if public_event_attendees view is not present
       }
