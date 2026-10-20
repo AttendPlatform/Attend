@@ -29,3 +29,21 @@ export interface AttendanceCounts {
   ticketHolders: number;
   total: number;
 }
+
+export interface CustomQuestion {
+  id: string;
+  label: string;
+  type?: "text" | "textarea" | "select" | "checkbox";
+  required?: boolean;
+  options?: string[];
+  placeholder?: string;
+}
+
+export interface RegistrationSubmissionPayload {
+  name: string;
+  email?: string;
+  phone?: string;
+  organization?: string;
+  job_title?: string;
+  answers?: Record<string, unknown>;
+}
