@@ -158,6 +158,7 @@ npm test
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
 | `npm test` | Complete Test Suite | Runs all active milestone verification suites |
+| `npm run verify:d3` | Week 3 Day 3 | Registration modal, custom questions schema, and mobile sticky bar |
 | `npm run verify:m1` | Milestone 1 (Phase 1) | Location abstraction, event creation flow, and participation models |
 | `npm run verify:m0` | Milestone 0 (Phase 0) | Database schema migrations, referential integrity, and domain services |
 
