@@ -1,0 +1,194 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useTransition,
+  useRef,
+  useCallback,
+  type ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
+import { toggleAttendanceAction } from "@/app/actions/attendance";
+
+export type AttendanceStatus =
+  | "none"
+  | "attending"
+  | "registered"
+  | "ticketed"
+  | "cancelled";
+
+interface EventAttendanceContextValue {
+  eventId: string;
+  eventTitle: string;
+  participationModel: string;
+  externalUrl: string | null;
+  isLoggedIn: boolean;
+  eventStatus: string;
+  status: AttendanceStatus;
+  isAttending: boolean;
+  isPending: boolean;
+  errorMessage: string | null;
+  isCancelModalOpen: boolean;
+  triggerElement: HTMLElement | null;
+  openCancelModal: (trigger?: HTMLElement | null) => void;
+  closeCancelModal: () => void;
+  handleToggleRSVP: (trigger?: HTMLElement | null) => void;
+  handleConfirmCancel: () => void;
+}
+
+const EventAttendanceContext =
+  createContext<EventAttendanceContextValue | null>(null);
+
+export interface EventAttendanceProviderProps {
+  eventId: string;
+  eventTitle: string;
+  participationModel: string;
+  externalUrl: string | null;
+  isLoggedIn: boolean;
+  initialStatus: AttendanceStatus;
+  eventStatus?: string;
+  children: ReactNode;
+}
+
+export function EventAttendanceProvider({
+  eventId,
+  eventTitle,
+  participationModel,
+  externalUrl,
+  isLoggedIn,
+  initialStatus = "none",
+  eventStatus = "published",
+  children,
+}: EventAttendanceProviderProps) {
+  const [status, setStatus] = useState<AttendanceStatus>(initialStatus);
+  const [prevInitial, setPrevInitial] = useState<AttendanceStatus>(initialStatus);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  if (initialStatus !== prevInitial) {
+    setPrevInitial(initialStatus);
+    setStatus(initialStatus);
+  }
+
+  const isAttending =
+    status === "attending" ||
+    status === "registered" ||
+    status === "ticketed";
+
+  const openCancelModal = useCallback((trigger?: HTMLElement | null) => {
+    if (trigger) {
+      setTriggerElement(trigger);
+    } else if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      setTriggerElement(document.activeElement);
+    }
+    setIsCancelModalOpen(true);
+  }, []);
+
+  const closeCancelModal = useCallback(() => {
+    setIsCancelModalOpen(false);
+  }, []);
+
+  const handleToggleRSVP = useCallback(
+    (trigger?: HTMLElement | null) => {
+      if (isPending) return;
+
+      if (!isLoggedIn) {
+        const nextUrl = typeof window !== "undefined" ? window.location.pathname : `/events/${eventId}`;
+        router.push(`/login?next=${encodeURIComponent(nextUrl)}`);
+        return;
+      }
+
+      if (isAttending) {
+        openCancelModal(trigger);
+        return;
+      }
+
+      setErrorMessage(null);
+      const previousStatus = status;
+      setStatus("attending");
+
+      startTransition(async () => {
+        const pathname = typeof window !== "undefined" ? window.location.pathname : undefined;
+        const result = await toggleAttendanceAction(eventId, pathname);
+
+        if (result.requiresLogin) {
+          setStatus(previousStatus);
+          router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+          return;
+        }
+
+        if (result.error || !result.status) {
+          setStatus(previousStatus);
+          setErrorMessage(result.error ?? "Failed to update RSVP.");
+          return;
+        }
+
+        setStatus(result.status);
+      });
+    },
+    [eventId, isAttending, isLoggedIn, isPending, openCancelModal, router, status]
+  );
+
+  const handleConfirmCancel = useCallback(() => {
+    if (isPending) return;
+
+    setErrorMessage(null);
+    const previousStatus = status;
+    setStatus("cancelled");
+    setIsCancelModalOpen(false);
+
+    startTransition(async () => {
+      const pathname = typeof window !== "undefined" ? window.location.pathname : undefined;
+      const result = await toggleAttendanceAction(eventId, pathname);
+
+      if (result.requiresLogin) {
+        setStatus(previousStatus);
+        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
+
+      if (result.error || !result.status) {
+        setStatus(previousStatus);
+        setErrorMessage(result.error ?? "Failed to cancel RSVP.");
+        return;
+      }
+
+      setStatus(result.status);
+    });
+  }, [eventId, isPending, router, status]);
+
+  return (
+    <EventAttendanceContext.Provider
+      value={{
+        eventId,
+        eventTitle,
+        participationModel,
+        externalUrl,
+        isLoggedIn,
+        eventStatus,
+        status,
+        isAttending,
+        isPending,
+        errorMessage,
+        isCancelModalOpen,
+        triggerElement,
+        openCancelModal,
+        closeCancelModal,
+        handleToggleRSVP,
+        handleConfirmCancel,
+      }}
+    >
+      {children}
+    </EventAttendanceContext.Provider>
+  );
+}
+
+export function useEventAttendance() {
+  const context = useContext(EventAttendanceContext);
+  return context;
+}
