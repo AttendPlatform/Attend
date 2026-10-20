@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toggleAttendanceAction } from "@/app/actions/attendance";
+import { useEventAttendance } from "./EventAttendanceProvider";
 
 interface EventPrimaryActionProps {
   eventId: string;
@@ -31,21 +32,27 @@ export default function EventPrimaryAction({
   initialStatus = "none",
   eventStatus = "published",
 }: EventPrimaryActionProps) {
-  const [status, setStatus] = useState(initialStatus);
+  const context = useEventAttendance();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Fallback internal state if not wrapped in EventAttendanceProvider
+  const [internalStatus, setInternalStatus] = useState(initialStatus);
   const [prevInitial, setPrevInitial] = useState(initialStatus);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [internalError, setInternalError] = useState<string | null>(null);
+  const [internalPending, startTransition] = useTransition();
   const router = useRouter();
 
   if (initialStatus !== prevInitial) {
     setPrevInitial(initialStatus);
-    setStatus(initialStatus);
+    setInternalStatus(initialStatus);
   }
 
-  const isAttending =
-    status === "attending" ||
-    status === "registered" ||
-    status === "ticketed";
+  const status = context ? context.status : internalStatus;
+  const isAttending = context
+    ? context.isAttending
+    : status === "attending" || status === "registered" || status === "ticketed";
+  const pending = context ? context.isPending : internalPending;
+  const errorMessage = context ? context.errorMessage : internalError;
 
   const isCancelledEvent = eventStatus === "cancelled";
 
@@ -102,32 +109,40 @@ export default function EventPrimaryAction({
     );
   }
 
-  // Logged-in user: Free / One-click RSVP flow
+  // Handle RSVP toggle
   function handleToggleRSVP() {
-    if (pending) return;
-    setErrorMessage(null);
+    if (context) {
+      context.handleToggleRSVP(triggerRef.current);
+      return;
+    }
 
-    const previousStatus = status;
+    if (pending) return;
+    setInternalError(null);
+
+    const previousStatus = internalStatus;
     const optimisticNewStatus = isAttending ? "cancelled" : "attending";
-    setStatus(optimisticNewStatus);
+    setInternalStatus(optimisticNewStatus);
 
     startTransition(async () => {
-      const pathname = typeof window !== "undefined" ? window.location.pathname : undefined;
+      const pathname =
+        typeof window !== "undefined" ? window.location.pathname : undefined;
       const result = await toggleAttendanceAction(eventId, pathname);
 
       if (result.requiresLogin) {
-        setStatus(previousStatus);
-        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        setInternalStatus(previousStatus);
+        router.push(
+          `/login?next=${encodeURIComponent(window.location.pathname)}`
+        );
         return;
       }
 
       if (result.error || !result.status) {
-        setStatus(previousStatus);
-        setErrorMessage(result.error ?? "Failed to update RSVP.");
+        setInternalStatus(previousStatus);
+        setInternalError(result.error ?? "Failed to update RSVP.");
         return;
       }
 
-      setStatus(result.status);
+      setInternalStatus(result.status);
     });
   }
 
@@ -135,6 +150,7 @@ export default function EventPrimaryAction({
     <div className="space-y-2">
       {isAttending ? (
         <button
+          ref={triggerRef}
           type="button"
           onClick={handleToggleRSVP}
           disabled={pending}
@@ -156,6 +172,7 @@ export default function EventPrimaryAction({
         </button>
       ) : (
         <button
+          ref={triggerRef}
           type="button"
           onClick={handleToggleRSVP}
           disabled={pending}
@@ -170,7 +187,9 @@ export default function EventPrimaryAction({
               ) : (
                 <Users className="h-4 w-4" />
               )}
-              {participationModel === "registration" ? "Register now" : "Attend event"}
+              {participationModel === "registration"
+                ? "Register now"
+                : "Attend event"}
             </>
           )}
         </button>

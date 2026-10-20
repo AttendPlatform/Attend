@@ -25,8 +25,13 @@ import AvatarStack from "@/components/ui/AvatarStack";
 import SaveButton from "@/components/ui/SaveButton";
 import ShareButton from "@/components/ui/ShareButton";
 import { MapPreview } from "@/components/location/MapPreview";
-import ExpandableEventCover from "@/components/events/ExpandableEventCover";
-import EventPrimaryAction from "@/components/events/EventPrimaryAction";
+import {
+  ExpandableEventCover,
+  EventPrimaryAction,
+  CancelRsvpModal,
+  MobileEventActionBar,
+  EventAttendanceProvider,
+} from "@/components/events";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -391,9 +396,19 @@ export default async function PublicEventPage({ params }: PageProps) {
   const campaignsUnavailable = Boolean(campaignsResult.error);
 
   return (
-    <main className="min-h-screen bg-neutral-50 pb-12 text-neutral-900">
-      {/* Navigation */}
-      <header className="border-b border-neutral-200 bg-white">
+    <main className="min-h-screen bg-neutral-50 pb-40 md:pb-24 lg:pb-12 text-neutral-900">
+      <EventAttendanceProvider
+        eventId={event.id}
+        eventTitle={event.title}
+        participationModel={participationModel}
+        externalUrl={externalUrl}
+        isLoggedIn={Boolean(user)}
+        initialStatus={attendanceStatus}
+        eventStatus={event.status}
+      >
+        <CancelRsvpModal />
+        {/* Navigation */}
+        <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-4 sm:px-6">
           <Link
             href="/discover"
@@ -831,6 +846,9 @@ export default async function PublicEventPage({ params }: PageProps) {
           )}
         </section>
       </div>
-    </main>
-  );
+
+      <MobileEventActionBar startDate={event.start_at} />
+    </EventAttendanceProvider>
+  </main>
+);
 }
