@@ -652,6 +652,9 @@ export default async function PublicEventPage({ params }: PageProps) {
                   isLoggedIn={Boolean(user)}
                   initialStatus={attendanceStatus}
                   eventStatus={event.status}
+                  participationConfig={event.participation_config as any}
+                  userName={user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+                  userEmail={user?.email || ""}
                 />
 
                 <p className="mt-3 text-center text-xs leading-5 text-neutral-500">
