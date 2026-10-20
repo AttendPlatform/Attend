@@ -13,7 +13,8 @@
     "verify:location": "node --experimental-strip-types scripts/verify-location-layer.ts",
     "verify:picker": "node --experimental-strip-types scripts/verify-location-picker.ts",
     "verify:create": "node --experimental-strip-types scripts/verify-event-creation.ts",
-    "verify:m1": "node --experimental-strip-types scripts/verify-milestone1.ts"
+    "verify:m1": "node --experimental-strip-types scripts/verify-milestone1.ts",
+    "verify:day3": "node --experimental-strip-types scripts/verify-day3.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
