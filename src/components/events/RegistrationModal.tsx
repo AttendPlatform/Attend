@@ -171,9 +171,9 @@ export default function RegistrationModal({
         }
       }}
     >
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-2xl transition-all animate-in zoom-in-95 duration-200">
+      <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-2xl transition-all animate-in zoom-in-95 duration-200">
         {/* Header banner */}
-        <div className="relative border-b border-neutral-100 bg-gradient-to-r from-violet-50 via-white to-violet-50/50 p-6">
+        <div className="relative shrink-0 border-b border-neutral-100 bg-gradient-to-r from-violet-50 via-white to-violet-50/50 p-5 sm:p-6">
           <button
             type="button"
             onClick={onClose}
@@ -200,7 +200,7 @@ export default function RegistrationModal({
         </div>
 
         {/* Content body */}
-        <div className="p-6">
+        <div className="overflow-y-auto p-5 sm:p-6">
           {isSuccess ? (
             <div className="py-4 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50">
@@ -493,7 +493,7 @@ export default function RegistrationModal({
               )}
 
               {/* Action buttons */}
-              <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-neutral-100">
+              <div className="sticky bottom-0 -mx-5 -mb-5 sm:-mx-6 sm:-mb-6 mt-6 flex items-center justify-end gap-3 border-t border-neutral-100 bg-white/95 px-5 sm:px-6 py-3.5 backdrop-blur-sm">
                 <button
                   type="button"
                   onClick={onClose}
