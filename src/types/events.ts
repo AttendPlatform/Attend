@@ -11,9 +11,13 @@ export interface FreeParticipationConfig {
 
 export interface RegistrationParticipationConfig {
   require_approval?: boolean;
-  questions?: string[];
+  questions?: (string | Record<string, unknown>)[];
   max_attendees?: number | null;
   registration_deadline?: string | null;
+  require_phone?: boolean;
+  require_organization?: boolean;
+  require_job_title?: boolean;
+  custom_question?: string | null;
 }
 
 export interface PaidParticipationConfig {

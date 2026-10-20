@@ -25,8 +25,14 @@ import AvatarStack from "@/components/ui/AvatarStack";
 import SaveButton from "@/components/ui/SaveButton";
 import ShareButton from "@/components/ui/ShareButton";
 import { MapPreview } from "@/components/location/MapPreview";
-import ExpandableEventCover from "@/components/events/ExpandableEventCover";
-import EventPrimaryAction from "@/components/events/EventPrimaryAction";
+import {
+  ExpandableEventCover,
+  EventPrimaryAction,
+  CancelRsvpModal,
+  RegistrationModal,
+  MobileEventActionBar,
+  EventAttendanceProvider,
+} from "@/components/events";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -391,9 +397,23 @@ export default async function PublicEventPage({ params }: PageProps) {
   const campaignsUnavailable = Boolean(campaignsResult.error);
 
   return (
-    <main className="min-h-screen bg-neutral-50 pb-12 text-neutral-900">
-      {/* Navigation */}
-      <header className="border-b border-neutral-200 bg-white">
+    <main className="min-h-screen bg-neutral-50 pb-40 md:pb-24 lg:pb-12 text-neutral-900">
+      <EventAttendanceProvider
+        eventId={event.id}
+        eventTitle={event.title}
+        participationModel={participationModel}
+        externalUrl={externalUrl}
+        isLoggedIn={Boolean(user)}
+        initialStatus={attendanceStatus}
+        eventStatus={event.status}
+        participationConfig={event.participation_config as any}
+        userName={user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+        userEmail={user?.email || ""}
+      >
+        <CancelRsvpModal />
+        <RegistrationModal />
+        {/* Navigation */}
+        <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-4 sm:px-6">
           <Link
             href="/discover"
@@ -652,6 +672,9 @@ export default async function PublicEventPage({ params }: PageProps) {
                   isLoggedIn={Boolean(user)}
                   initialStatus={attendanceStatus}
                   eventStatus={event.status}
+                  participationConfig={event.participation_config as any}
+                  userName={user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+                  userEmail={user?.email || ""}
                 />
 
                 <p className="mt-3 text-center text-xs leading-5 text-neutral-500">
@@ -831,6 +854,18 @@ export default async function PublicEventPage({ params }: PageProps) {
           )}
         </section>
       </div>
-    </main>
-  );
+
+      <MobileEventActionBar
+        eventId={event.id}
+        eventTitle={event.title}
+        startDate={event.start_at}
+        participationModel={participationModel}
+        externalUrl={externalUrl}
+        isLoggedIn={Boolean(user)}
+        eventStatus={event.status}
+        isSaved={isSaved}
+      />
+    </EventAttendanceProvider>
+  </main>
+);
 }

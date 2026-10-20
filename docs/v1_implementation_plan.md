@@ -50,7 +50,7 @@ Attend is an event discovery and participation platform where **the Event is the
 | **Event Creation Engine** | Rebuilt `/create` with 4 participation models, creator campaign toggle, draft/publish controls. | Matches brief Section 14 & 21. | **DONE (Week 2)** |
 | **Public Event Detail** | Dedicated public destination at `/events/[id]` with hero banner, host info, map preview, calendar export, and OpenGraph metadata. | Brief Section 13 public page. | **DONE (Week 3 - Days 1-2)** |
 | **Social Proof & Action UI** | `AvatarStack`, `SaveButton`, `ShareButton`, `ExpandableEventCover` primitives with optimistic updates and fallbacks. | Matches brief Section 10 & 11. | **DONE (Week 3 - Days 1-2)** |
-| **Event Participation CTAs**| Dynamic `EventPrimaryAction` and RSVP server actions for Free, Paid, and External participation models. | Matches brief Section 14 & 37. | **IN PROGRESS (Week 3 - Days 3-4)** |
+| **Event Participation CTAs**| Dynamic `EventPrimaryAction`, validated `RegistrationModal`, `CancellationModal`, and `MobileEventActionBar`. | Matches brief Section 14 & 37. | **DONE (Week 3 - Days 1-3)** |
 | **Connected Campaign Detail** | `/campaign/[slug]` needs parent event banner, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **SCHEDULED (Week 4)** |
 | **Discover Experience** | Redesign `/discover` with search input, Nigerian city selector, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **SCHEDULED (Week 4)** |
 | **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **SCHEDULED (Week 5)** |
@@ -216,22 +216,17 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - `src/app/events/[id]/page.tsx`: Full public destination layout including organizer profile, `MapPreview` integration, Google Calendar and `.ics` download, connected campaigns gallery, and dynamic OpenGraph metadata via `generateMetadata`.
   - `src/app/actions/attendance.ts` and `EventPrimaryAction.tsx`: Server actions and dynamic primary CTA supporting one-click Free RSVP, cancelled state, external tickets, and paid links.
 
-#### Day 3 (4 hrs) - Custom Question Registration Modal & Responsive Mobile Action Bar [REASSIGNED]
-- **Hardik (Software Engineer)**:
-  - Build `src/components/events/RegistrationModal.tsx`:
-    - Collects attendee name, contact details, and dynamic custom questions configured on `event.participation_config.questions` (e.g., text, multiple-choice, dietary/size fields).
-    - Validates inputs using Zod.
-    - Connects to `submitRegistrationAction` in `src/app/actions/attendance.ts`.
-    - Handles loading spinner, validation errors, and confirmation state.
-- **Uzair (Software Engineer)**:
-  - Build mobile sticky bottom action bar for `/events/[id]`:
-    - Ensure attendees on small screens can access `EventPrimaryAction` without scrolling past long descriptions or maps.
-    - Wire RSVP cancellation confirmation modal with non-destructive warning.
-- **Sanaullah (Tech Lead / Supervisor)**:
-  - Supervise registration data schemas and Zod validation rules.
-  - Review responsive layouts across mobile (iPhone/Android), tablet, and desktop viewports.
+#### Day 3 (4 hrs) - Custom Question Registration Modal & Responsive Mobile Action Bar [DONE]
+- **Completed Deliverables**:
+  - `src/components/events/EventAttendanceProvider.tsx`: Shared React Context provider (`useEventAttendance`) synchronizing RSVP status, loading transitions, error handling, and modal triggers across desktop and mobile.
+  - `src/components/events/CancelRsvpModal.tsx`: Accessible dialog (`role="alertdialog"`, `aria-modal="true"`) with keyboard focus trapping, Escape listener, body scroll locking, and focus restoration to trigger element.
+  - `src/components/events/MobileEventActionBar.tsx`: Fixed mobile sticky action bar docked at `bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 lg:hidden` above `MobileNav`, with Save, Share, date snippet, and synchronized primary CTA.
+  - `src/components/events/RegistrationModal.tsx`: Accessible dialog with responsive scrolling, real-time Zod validation, error indicators, submission loading spinners, and registration confirmation.
+  - `src/lib/validations/registration.ts`: Dynamic Zod validation schemas for attendee details (`name`, `email`, `phone`, `organization`, `job_title`) and customizable questions.
+  - `src/app/events/[id]/page.tsx`: Integrated `EventAttendanceProvider`, `CancelRsvpModal`, `RegistrationModal`, `MobileEventActionBar`, and scroll clearance (`pb-40 md:pb-24 lg:pb-12`).
+  - `scripts/verify-day3.ts`: Unified automated verification suite passing 50/50 checks (`npm run verify:day3`).
 
-#### Day 4 (4 hrs) - Guest Sign-In Retention Flow & Milestone 2 Automated Verification [REASSIGNED]
+#### Day 4 (4 hrs) - Guest Sign-In Retention Flow & Milestone 2 Automated Verification [SCHEDULED]
 - **Hardik (Software Engineer)**:
   - Implement guest sign-in intent retention:
     - If an unauthenticated user clicks `[ Attend ]` or `[ Register ]`, preserve their intended action and payload so that returning from `/login` automatically completes their attendance or opens the registration modal.
@@ -251,8 +246,12 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 > - Reusable `AvatarStack`, `SaveButton`, `ShareButton`, and `ExpandableEventCover` [DONE].
 > - Rebuilt `EventCard` and dedicated Public Event Detail page at `/events/[id]` [DONE].
 > - Dynamic `EventPrimaryAction` and attendance server actions [DONE].
-> - Fully validated `RegistrationModal` with custom question support [DAY 3].
-> - Guest intent preservation and mobile sticky action bar [DAY 4].
+> - Shared `EventAttendanceProvider` and synchronized real-time state [DONE].
+> - Non-destructive `CancelRsvpModal` with focus trap and restoration [DONE].
+> - Mobile sticky action bar `MobileEventActionBar` docked above mobile navigation [DONE].
+> - Fully validated `RegistrationModal` with custom question support [DONE].
+> - Day 3 automated test suite `verify-day3.ts` passing 50/50 checks [DONE].
+> - Guest intent preservation [DAY 4].
 > - Automated test suite `verify-milestone2.ts` passing 100% [DAY 4].
 
 ---

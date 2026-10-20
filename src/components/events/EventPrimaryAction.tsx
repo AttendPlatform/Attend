@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -8,12 +8,14 @@ import {
   ExternalLink,
   Ticket,
   Users,
+  ClipboardList,
   Loader2,
   AlertCircle,
 } from "lucide-react";
 import { toggleAttendanceAction } from "@/app/actions/attendance";
+import { useEventAttendance } from "./EventAttendanceProvider";
 
-interface EventPrimaryActionProps {
+export interface EventPrimaryActionProps {
   eventId: string;
   eventTitle: string;
   participationModel: string;
@@ -21,6 +23,9 @@ interface EventPrimaryActionProps {
   isLoggedIn: boolean;
   initialStatus: "none" | "attending" | "registered" | "ticketed" | "cancelled";
   eventStatus?: string;
+  participationConfig?: Record<string, unknown> | null;
+  userName?: string;
+  userEmail?: string;
 }
 
 export default function EventPrimaryAction({
@@ -31,21 +36,27 @@ export default function EventPrimaryAction({
   initialStatus = "none",
   eventStatus = "published",
 }: EventPrimaryActionProps) {
-  const [status, setStatus] = useState(initialStatus);
+  const context = useEventAttendance();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Fallback internal state if not wrapped in EventAttendanceProvider
+  const [internalStatus, setInternalStatus] = useState(initialStatus);
   const [prevInitial, setPrevInitial] = useState(initialStatus);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [internalError, setInternalError] = useState<string | null>(null);
+  const [internalPending, startTransition] = useTransition();
   const router = useRouter();
 
   if (initialStatus !== prevInitial) {
     setPrevInitial(initialStatus);
-    setStatus(initialStatus);
+    setInternalStatus(initialStatus);
   }
 
-  const isAttending =
-    status === "attending" ||
-    status === "registered" ||
-    status === "ticketed";
+  const status = context ? context.status : internalStatus;
+  const isAttending = context
+    ? context.isAttending
+    : status === "attending" || status === "registered" || status === "ticketed";
+  const pending = context ? context.isPending : internalPending;
+  const errorMessage = context ? context.errorMessage : internalError;
 
   const isCancelledEvent = eventStatus === "cancelled";
 
@@ -94,6 +105,8 @@ export default function EventPrimaryAction({
       >
         {participationModel === "paid" ? (
           <Ticket className="h-4 w-4" />
+        ) : participationModel === "registration" ? (
+          <ClipboardList className="h-4 w-4" />
         ) : (
           <Users className="h-4 w-4" />
         )}
@@ -102,41 +115,53 @@ export default function EventPrimaryAction({
     );
   }
 
-  // Logged-in user: Free / One-click RSVP flow
-  function handleToggleRSVP() {
-    if (pending) return;
-    setErrorMessage(null);
+  // Handle RSVP action click
+  function handleActionClick() {
+    if (context) {
+      context.handleToggleRSVP(triggerRef.current);
+      return;
+    }
 
-    const previousStatus = status;
+    if (pending) return;
+    setInternalError(null);
+
+    const previousStatus = internalStatus;
     const optimisticNewStatus = isAttending ? "cancelled" : "attending";
-    setStatus(optimisticNewStatus);
+    setInternalStatus(optimisticNewStatus);
 
     startTransition(async () => {
-      const pathname = typeof window !== "undefined" ? window.location.pathname : undefined;
+      const pathname =
+        typeof window !== "undefined" ? window.location.pathname : undefined;
       const result = await toggleAttendanceAction(eventId, pathname);
 
       if (result.requiresLogin) {
-        setStatus(previousStatus);
-        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        setInternalStatus(previousStatus);
+        router.push(
+          `/login?next=${encodeURIComponent(window.location.pathname)}`
+        );
         return;
       }
 
       if (result.error || !result.status) {
-        setStatus(previousStatus);
-        setErrorMessage(result.error ?? "Failed to update RSVP.");
+        setInternalStatus(previousStatus);
+        setInternalError(result.error ?? "Failed to update RSVP.");
         return;
       }
 
-      setStatus(result.status);
+      setInternalStatus(result.status);
     });
   }
+
+  const attendanceLabel =
+    status === "registered" ? "Registered" : "Attending";
 
   return (
     <div className="space-y-2">
       {isAttending ? (
         <button
+          ref={triggerRef}
           type="button"
-          onClick={handleToggleRSVP}
+          onClick={handleActionClick}
           disabled={pending}
           className="group relative flex w-full items-center justify-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-5 py-3.5 text-sm font-semibold text-emerald-800 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 disabled:opacity-60"
         >
@@ -146,7 +171,7 @@ export default function EventPrimaryAction({
             <>
               <span className="inline-flex items-center gap-1.5 group-hover:hidden">
                 <Check className="h-4 w-4 text-emerald-600" />
-                Attending
+                {attendanceLabel}
               </span>
               <span className="hidden items-center gap-1.5 group-hover:inline-flex">
                 Cancel RSVP
@@ -156,8 +181,9 @@ export default function EventPrimaryAction({
         </button>
       ) : (
         <button
+          ref={triggerRef}
           type="button"
-          onClick={handleToggleRSVP}
+          onClick={handleActionClick}
           disabled={pending}
           className="flex w-full items-center justify-center gap-2 rounded-full bg-violet-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:opacity-60"
         >
@@ -167,10 +193,14 @@ export default function EventPrimaryAction({
             <>
               {participationModel === "paid" ? (
                 <Ticket className="h-4 w-4" />
+              ) : participationModel === "registration" ? (
+                <ClipboardList className="h-4 w-4" />
               ) : (
                 <Users className="h-4 w-4" />
               )}
-              {participationModel === "registration" ? "Register now" : "Attend event"}
+              {participationModel === "registration"
+                ? "Register now"
+                : "Attend event"}
             </>
           )}
         </button>
