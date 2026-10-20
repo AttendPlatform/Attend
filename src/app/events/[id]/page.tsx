@@ -27,6 +27,7 @@ import ShareButton from "@/components/ui/ShareButton";
 import { MapPreview } from "@/components/location/MapPreview";
 import ExpandableEventCover from "@/components/events/ExpandableEventCover";
 import EventPrimaryAction from "@/components/events/EventPrimaryAction";
+import MobileEventActionBar from "@/components/events/MobileEventActionBar";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -391,7 +392,7 @@ export default async function PublicEventPage({ params }: PageProps) {
   const campaignsUnavailable = Boolean(campaignsResult.error);
 
   return (
-    <main className="min-h-screen bg-neutral-50 pb-12 text-neutral-900">
+    <main className="min-h-screen bg-neutral-50 pb-24 md:pb-12 text-neutral-900">
       {/* Navigation */}
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-4 sm:px-6">
@@ -834,6 +835,21 @@ export default async function PublicEventPage({ params }: PageProps) {
           )}
         </section>
       </div>
+
+      {/* Mobile Sticky Action Bar */}
+      <MobileEventActionBar
+        eventId={event.id}
+        eventTitle={event.title}
+        participationModel={participationModel}
+        externalUrl={externalUrl}
+        isLoggedIn={Boolean(user)}
+        initialStatus={attendanceStatus}
+        eventStatus={event.status}
+        participationConfig={event.participation_config as any}
+        userName={user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+        userEmail={user?.email || ""}
+        isSaved={isSaved}
+      />
     </main>
   );
 }
