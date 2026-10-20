@@ -8,13 +8,14 @@ import {
   ExternalLink,
   Ticket,
   Users,
+  ClipboardList,
   Loader2,
   AlertCircle,
 } from "lucide-react";
 import { toggleAttendanceAction } from "@/app/actions/attendance";
 import { useEventAttendance } from "./EventAttendanceProvider";
 
-interface EventPrimaryActionProps {
+export interface EventPrimaryActionProps {
   eventId: string;
   eventTitle: string;
   participationModel: string;
@@ -22,6 +23,9 @@ interface EventPrimaryActionProps {
   isLoggedIn: boolean;
   initialStatus: "none" | "attending" | "registered" | "ticketed" | "cancelled";
   eventStatus?: string;
+  participationConfig?: Record<string, unknown> | null;
+  userName?: string;
+  userEmail?: string;
 }
 
 export default function EventPrimaryAction({
@@ -101,6 +105,8 @@ export default function EventPrimaryAction({
       >
         {participationModel === "paid" ? (
           <Ticket className="h-4 w-4" />
+        ) : participationModel === "registration" ? (
+          <ClipboardList className="h-4 w-4" />
         ) : (
           <Users className="h-4 w-4" />
         )}
@@ -109,8 +115,8 @@ export default function EventPrimaryAction({
     );
   }
 
-  // Handle RSVP toggle
-  function handleToggleRSVP() {
+  // Handle RSVP action click
+  function handleActionClick() {
     if (context) {
       context.handleToggleRSVP(triggerRef.current);
       return;
@@ -146,13 +152,16 @@ export default function EventPrimaryAction({
     });
   }
 
+  const attendanceLabel =
+    status === "registered" ? "Registered" : "Attending";
+
   return (
     <div className="space-y-2">
       {isAttending ? (
         <button
           ref={triggerRef}
           type="button"
-          onClick={handleToggleRSVP}
+          onClick={handleActionClick}
           disabled={pending}
           className="group relative flex w-full items-center justify-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-5 py-3.5 text-sm font-semibold text-emerald-800 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 disabled:opacity-60"
         >
@@ -162,7 +171,7 @@ export default function EventPrimaryAction({
             <>
               <span className="inline-flex items-center gap-1.5 group-hover:hidden">
                 <Check className="h-4 w-4 text-emerald-600" />
-                Attending
+                {attendanceLabel}
               </span>
               <span className="hidden items-center gap-1.5 group-hover:inline-flex">
                 Cancel RSVP
@@ -174,7 +183,7 @@ export default function EventPrimaryAction({
         <button
           ref={triggerRef}
           type="button"
-          onClick={handleToggleRSVP}
+          onClick={handleActionClick}
           disabled={pending}
           className="flex w-full items-center justify-center gap-2 rounded-full bg-violet-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:opacity-60"
         >
@@ -184,6 +193,8 @@ export default function EventPrimaryAction({
             <>
               {participationModel === "paid" ? (
                 <Ticket className="h-4 w-4" />
+              ) : participationModel === "registration" ? (
+                <ClipboardList className="h-4 w-4" />
               ) : (
                 <Users className="h-4 w-4" />
               )}

@@ -5,7 +5,6 @@ import {
   useContext,
   useState,
   useTransition,
-  useRef,
   useCallback,
   type ReactNode,
 } from "react";
@@ -31,9 +30,16 @@ interface EventAttendanceContextValue {
   isPending: boolean;
   errorMessage: string | null;
   isCancelModalOpen: boolean;
+  isRegistrationModalOpen: boolean;
   triggerElement: HTMLElement | null;
+  participationConfig?: Record<string, unknown> | null;
+  userName?: string;
+  userEmail?: string;
   openCancelModal: (trigger?: HTMLElement | null) => void;
   closeCancelModal: () => void;
+  openRegistrationModal: () => void;
+  closeRegistrationModal: () => void;
+  handleRegistrationSuccess: () => void;
   handleToggleRSVP: (trigger?: HTMLElement | null) => void;
   handleConfirmCancel: () => void;
 }
@@ -49,6 +55,9 @@ export interface EventAttendanceProviderProps {
   isLoggedIn: boolean;
   initialStatus: AttendanceStatus;
   eventStatus?: string;
+  participationConfig?: Record<string, unknown> | null;
+  userName?: string;
+  userEmail?: string;
   children: ReactNode;
 }
 
@@ -60,12 +69,16 @@ export function EventAttendanceProvider({
   isLoggedIn,
   initialStatus = "none",
   eventStatus = "published",
+  participationConfig,
+  userName = "",
+  userEmail = "",
   children,
 }: EventAttendanceProviderProps) {
   const [status, setStatus] = useState<AttendanceStatus>(initialStatus);
   const [prevInitial, setPrevInitial] = useState<AttendanceStatus>(initialStatus);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -93,6 +106,19 @@ export function EventAttendanceProvider({
     setIsCancelModalOpen(false);
   }, []);
 
+  const openRegistrationModal = useCallback(() => {
+    setIsRegistrationModalOpen(true);
+  }, []);
+
+  const closeRegistrationModal = useCallback(() => {
+    setIsRegistrationModalOpen(false);
+  }, []);
+
+  const handleRegistrationSuccess = useCallback(() => {
+    setStatus("registered");
+    setIsRegistrationModalOpen(false);
+  }, []);
+
   const handleToggleRSVP = useCallback(
     (trigger?: HTMLElement | null) => {
       if (isPending) return;
@@ -105,6 +131,11 @@ export function EventAttendanceProvider({
 
       if (isAttending) {
         openCancelModal(trigger);
+        return;
+      }
+
+      if (participationModel === "registration") {
+        openRegistrationModal();
         return;
       }
 
@@ -131,7 +162,7 @@ export function EventAttendanceProvider({
         setStatus(result.status);
       });
     },
-    [eventId, isAttending, isLoggedIn, isPending, openCancelModal, router, status]
+    [eventId, isAttending, isLoggedIn, isPending, openCancelModal, openRegistrationModal, participationModel, router, status]
   );
 
   const handleConfirmCancel = useCallback(() => {
@@ -176,9 +207,16 @@ export function EventAttendanceProvider({
         isPending,
         errorMessage,
         isCancelModalOpen,
+        isRegistrationModalOpen,
         triggerElement,
+        participationConfig,
+        userName,
+        userEmail,
         openCancelModal,
         closeCancelModal,
+        openRegistrationModal,
+        closeRegistrationModal,
+        handleRegistrationSuccess,
         handleToggleRSVP,
         handleConfirmCancel,
       }}

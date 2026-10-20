@@ -29,6 +29,7 @@ import {
   ExpandableEventCover,
   EventPrimaryAction,
   CancelRsvpModal,
+  RegistrationModal,
   MobileEventActionBar,
   EventAttendanceProvider,
 } from "@/components/events";
@@ -405,8 +406,12 @@ export default async function PublicEventPage({ params }: PageProps) {
         isLoggedIn={Boolean(user)}
         initialStatus={attendanceStatus}
         eventStatus={event.status}
+        participationConfig={event.participation_config as any}
+        userName={user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+        userEmail={user?.email || ""}
       >
         <CancelRsvpModal />
+        <RegistrationModal />
         {/* Navigation */}
         <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-4 sm:px-6">
@@ -667,6 +672,9 @@ export default async function PublicEventPage({ params }: PageProps) {
                   isLoggedIn={Boolean(user)}
                   initialStatus={attendanceStatus}
                   eventStatus={event.status}
+                  participationConfig={event.participation_config as any}
+                  userName={user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+                  userEmail={user?.email || ""}
                 />
 
                 <p className="mt-3 text-center text-xs leading-5 text-neutral-500">
@@ -847,7 +855,16 @@ export default async function PublicEventPage({ params }: PageProps) {
         </section>
       </div>
 
-      <MobileEventActionBar startDate={event.start_at} />
+      <MobileEventActionBar
+        eventId={event.id}
+        eventTitle={event.title}
+        startDate={event.start_at}
+        participationModel={participationModel}
+        externalUrl={externalUrl}
+        isLoggedIn={Boolean(user)}
+        eventStatus={event.status}
+        isSaved={isSaved}
+      />
     </EventAttendanceProvider>
   </main>
 );
