@@ -130,8 +130,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
               const updated = payload.new as Notification;
               set((state) => {
                 const prev = state.notifications.find((item) => item.id === updated.id);
-                const countDiff =
-                  prev?.status === 'unread' && updated.status === 'read' ? -1 : 0;
+                let countDiff = 0;
+                if (prev?.status === 'unread' && updated.status === 'read') {
+                  countDiff = -1;
+                } else if (prev?.status === 'read' && updated.status === 'unread') {
+                  countDiff = 1;
+                }
                 return {
                   unreadCount: Math.max(0, state.unreadCount + countDiff),
                   notifications: state.notifications.map((item) =>
@@ -142,9 +146,14 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
             } else if (payload.eventType === 'DELETE') {
               const oldId = (payload.old as { id?: string })?.id;
               if (oldId) {
-                set((state) => ({
-                  notifications: state.notifications.filter((item) => item.id !== oldId),
-                }));
+                set((state) => {
+                  const deletedItem = state.notifications.find((item) => item.id === oldId);
+                  const countDiff = deletedItem?.status === 'unread' ? -1 : 0;
+                  return {
+                    unreadCount: Math.max(0, state.unreadCount + countDiff),
+                    notifications: state.notifications.filter((item) => item.id !== oldId),
+                  };
+                });
               }
             }
           }
