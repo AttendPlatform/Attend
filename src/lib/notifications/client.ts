@@ -3,7 +3,7 @@ import type { Notification } from "./types";
 
 export async function getNotifications(
   category: string = "all",
-  limit = 30
+  limit = 20
 ): Promise<Notification[]> {
   const supabase = createClient();
 
