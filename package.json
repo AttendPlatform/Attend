@@ -7,7 +7,7 @@
     "build": "next build  --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "npm run verify:m0 && npm run verify:m1",
+    "test": "npm run verify:m0 && npm run verify:m1 && npm run verify:m2",
     "verify": "npm test",
     "verify:m0": "node --experimental-strip-types scripts/verify-milestone0.ts",
     "verify:location": "node --experimental-strip-types scripts/verify-location-layer.ts",
@@ -15,7 +15,11 @@
     "verify:create": "node --experimental-strip-types scripts/verify-event-creation.ts",
     "verify:m1": "node --experimental-strip-types scripts/verify-milestone1.ts",
     "verify:day3": "node --experimental-strip-types scripts/verify-day3.ts",
-    "verify:d3": "node --experimental-strip-types scripts/verify-day3.ts"
+    "verify:d3": "node --experimental-strip-types scripts/verify-day3.ts",
+    "verify:day4": "node --experimental-strip-types scripts/verify-day4.ts",
+    "verify:d4": "node --experimental-strip-types scripts/verify-day4.ts",
+    "verify:m2": "node --experimental-strip-types scripts/verify-milestone2.ts",
+    "verify:milestone2": "node --experimental-strip-types scripts/verify-milestone2.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

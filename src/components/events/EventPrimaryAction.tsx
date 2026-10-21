@@ -14,6 +14,10 @@ import {
 } from "lucide-react";
 import { toggleAttendanceAction } from "@/app/actions/attendance";
 import { useEventAttendance } from "./EventAttendanceProvider";
+import {
+  buildLoginUrlWithIntent,
+  setGuestIntent,
+} from "@/lib/utils/guest-intent";
 
 export interface EventPrimaryActionProps {
   eventId: string;
@@ -90,7 +94,9 @@ export default function EventPrimaryAction({
 
   // User is not logged in: redirect to login preserving intent
   if (!isLoggedIn) {
-    const loginUrl = `/login?next=${encodeURIComponent(`/events/${eventId}`)}`;
+    const intentAction =
+      participationModel === "registration" ? "register" : "attend";
+    const loginUrl = buildLoginUrlWithIntent(eventId, intentAction);
     const actionLabel =
       participationModel === "paid"
         ? "Get tickets"
@@ -101,6 +107,9 @@ export default function EventPrimaryAction({
     return (
       <Link
         href={loginUrl}
+        onClick={() => {
+          setGuestIntent({ eventId, action: intentAction });
+        }}
         className="flex w-full items-center justify-center gap-2 rounded-full bg-violet-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-violet-700"
       >
         {participationModel === "paid" ? (
@@ -136,8 +145,15 @@ export default function EventPrimaryAction({
 
       if (result.requiresLogin) {
         setInternalStatus(previousStatus);
+        const intentAction =
+          participationModel === "registration" ? "register" : "attend";
+        setGuestIntent({ eventId, action: intentAction });
         router.push(
-          `/login?next=${encodeURIComponent(window.location.pathname)}`
+          buildLoginUrlWithIntent(
+            eventId,
+            intentAction,
+            typeof window !== "undefined" ? window.location.pathname : undefined
+          )
         );
         return;
       }

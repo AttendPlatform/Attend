@@ -6,10 +6,18 @@ import {
   useState,
   useTransition,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 import { toggleAttendanceAction } from "@/app/actions/attendance";
+import {
+  getGuestIntent,
+  clearGuestIntent,
+  parseGuestIntentFromSearch,
+  buildLoginUrlWithIntent,
+  setGuestIntent,
+} from "@/lib/utils/guest-intent";
 
 export type AttendanceStatus =
   | "none"
@@ -110,6 +118,44 @@ export function EventAttendanceProvider({
     setIsRegistrationModalOpen(true);
   }, []);
 
+  useEffect(() => {
+    if (!isLoggedIn || typeof window === "undefined") return;
+
+    const urlIntent = parseGuestIntentFromSearch(window.location.search);
+    const storedIntent = getGuestIntent();
+    const action =
+      urlIntent || (storedIntent?.eventId === eventId ? storedIntent.action : null);
+
+    if (!action) return;
+
+    clearGuestIntent();
+    if (urlIntent) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("intent");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    }
+
+    if (action === "register") {
+      if (status !== "registered") {
+        setIsRegistrationModalOpen(true);
+      }
+    } else if (action === "attend") {
+      if (status !== "attending" && status !== "registered" && status !== "ticketed") {
+        setStatus("attending");
+        startTransition(async () => {
+          const pathname = window.location.pathname;
+          const result = await toggleAttendanceAction(eventId, pathname);
+          if (result.error || !result.status) {
+            setStatus("none");
+            setErrorMessage(result.error ?? "Failed to complete attendance.");
+            return;
+          }
+          setStatus(result.status);
+        });
+      }
+    }
+  }, [eventId, isLoggedIn, status]);
+
   const closeRegistrationModal = useCallback(() => {
     setIsRegistrationModalOpen(false);
   }, []);
@@ -124,8 +170,10 @@ export function EventAttendanceProvider({
       if (isPending) return;
 
       if (!isLoggedIn) {
+        const intentAction = participationModel === "registration" ? "register" : "attend";
+        setGuestIntent({ eventId, action: intentAction });
         const nextUrl = typeof window !== "undefined" ? window.location.pathname : `/events/${eventId}`;
-        router.push(`/login?next=${encodeURIComponent(nextUrl)}`);
+        router.push(buildLoginUrlWithIntent(eventId, intentAction, nextUrl));
         return;
       }
 
