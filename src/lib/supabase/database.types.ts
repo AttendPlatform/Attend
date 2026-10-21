@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -178,7 +178,7 @@ export type Database = {
           creator_id: string
           description: string | null
           downloads: number
-          event_id: string
+          event_id: string | null
           generations: number
           id: string
           participants: number
@@ -194,7 +194,7 @@ export type Database = {
           creator_id: string
           description?: string | null
           downloads?: number
-          event_id: string
+          event_id?: string | null
           generations?: number
           id?: string
           participants?: number
@@ -210,7 +210,7 @@ export type Database = {
           creator_id?: string
           description?: string | null
           downloads?: number
-          event_id?: string
+          event_id?: string | null
           generations?: number
           id?: string
           participants?: number
@@ -872,42 +872,6 @@ export type Database = {
           },
         ]
       }
-      saved_events: {
-        Row: {
-          created_at: string
-          event_id: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          event_id: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          event_id?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "saved_events_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "saved_events_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       saved_campaigns: {
         Row: {
           campaign_id: string
@@ -944,9 +908,76 @@ export type Database = {
           },
         ]
       }
+      saved_events: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      public_event_attendees: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string | null
+          name: string | null
+          participation_type:
+            | Database["public"]["Enums"]["event_participation_type"]
+            | null
+          profile_avatar_url: string | null
+          profile_display_name: string | null
+          profile_username: string | null
+          status: Database["public"]["Enums"]["event_attendance_status"] | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_my_notification: {
@@ -1174,6 +1205,13 @@ export type Database = {
     }
     Enums: {
       campaign_status: "draft" | "published" | "paused" | "archived"
+      event_attendance_status:
+        | "attending"
+        | "registered"
+        | "ticketed"
+        | "cancelled"
+        | "attended"
+      event_participation_type: "attendee" | "registrant" | "ticket_holder"
       event_status:
         | "draft"
         | "published"
@@ -1182,13 +1220,6 @@ export type Database = {
         | "archived"
         | "cancelled"
         | "completed"
-      event_attendance_status:
-        | "attending"
-        | "registered"
-        | "ticketed"
-        | "cancelled"
-        | "attended"
-      event_participation_type: "attendee" | "registrant" | "ticket_holder"
       organizer_role: "owner" | "organizer" | "manager" | "moderator"
       participation_model: "free" | "registration" | "paid" | "external"
       report_status: "pending" | "reviewed" | "resolved" | "dismissed"
@@ -1320,6 +1351,14 @@ export const Constants = {
   public: {
     Enums: {
       campaign_status: ["draft", "published", "paused", "archived"],
+      event_attendance_status: [
+        "attending",
+        "registered",
+        "ticketed",
+        "cancelled",
+        "attended",
+      ],
+      event_participation_type: ["attendee", "registrant", "ticket_holder"],
       event_status: [
         "draft",
         "published",
@@ -1329,14 +1368,6 @@ export const Constants = {
         "cancelled",
         "completed",
       ],
-      event_attendance_status: [
-        "attending",
-        "registered",
-        "ticketed",
-        "cancelled",
-        "attended",
-      ],
-      event_participation_type: ["attendee", "registrant", "ticket_holder"],
       organizer_role: ["owner", "organizer", "manager", "moderator"],
       participation_model: ["free", "registration", "paid", "external"],
       report_status: ["pending", "reviewed", "resolved", "dismissed"],

@@ -47,7 +47,7 @@ type Campaign = {
   title: string;
   slug: string;
   status: string;
-  event_id?: string;
+  event_id?: string | null;
 };
 
 const EMPTY_ANALYTICS: Analytics = {
