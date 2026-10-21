@@ -290,6 +290,7 @@ export default async function PublicEventPage({ params }: PageProps) {
   const category = categoryResult.data;
   const profile = (profileResult.data ?? {}) as ProfileRecord;
   const user = authResult.data?.user ?? null;
+  const isCreator = Boolean(user && user.id === event.creator_id);
 
   const [isSaved, userAttendance] = await Promise.all([
     user ? isEventSaved(event.id, user.id) : Promise.resolve(false),
@@ -505,6 +506,12 @@ export default async function PublicEventPage({ params }: PageProps) {
                         aria-label="Verified organizer"
                       />
                     )}
+
+                    {isCreator && (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
+                        You
+                      </span>
+                    )}
                   </div>
 
                   {profile.username && (
@@ -518,7 +525,7 @@ export default async function PublicEventPage({ params }: PageProps) {
                   href={`/profile/${event.creator_id}`}
                   className="shrink-0 rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
                 >
-                  View profile
+                  {isCreator ? "Your profile" : "View profile"}
                 </Link>
               </div>
             </section>
@@ -746,13 +753,15 @@ export default async function PublicEventPage({ params }: PageProps) {
               </p>
             </div>
 
-            {event.allow_participant_campaigns && (
+            {(event.allow_participant_campaigns || isCreator) && (
               <Link
                 href={`/events/${event.id}/campaigns/create`}
-                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white transition hover:bg-violet-700"
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white shadow-xs transition hover:bg-violet-700"
               >
                 <Share2 className="h-4 w-4" />
-                Create a Campaign
+                {isCreator && !event.allow_participant_campaigns
+                  ? "Create Official Campaign"
+                  : "Create a Campaign"}
               </Link>
             )}
           </div>
@@ -771,11 +780,11 @@ export default async function PublicEventPage({ params }: PageProps) {
                 return (
                   <article
                     key={campaign.id}
-                    className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md"
+                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-neutral-200/90 bg-white shadow-xs transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-500/10 focus-within:ring-2 focus-within:ring-violet-500 focus-within:ring-offset-2"
                   >
                     <Link
                       href={`/campaign/${campaign.slug}`}
-                      className="block"
+                      className="flex flex-1 flex-col focus:outline-none"
                       aria-label={`Explore campaign: ${campaign.title}`}
                     >
                       <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-violet-100 via-white to-violet-200">
@@ -784,40 +793,50 @@ export default async function PublicEventPage({ params }: PageProps) {
                           <img
                             src={campaignImage}
                             alt={campaign.title}
-                            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                           />
                         ) : (
                           <div className="flex flex-col items-center gap-2 text-violet-700">
-                            <ImageIcon className="h-8 w-8" />
+                            <ImageIcon className="h-8 w-8 transition-transform duration-300 group-hover:scale-110" />
                             <span className="text-xs font-medium">
                               Event campaign
                             </span>
                           </div>
                         )}
 
-                        <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-violet-700 shadow-sm">
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                        <span className="absolute left-3 top-3 rounded-full border border-white/40 bg-white/90 px-2.5 py-1 text-xs font-semibold text-violet-700 shadow-xs backdrop-blur-md">
                           Campaign
                         </span>
+
+                        {(campaign.generations > 0 || campaign.participants > 0) && (
+                          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-black/10 bg-black/60 px-2.5 py-1 text-xs font-medium text-white shadow-xs backdrop-blur-md">
+                            <Users className="h-3 w-3" />
+                            {campaign.generations > 0 ? campaign.generations : campaign.participants} shared
+                          </span>
+                        )}
                       </div>
 
-                      <div className="p-4">
-                        <h3 className="line-clamp-2 font-semibold text-neutral-900 transition group-hover:text-violet-700">
+                      <div className="flex flex-1 flex-col p-4">
+                        <h3 className="line-clamp-2 font-semibold text-neutral-900 transition-colors duration-200 group-hover:text-violet-700">
                           {campaign.title}
                         </h3>
 
                         {campaign.description && (
-                          <p className="mt-2 line-clamp-3 text-sm leading-6 text-neutral-600">
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-neutral-600">
                             {campaign.description}
                           </p>
                         )}
 
-                        <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3 text-xs text-neutral-500">
-                          <span>
+                        <div className="mt-auto flex items-center justify-between border-t border-neutral-100 pt-3 text-xs text-neutral-500">
+                          <span className="inline-flex items-center gap-1.5 font-medium">
+                            <Users className="h-3.5 w-3.5 text-neutral-400" />
                             {campaign.participants ?? 0} participants
                           </span>
-                          <span className="inline-flex items-center gap-1 font-semibold text-violet-700">
+                          <span className="inline-flex items-center gap-1 font-semibold text-violet-700 transition-transform duration-200 group-hover:translate-x-0.5">
                             Explore
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <ExternalLink className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
                           </span>
                         </div>
                       </div>
@@ -826,26 +845,78 @@ export default async function PublicEventPage({ params }: PageProps) {
                 );
               })}
             </div>
+          ) : isCreator ? (
+            <div className="mt-5 rounded-2xl border-2 border-dashed border-violet-200 bg-gradient-to-b from-violet-50/60 to-white px-5 py-10 text-center sm:px-8">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700 ring-8 ring-violet-50">
+                <Share2 className="h-6 w-6" />
+              </div>
+
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
+                  Organizer Controls
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    event.allow_participant_campaigns
+                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border border-amber-200 bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      event.allow_participant_campaigns
+                        ? "bg-emerald-500"
+                        : "bg-amber-500"
+                    }`}
+                  />
+                  {event.allow_participant_campaigns
+                    ? "Participant Campaigns: Enabled"
+                    : "Participant Campaigns: Disabled"}
+                </span>
+              </div>
+
+              <h3 className="mt-3 text-lg font-bold text-neutral-900">
+                No campaigns published yet
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-600">
+                {event.allow_participant_campaigns
+                  ? "Participant campaigns are enabled for this event. Launch an official campaign or template so attendees can personalize and share event graphics."
+                  : "Participant campaigns are currently disabled in event settings. As the organizer, only you can create and publish official graphics for this event."}
+              </p>
+
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href={`/events/${event.id}/campaigns/create`}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-6 text-sm font-semibold text-white shadow-xs transition hover:bg-violet-700"
+                >
+                  <Share2 className="h-4 w-4" />
+                  {event.allow_participant_campaigns
+                    ? "Launch Official Campaign"
+                    : "Create Official Campaign"}
+                </Link>
+              </div>
+            </div>
           ) : (
             <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white px-5 py-10 text-center sm:px-8">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
                 <Share2 className="h-5 w-5" />
               </div>
 
-              <h3 className="mt-4 font-semibold">
+              <h3 className="mt-4 font-semibold text-neutral-900">
                 No published campaigns yet
               </h3>
 
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-500">
                 {event.allow_participant_campaigns
-                  ? "Be the first to create a campaign connected to this event."
-                  : "The organizer has not published a campaign for this event yet."}
+                  ? "Be the first to create a campaign and personalized graphic connected to this event."
+                  : "The organizer has not published an official campaign for this event yet, and attendee campaigns are disabled."}
               </p>
 
               {event.allow_participant_campaigns && (
                 <Link
                   href={`/events/${event.id}/campaigns/create`}
-                  className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white transition hover:bg-violet-700"
+                  className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-violet-700"
                 >
                   Create the first campaign
                 </Link>
