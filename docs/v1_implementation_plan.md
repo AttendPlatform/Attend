@@ -228,14 +228,17 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 
 #### Day 4 (4 hrs) - Guest Sign-In Retention Flow & Milestone 2 Automated Verification [DONE]
 - **Completed Deliverables**:
-  - `src/lib/utils/guest-intent.ts`: Client-safe guest intent persistence and post-login URL construction helpers (`setGuestIntent`, `getGuestIntent`, `clearGuestIntent`, `buildLoginUrlWithIntent`, `parseGuestIntentFromSearch`).
-  - `src/app/login/page.tsx`: Upgraded authentication form with safe `next` parameter resolution (preventing open redirect vulnerabilities) wrapped in a `Suspense` boundary.
-  - `src/components/events/EventPrimaryAction.tsx` and `MobileEventActionBar.tsx`: Preserves intended attendee action (`attend` or `register`) across both desktop and mobile viewports when guest clicks attendance CTAs.
-  - `src/components/events/EventAttendanceProvider.tsx`: Automatically resumes intended attendance or opens registration modal on return from `/login`, and cleans up intent query parameters via history replacement.
-  - `src/app/events/[id]/page.tsx`: Enhanced connected campaign cards with smooth lift, backdrop blur badges, hover scaling, and added creator empty states aligned with event organizer settings.
-  - `scripts/verify-day4.ts`: Automated test suite for visual polish and creator states passing 14/14 checks (`npm run verify:day4`).
-  - `scripts/verify-milestone2.ts`: Comprehensive Milestone 2 automated test suite covering all 4 participation tiers, `AvatarStack` calculations and privacy masking, `saved_events` persistence, dynamic OpenGraph metadata, guest intent retention, and zero em dashes passing 73/73 checks (`npm run verify:m2`).
-  - `package.json`: Registered `verify:m2` and `verify:milestone2` npm scripts and added to unified `npm test`.
+  - **Uzair (Software Engineer)**:
+    - `src/app/events/[id]/page.tsx`: Enhanced connected campaign cards with smooth lift, backdrop blur badges, hover scaling, and added creator empty states aligned with event organizer settings.
+    - `scripts/verify-day4.ts`: Automated test suite for visual polish and creator states passing 14/14 checks (`npm run verify:day4`).
+  - **Sanaullah (Tech Lead / Supervisor)**:
+    - `src/lib/utils/guest-intent.ts`: Client-safe guest intent persistence and post-login URL construction helpers (`setGuestIntent`, `getGuestIntent`, `clearGuestIntent`, `buildLoginUrlWithIntent`, `parseGuestIntentFromSearch`).
+    - `src/app/login/page.tsx`: Upgraded authentication form with safe `next` parameter resolution (preventing open redirect vulnerabilities) wrapped in a `Suspense` boundary.
+    - `src/components/events/EventPrimaryAction.tsx` and `MobileEventActionBar.tsx`: Preserves intended attendee action (`attend` or `register`) across both desktop and mobile viewports when guest clicks attendance CTAs.
+    - `src/components/events/EventAttendanceProvider.tsx`: Automatically resumes intended attendance or opens registration modal on return from `/login`, and cleans up intent query parameters via history replacement.
+    - `scripts/verify-milestone2.ts`: Comprehensive Milestone 2 automated test suite covering all 4 participation tiers, `AvatarStack` calculations and privacy masking, `saved_events` persistence, dynamic OpenGraph metadata, guest intent retention, and zero em dashes passing 73/73 checks (`npm run verify:m2`).
+    - `package.json`: Registered `verify:m2` and `verify:milestone2` npm scripts and added to unified `npm test`.
+    - Merged `feat/w3-phase2-public-event-attendance` into `main` and verified production build passing 100%.
 
 > **Week 3 Deliverables Checkpoint**:
 > - Reusable `AvatarStack`, `SaveButton`, `ShareButton`, and `ExpandableEventCover` [DONE].
