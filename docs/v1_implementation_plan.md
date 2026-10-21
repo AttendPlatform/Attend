@@ -50,7 +50,7 @@ Attend is an event discovery and participation platform where **the Event is the
 | **Event Creation Engine** | Rebuilt `/create` with 4 participation models, creator campaign toggle, draft/publish controls. | Matches brief Section 14 & 21. | **DONE (Week 2)** |
 | **Public Event Detail** | Dedicated public destination at `/events/[id]` with hero banner, host info, map preview, calendar export, and OpenGraph metadata. | Brief Section 13 public page. | **DONE (Week 3 - Days 1-2)** |
 | **Social Proof & Action UI** | `AvatarStack`, `SaveButton`, `ShareButton`, `ExpandableEventCover` primitives with optimistic updates and fallbacks. | Matches brief Section 10 & 11. | **DONE (Week 3 - Days 1-2)** |
-| **Event Participation CTAs**| Dynamic `EventPrimaryAction`, validated `RegistrationModal`, `CancellationModal`, and `MobileEventActionBar`. | Matches brief Section 14 & 37. | **DONE (Week 3 - Days 1-3)** |
+| **Event Participation CTAs**| Dynamic `EventPrimaryAction`, validated `RegistrationModal`, `CancelRsvpModal`, `MobileEventActionBar`, guest sign-in intent retention, and Milestone 2 test suite. | Matches brief Section 14 & 37. | **DONE (Week 3 - Days 1-4)** |
 | **Connected Campaign Detail** | `/campaign/[slug]` needs parent event banner, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **SCHEDULED (Week 4)** |
 | **Discover Experience** | Redesign `/discover` with search input, Nigerian city selector, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **SCHEDULED (Week 4)** |
 | **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **SCHEDULED (Week 5)** |
@@ -226,21 +226,16 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - `src/app/events/[id]/page.tsx`: Integrated `EventAttendanceProvider`, `CancelRsvpModal`, `RegistrationModal`, `MobileEventActionBar`, and scroll clearance (`pb-40 md:pb-24 lg:pb-12`).
   - `scripts/verify-day3.ts`: Unified automated verification suite passing 50/50 checks (`npm run verify:day3`).
 
-#### Day 4 (4 hrs) - Guest Sign-In Retention Flow & Milestone 2 Automated Verification [SCHEDULED]
-- **Hardik (Software Engineer)**:
-  - Implement guest sign-in intent retention:
-    - If an unauthenticated user clicks `[ Attend ]` or `[ Register ]`, preserve their intended action and payload so that returning from `/login` automatically completes their attendance or opens the registration modal.
-- **Uzair (Software Engineer)**:
-  - Final visual polish on `/events/[id]`:
-    - Refine connected campaign card transitions and hover states.
-    - Ensure empty states ("No campaigns published yet") align with event creator toggles.
-- **Sanaullah (Tech Lead / Supervisor)**:
-  - Author and run automated verification suite `scripts/verify-milestone2.ts`:
-    - Tests all 4 participation tiers (Free RSVP, Registration, Paid link, External link).
-    - Tests `AvatarStack` count calculations and privacy masking.
-    - Tests bookmark persistence in `saved_events`.
-    - Tests dynamic OpenGraph metadata generation on public event routes.
-  - Conduct full PR review, merge `feat/w3-phase2-public-event-attendance` into `main`, and verify production build.
+#### Day 4 (4 hrs) - Guest Sign-In Retention Flow & Milestone 2 Automated Verification [DONE]
+- **Completed Deliverables**:
+  - `src/lib/utils/guest-intent.ts`: Client-safe guest intent persistence and post-login URL construction helpers (`setGuestIntent`, `getGuestIntent`, `clearGuestIntent`, `buildLoginUrlWithIntent`, `parseGuestIntentFromSearch`).
+  - `src/app/login/page.tsx`: Upgraded authentication form with safe `next` parameter resolution (preventing open redirect vulnerabilities) wrapped in a `Suspense` boundary.
+  - `src/components/events/EventPrimaryAction.tsx` and `MobileEventActionBar.tsx`: Preserves intended attendee action (`attend` or `register`) across both desktop and mobile viewports when guest clicks attendance CTAs.
+  - `src/components/events/EventAttendanceProvider.tsx`: Automatically resumes intended attendance or opens registration modal on return from `/login`, and cleans up intent query parameters via history replacement.
+  - `src/app/events/[id]/page.tsx`: Enhanced connected campaign cards with smooth lift, backdrop blur badges, hover scaling, and added creator empty states aligned with event organizer settings.
+  - `scripts/verify-day4.ts`: Automated test suite for visual polish and creator states passing 14/14 checks (`npm run verify:day4`).
+  - `scripts/verify-milestone2.ts`: Comprehensive Milestone 2 automated test suite covering all 4 participation tiers, `AvatarStack` calculations and privacy masking, `saved_events` persistence, dynamic OpenGraph metadata, guest intent retention, and zero em dashes passing 73/73 checks (`npm run verify:m2`).
+  - `package.json`: Registered `verify:m2` and `verify:milestone2` npm scripts and added to unified `npm test`.
 
 > **Week 3 Deliverables Checkpoint**:
 > - Reusable `AvatarStack`, `SaveButton`, `ShareButton`, and `ExpandableEventCover` [DONE].
@@ -251,8 +246,8 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 > - Mobile sticky action bar `MobileEventActionBar` docked above mobile navigation [DONE].
 > - Fully validated `RegistrationModal` with custom question support [DONE].
 > - Day 3 automated test suite `verify-day3.ts` passing 50/50 checks [DONE].
-> - Guest intent preservation [DAY 4].
-> - Automated test suite `verify-milestone2.ts` passing 100% [DAY 4].
+> - Guest intent preservation [DONE].
+> - Automated test suite `verify-milestone2.ts` passing 100% (73/73 checks) [DONE].
 
 ---
 
