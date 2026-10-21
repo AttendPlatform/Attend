@@ -32,10 +32,13 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const protectedRoutes = ["/create", "/profile", "/settings"];
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  const pathname = request.nextUrl.pathname;
+  const isProtectedRoute =
+    pathname.startsWith("/create") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/notifications") ||
+    pathname === "/profile" ||
+    pathname.startsWith("/profile/edit");
 
   const hasAuthCookie = request
     .cookies
