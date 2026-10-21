@@ -54,7 +54,10 @@ Attend/
 │   ├── verify-location-layer.ts
 │   ├── verify-location-picker.ts
 │   ├── verify-event-creation.ts
-│   └── verify-milestone1.ts
+│   ├── verify-milestone1.ts
+│   ├── verify-day3.ts
+│   ├── verify-day4.ts
+│   └── verify-milestone2.ts
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
 │   │   ├── campaign/       # Public campaign view and share route
@@ -157,7 +160,9 @@ npm test
 
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
-| `npm test` | Complete Test Suite | Runs all active milestone verification suites |
+| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2) |
+| `npm run verify:m2` | Milestone 2 (Phase 2) | Public event destination, 4 participation tiers, AvatarStack, bookmark persistence, guest sign-in retention, OpenGraph metadata |
+| `npm run verify:day4` | Week 3 Day 4 | Connected campaign cards polish and creator empty states |
 | `npm run verify:day3` | Week 3 Day 3 | Mobile action bar, cancel confirmation modal, registration modal, and Zod schemas |
 | `npm run verify:m1` | Milestone 1 (Phase 1) | Location abstraction, event creation flow, and participation models |
 | `npm run verify:m0` | Milestone 0 (Phase 0) | Database schema migrations, referential integrity, and domain services |
