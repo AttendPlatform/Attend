@@ -5,7 +5,7 @@ import "./globals.css";
 import GoogleAnalytics from "@/components/analytics/google-analytics";
 
 export const metadata: Metadata = {
-  title: "Attend — Discover. Create. Share.",
+  title: "Attend | Discover. Create. Share.",
   description:
     "Discover events around you and create personalized graphics worth sharing.",
   manifest: "/manifest.webmanifest",
