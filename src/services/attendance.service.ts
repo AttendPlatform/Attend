@@ -1,3 +1,4 @@
+
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import type {
@@ -8,6 +9,7 @@ import type {
 
 export type EventParticipantRow =
   Database["public"]["Tables"]["event_participants"]["Row"];
+
 export async function getEventAttendees(
   eventId: string,
   limit = 10
@@ -24,7 +26,6 @@ export async function getEventAttendees(
       participation_type,
       status,
       created_at,
-      profile_id,
       profile_display_name,
       profile_avatar_url,
       profile_username
@@ -37,29 +38,50 @@ export async function getEventAttendees(
     throw error;
   }
 
-  return (data || []).map((row) => ({
-    id: row.id,
-    event_id: row.event_id,
-    user_id: row.user_id,
-    name: row.name,
-    participation_type: row.participation_type,
-    status: row.status,
-    created_at: row.created_at,
-    registration_data: {},
-    profile: row.profile_id
-      ? {
-          id: row.profile_id,
-          display_name: row.profile_display_name,
-          avatar_url: row.profile_avatar_url,
-          username: row.profile_username,
-        }
-      : null,
-  })) as EventParticipantWithProfile[];
+  return (data || []).flatMap((row) => {
+    // Ignore incomplete rows from the nullable public view.
+    if (
+      !row.id ||
+      !row.event_id ||
+      !row.status ||
+      !row.participation_type ||
+      !row.created_at
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: row.id,
+        event_id: row.event_id,
+        user_id: row.user_id,
+        name: row.name,
+        participation_type: row.participation_type,
+        status: row.status,
+        created_at: row.created_at,
+        registration_data: {},
+        profile:
+          row.user_id ||
+          row.profile_display_name ||
+          row.profile_avatar_url ||
+          row.profile_username
+            ? {
+                id: row.user_id,
+                display_name: row.profile_display_name,
+                avatar_url: row.profile_avatar_url,
+                username: row.profile_username,
+              }
+            : null,
+      } as EventParticipantWithProfile,
+    ];
+  });
 }
+
 export async function getOrganizerEventRegistrations(
   eventId: string
 ): Promise<EventParticipantWithProfile[]> {
   const supabase = await createClient();
+
   const { data, error } = await supabase
     .from("event_participants")
     .select(`
@@ -95,6 +117,7 @@ export async function getEventAttendanceCounts(
   eventId: string
 ): Promise<AttendanceCounts> {
   const supabase = await createClient();
+
   let { data, error } = await supabase
     .from("event_participants")
     .select("participation_type, status")
@@ -103,12 +126,26 @@ export async function getEventAttendanceCounts(
 
   if (error && (error.code === "PGRST303" || error.code === "PGRST301")) {
     const publicClient = createPublicClient();
+
     const fallback = await publicClient
-  .from("public_event_attendees")
-  .select("participation_type, status")
-  .eq("event_id", eventId)
-  .in("status", ["attending", "registered", "ticketed", "attended"]);
-    data = fallback.data;
+      .from("public_event_attendees")
+      .select("participation_type, status")
+      .eq("event_id", eventId)
+      .in("status", ["attending", "registered", "ticketed", "attended"]);
+
+    data = (fallback.data || []).flatMap((row) => {
+      if (!row.participation_type || !row.status) {
+        return [];
+      }
+
+      return [
+        {
+          participation_type: row.participation_type,
+          status: row.status,
+        },
+      ];
+    });
+
     error = fallback.error;
   }
 
@@ -144,6 +181,7 @@ export async function getUserEventAttendance(
   userId: string
 ): Promise<EventParticipantRow | null> {
   const supabase = await createClient();
+
   const { data, error } = await supabase
     .from("event_participants")
     .select("*")
@@ -154,6 +192,7 @@ export async function getUserEventAttendance(
   if (error) {
     throw error;
   }
+
   return data;
 }
 
@@ -165,7 +204,14 @@ export async function rsvpEvent(params: {
   registrationData?: Record<string, unknown>;
 }): Promise<EventParticipantRow> {
   const supabase = await createClient();
-  const { eventId, userId, name, participationType = "attendee", registrationData = {} } = params;
+
+  const {
+    eventId,
+    userId,
+    name,
+    participationType = "attendee",
+    registrationData = {},
+  } = params;
 
   const { data, error } = await supabase
     .from("event_participants")
@@ -186,6 +232,7 @@ export async function rsvpEvent(params: {
   if (error) {
     throw error;
   }
+
   return data;
 }
 
@@ -194,6 +241,7 @@ export async function cancelEventAttendance(
   userId: string
 ): Promise<void> {
   const supabase = await createClient();
+
   const { error } = await supabase
     .from("event_participants")
     .update({ status: "cancelled" })

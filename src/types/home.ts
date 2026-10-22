@@ -14,6 +14,7 @@ export type Event = {
   state: string | null;
   is_online: boolean | null;
   event_categories: Category | Category[] | null;
+  participant_count?: number | null;
 };
 
 export type CampaignTemplate = {

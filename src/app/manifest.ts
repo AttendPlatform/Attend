@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Attend — Discover. Create. Share.",
+    name: "Attend | Discover. Create. Share.",
     short_name: "Attend",
     description:
       "Discover events around you and create personalized graphics worth sharing.",

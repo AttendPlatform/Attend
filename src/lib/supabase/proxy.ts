@@ -32,6 +32,28 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  const pathname = request.nextUrl.pathname;
+  const isProtectedRoute =
+    pathname.startsWith("/create") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/notifications") ||
+    pathname === "/profile" ||
+    pathname.startsWith("/profile/edit");
+
+  const hasAuthCookie = request
+    .cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-") || cookie.name.includes("auth-token"));
+
+  if (!hasAuthCookie) {
+    if (isProtectedRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      return NextResponse.redirect(redirectUrl);
+    }
+    return response;
+  }
+
   let user = null;
   try {
     const { data, error } = await supabase.auth.getUser();
@@ -53,11 +75,6 @@ export async function updateSession(request: NextRequest) {
       }
     });
   }
-
-  const protectedRoutes = ["/create", "/profile", "/settings"];
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
 
   if (isProtectedRoute && !user) {
     const redirectUrl = request.nextUrl.clone();

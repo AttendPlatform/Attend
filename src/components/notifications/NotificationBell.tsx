@@ -16,9 +16,16 @@ export function NotificationBell() {
     loading,
     latestNotification,
     dismissLatestNotification,
+    fetchNotifications,
     markRead,
     markAllRead,
-  } = useNotifications("all");
+  } = useNotifications("all", { autoFetchList: false });
+
+  useEffect(() => {
+    if (open) {
+      fetchNotifications();
+    }
+  }, [open, fetchNotifications]);
 
   useEffect(() => {
     if (!latestNotification) {

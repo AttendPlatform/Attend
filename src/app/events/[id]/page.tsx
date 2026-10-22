@@ -1,395 +1,942 @@
+
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
-  Eye,
-  ImageIcon,
+  CheckCircle2,
+  Clock3,
+  ExternalLink,
+  Globe2,
   MapPin,
-  Plus,
-  Sparkles,
+  Share2,
   Users,
+  Image as ImageIcon,
 } from "lucide-react";
-import { getEventById, getCampaignsByEventId } from "@/services";
 
-type Campaign = {
+import { createClient } from "@/lib/supabase/server";
+import { getCategory } from "@/lib/utils/home-helpers";
+import { isEventSaved } from "@/services/saved.service";
+import { getUserEventAttendance } from "@/services/attendance.service";
+import type { Event } from "@/types/home";
+
+import AvatarStack from "@/components/ui/AvatarStack";
+import SaveButton from "@/components/ui/SaveButton";
+import ShareButton from "@/components/ui/ShareButton";
+import { MapPreview } from "@/components/location/MapPreview";
+import {
+  ExpandableEventCover,
+  EventPrimaryAction,
+  CancelRsvpModal,
+  RegistrationModal,
+  MobileEventActionBar,
+  EventAttendanceProvider,
+} from "@/components/events";
+
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: event } = await supabase
+    .from("events")
+    .select("title, description, cover_image")
+    .eq("id", id)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (!event) {
+    return {
+      title: "Event Details | Attend",
+    };
+  }
+
+  return {
+    title: `${event.title} | Attend`,
+    description: event.description || "Join this event on Attend.",
+    openGraph: {
+      title: event.title,
+      description: event.description || "Join this event on Attend.",
+      images: event.cover_image ? [event.cover_image] : [],
+    },
+  };
+}
+
+type EventRecord = {
+  id: string;
+  creator_id: string;
+  category_id: string | null;
+  title: string;
+  slug: string;
+  description: string | null;
+  cover_image: string | null;
+  venue_name: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  location_place_id?: string | null;
+  is_online: boolean;
+  online_url: string | null;
+  start_at: string;
+  end_at: string | null;
+  status: string;
+  participant_count: number;
+  participation_model: string;
+  participation_config: unknown;
+  allow_participant_campaigns: boolean;
+  event_categories?: Event["event_categories"];
+};
+
+type ProfileRecord = {
+  id?: string;
+  username?: string | null;
+  display_name?: string | null;
+  full_name?: string | null;
+  avatar_url?: string | null;
+  is_verified?: boolean | null;
+  verified?: boolean | null;
+};
+
+type CampaignRecord = {
   id: string;
   event_id: string;
   title: string;
-  description: string | null;
   slug: string;
-  status: "draft" | "published" | "paused" | "archived";
+  description: string | null;
+  status: string;
   views: number;
   generations: number;
   downloads: number;
   participants: number;
-  created_at: string;
+  campaign_templates?: {
+    id: string;
+    asset_url: string | null;
+    is_active: boolean;
+  }[] | null;
 };
 
-export default async function EventPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+function formatDate(value: string | null | undefined) {
+  if (!value) return "Date to be announced";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "Date to be announced";
+
+  return new Intl.DateTimeFormat("en-NG", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatTime(value: string | null | undefined) {
+  if (!value) return "Time to be announced";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "Time to be announced";
+
+  return new Intl.DateTimeFormat("en-NG", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(date);
+}
+
+function getCalendarDate(value: Date) {
+  return value.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+function getParticipationConfig(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return {};
+}
+
+function getExternalUrl(config: Record<string, unknown>) {
+  const candidates = [
+    config.external_url,
+    config.registration_url,
+    config.ticket_url,
+    config.url,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") continue;
+
+    try {
+      const url = new URL(candidate);
+
+      if (url.protocol === "https:" || url.protocol === "http:") {
+        return url.toString();
+      }
+    } catch {
+      // Ignore invalid URLs.
+    }
+  }
+
+  return null;
+}
+
+function getCampaignImage(campaign: CampaignRecord) {
+  const templates = campaign.campaign_templates ?? [];
+
+  return templates.find((template) => template.is_active)?.asset_url ??
+    templates[0]?.asset_url ??
+    null;
+}
+
+export default async function PublicEventPage({ params }: PageProps) {
   const { id } = await params;
+  const supabase = await createClient();
 
-  const [event, campaigns] = await Promise.all([
-    getEventById(id),
-    getCampaignsByEventId(id),
-  ]);
+  // Public visitors can only access published events.
+  const { data: rawEvent, error: eventError } = await supabase
+    .from("events")
+    .select(`
+      id,
+      creator_id,
+      category_id,
+      title,
+      slug,
+      description,
+      cover_image,
+      venue_name,
+      address,
+      city,
+      state,
+      country,
+      latitude,
+      longitude,
+      location_place_id,
+      is_online,
+      online_url,
+      start_at,
+      end_at,
+      status,
+      participant_count,
+      participation_model,
+      participation_config,
+      allow_participant_campaigns
+    `)
+    .eq("id", id)
+    .eq("status", "published")
+    .maybeSingle();
 
-  if (!event) {
+  if (eventError) {
+    throw new Error("Unable to load this event. Please try again.");
+  }
+
+  if (!rawEvent) {
     notFound();
   }
 
-  const eventCampaigns = (campaigns || []) as Campaign[];
+  const event = rawEvent as unknown as EventRecord;
 
-  const category = Array.isArray(event.event_categories)
-    ? event.event_categories[0]
-    : event.event_categories;
+  // Fetch category, organizer, campaigns, and authenticated user in parallel.
+  const [categoryResult, profileResult, campaignsResult, authResult] =
+    await Promise.all([
+      event.category_id
+        ? supabase
+            .from("event_categories")
+            .select("id, name, slug")
+            .eq("id", event.category_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
 
-  /*
-   * ---------------------------------------------------------
-   * STATUS STYLES
-   * ---------------------------------------------------------
-   */
+      supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", event.creator_id)
+        .maybeSingle(),
 
-  function getStatusStyles(
-    status: Campaign["status"]
-  ) {
-    switch (status) {
-      case "published":
-        return "bg-green-50 text-green-700";
+      supabase
+        .from("campaigns")
+        .select(`
+          id,
+          event_id,
+          title,
+          slug,
+          description,
+          status,
+          views,
+          generations,
+          downloads,
+          participants,
+          campaign_templates (
+            id,
+            asset_url,
+            is_active
+          )
+        `)
+        .eq("event_id", event.id)
+        .eq("status", "published")
+        .order("created_at", { ascending: false }),
 
-      case "paused":
-        return "bg-amber-50 text-amber-700";
+      supabase.auth.getUser(),
+    ]);
 
-      case "archived":
-        return "bg-neutral-100 text-neutral-500";
+  const category = categoryResult.data;
+  const profile = (profileResult.data ?? {}) as ProfileRecord;
+  const user = authResult.data?.user ?? null;
+  const isCreator = Boolean(user && user.id === event.creator_id);
 
-      default:
-        return "bg-neutral-100 text-neutral-600";
-    }
-  }
+  const [isSaved, userAttendance] = await Promise.all([
+    user ? isEventSaved(event.id, user.id) : Promise.resolve(false),
+    user ? getUserEventAttendance(event.id, user.id) : Promise.resolve(null),
+  ]);
 
-  function getStatusLabel(
-    status: Campaign["status"]
-  ) {
-    switch (status) {
-      case "published":
-        return "Published";
+  const attendanceStatus =
+    userAttendance && userAttendance.status !== "cancelled"
+      ? (userAttendance.status as "attending" | "registered" | "ticketed")
+      : "none";
 
-      case "paused":
-        return "Paused";
+  const organizerName =
+    profile.display_name ||
+    profile.full_name ||
+    (profile.username ? `@${profile.username}` : "Event organizer");
 
-      case "archived":
-        return "Archived";
+  const organizerInitial =
+    organizerName.replace(/^@/, "").trim().charAt(0).toUpperCase() || "O";
 
-      default:
-        return "Draft";
-    }
-  }
+  const isVerified = Boolean(profile.is_verified ?? profile.verified);
+
+  const locationLabel = event.is_online
+    ? "Online event"
+    : [
+        event.venue_name,
+        event.address,
+        event.city,
+        event.state,
+        event.country,
+      ]
+        .filter(Boolean)
+        .filter((value, index, values) => values.indexOf(value) === index)
+        .join(", ") || "Location to be announced";
+
+  const participationConfig = getParticipationConfig(
+    event.participation_config
+  );
+
+  const externalUrl = getExternalUrl(participationConfig);
+  const participationModel = event.participation_model.toLowerCase();
+
+  const startDate = new Date(event.start_at);
+  const validStartDate = !Number.isNaN(startDate.getTime());
+  const endDate = event.end_at ? new Date(event.end_at) : null;
+
+  const calendarEnd =
+    endDate && !Number.isNaN(endDate.getTime())
+      ? endDate
+      : validStartDate
+        ? new Date(startDate.getTime() + 2 * 60 * 60 * 1000)
+        : null;
+
+  const eventUrl = `${
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://attend-event-discovery.vercel.app"
+  }/events/${event.id}`;
+
+  const escapeCalendarText = (value: string) =>
+    value
+      .replace(/\\/g, "\\\\")
+      .replace(/\r?\n/g, "\\n")
+      .replace(/,/g, "\\,")
+      .replace(/;/g, "\\;");
+
+  const calendarContent =
+    validStartDate && calendarEnd
+      ? [
+          "BEGIN:VCALENDAR",
+          "VERSION:2.0",
+          "PRODID:-//Attend//Event Calendar//EN",
+          "CALSCALE:GREGORIAN",
+          "BEGIN:VEVENT",
+          `UID:${event.id}@attend`,
+          `DTSTAMP:${getCalendarDate(new Date())}`,
+          `DTSTART:${getCalendarDate(startDate)}`,
+          `DTEND:${getCalendarDate(calendarEnd)}`,
+          `SUMMARY:${escapeCalendarText(event.title)}`,
+          `DESCRIPTION:${escapeCalendarText(event.description ?? "")}`,
+          `LOCATION:${escapeCalendarText(locationLabel)}`,
+          `URL:${eventUrl}`,
+          "END:VEVENT",
+          "END:VCALENDAR",
+        ].join("\r\n")
+      : null;
+
+  const calendarUrl = validStartDate && calendarEnd
+    ? `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${getCalendarDate(startDate)}/${getCalendarDate(calendarEnd)}&details=${encodeURIComponent(event.description ?? "")}&location=${encodeURIComponent(locationLabel)}&sprop=${encodeURIComponent(`website:${eventUrl}`)}`
+    : null;
+
+  const displayEvent = {
+    id: event.id,
+    title: event.title,
+    description: event.description,
+    cover_image: event.cover_image,
+    start_at: event.start_at,
+    city: event.city,
+    state: event.state,
+    is_online: event.is_online,
+    event_categories: category ?? null,
+  } as Event;
+
+  const displayCategory = getCategory(displayEvent);
+
+  // Campaigns remain separate from event attendance.
+  const campaigns = (campaignsResult.data ?? []) as unknown as CampaignRecord[];
+  const campaignsUnavailable = Boolean(campaignsResult.error);
 
   return (
-    <main className="min-h-screen bg-neutral-50 px-5 py-8 sm:px-6">
-      <div className="mx-auto max-w-5xl">
+    <main className="min-h-screen bg-neutral-50 pb-40 md:pb-24 lg:pb-12 text-neutral-900">
+      <EventAttendanceProvider
+        eventId={event.id}
+        eventTitle={event.title}
+        participationModel={participationModel}
+        externalUrl={externalUrl}
+        isLoggedIn={Boolean(user)}
+        initialStatus={attendanceStatus}
+        eventStatus={event.status}
+        participationConfig={event.participation_config as any}
+        userName={user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+        userEmail={user?.email || ""}
+      >
+        <CancelRsvpModal />
+        <RegistrationModal />
+        {/* Navigation */}
+        <header className="border-b border-neutral-200 bg-white">
+        <div className="mx-auto flex h-16 max-w-6xl items-center px-4 sm:px-6">
+          <Link
+            href="/discover"
+            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-neutral-600 transition hover:bg-violet-50 hover:text-violet-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Discover
+          </Link>
 
-        {/* BACK */}
+          <div className="ml-auto text-sm font-bold tracking-tight text-violet-700">
+            Attend
+          </div>
+        </div>
+      </header>
 
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 transition hover:text-neutral-950"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Link>
+      <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6 sm:pt-8">
+        {/* Expandable event cover */}
+        <section className="relative overflow-hidden rounded-2xl bg-violet-950 sm:rounded-3xl">
+          <div className="relative">
+            <ExpandableEventCover
+              src={event.cover_image}
+              alt={`${event.title} cover photo`}
+            />
 
-        {/* EVENT */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-black/10" />
 
-        <div className="mt-8 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm">
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-10">
+              {displayCategory?.name && (
+                <span className="mb-3 inline-flex rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-violet-800">
+                  {displayCategory.name}
+                </span>
+              )}
 
-          {/* COVER */}
+              <h1 className="max-w-4xl text-2xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
+                {event.title}
+              </h1>
 
-          <div className="relative aspect-[3/1] overflow-hidden bg-gradient-to-br from-violet-100 via-white to-violet-200">
-            {event.cover_image ? (
-              <img
-                src={event.cover_image}
-                alt={event.title}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <span className="text-sm font-medium text-violet-400">
-                  No cover image
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/90">
+                <span className="inline-flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4" />
+                  {formatDate(event.start_at)}
+                </span>
+
+                <span className="inline-flex items-center gap-2">
+                  {event.is_online ? (
+                    <Globe2 className="h-4 w-4" />
+                  ) : (
+                    <MapPin className="h-4 w-4" />
+                  )}
+                  {event.is_online ? "Online event" : event.city || "Venue TBA"}
                 </span>
               </div>
-            )}
+            </div>
           </div>
+        </section>
 
-          {/* DETAILS */}
+        {/* Main content */}
+        <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
+          <div className="min-w-0 space-y-6">
+            {/* Organizer */}
+            <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                Organized by
+              </p>
 
-          <div className="p-6 sm:p-8">
-            <div className="flex flex-col justify-between gap-7 lg:flex-row">
-
-              <div className="min-w-0">
-
-                {category?.name && (
-                  <span className="text-sm font-semibold text-violet-600">
-                    {category.name}
-                  </span>
-                )}
-
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-                  {event.title}
-                </h1>
-
-                {event.description && (
-                  <p className="mt-4 max-w-2xl leading-7 text-neutral-500">
-                    {event.description}
-                  </p>
-                )}
-
-                <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm text-neutral-500">
-
-                  {event.start_at && (
-                    <span className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4" />
-
-                      {new Date(
-                        event.start_at
-                      ).toLocaleString(undefined, {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </span>
-                  )}
-
-                  {event.is_online ? (
-                    <span className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Online event
-                    </span>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-100 text-lg font-bold text-violet-700">
+                  {profile.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={profile.avatar_url}
+                      alt={organizerName}
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
-                    event.city && (
-                      <span className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        {event.city}
-                        {event.state
-                          ? `, ${event.state}`
-                          : ""}
-                      </span>
-                    )
+                    organizerInitial
                   )}
+                </div>
 
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <h2 className="truncate font-semibold text-neutral-900">
+                      {organizerName}
+                    </h2>
+
+                    {isVerified && (
+                      <CheckCircle2
+                        className="h-4 w-4 shrink-0 fill-violet-600 text-white"
+                        aria-label="Verified organizer"
+                      />
+                    )}
+
+                    {isCreator && (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
+                        You
+                      </span>
+                    )}
+                  </div>
+
+                  {profile.username && (
+                    <p className="mt-0.5 text-sm text-neutral-500">
+                      @{profile.username.replace(/^@/, "")}
+                    </p>
+                  )}
+                </div>
+
+                <Link
+                  href={`/profile/${event.creator_id}`}
+                  className="shrink-0 rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
+                >
+                  {isCreator ? "Your profile" : "View profile"}
+                </Link>
+              </div>
+            </section>
+
+            {/* Quick actions */}
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
+              <div>
+                <h2 className="font-semibold">Share the experience</h2>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Save this event or invite someone to join you.
+                </p>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <SaveButton
+                  targetId={event.id}
+                  targetType="event"
+                  initialSaved={isSaved}
+                />
+                <ShareButton
+                  title={event.title}
+                  path={`/events/${event.id}`}
+                  sourceType="event"
+                />
+              </div>
+            </section>
+
+            {/* Description */}
+            <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
+              <h2 className="text-xl font-bold">About this event</h2>
+
+              {event.description ? (
+                <div className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-neutral-700 [overflow-wrap:anywhere] sm:text-base">
+                  {event.description}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm leading-6 text-neutral-500">
+                  The organizer has not added an event description yet.
+                </p>
+              )}
+            </section>
+
+            {/* Location */}
+            <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+                  {event.is_online ? (
+                    <Globe2 className="h-5 w-5" />
+                  ) : (
+                    <MapPin className="h-5 w-5" />
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="font-bold">
+                    {event.is_online ? "Online event" : "Event location"}
+                  </h2>
+                  <p className="mt-0.5 text-sm text-neutral-500">
+                    {event.is_online
+                      ? "Join from wherever you are."
+                      : "Plan your journey ahead of time."}
+                  </p>
                 </div>
               </div>
 
-              {/* CREATE CAMPAIGN */}
-
-              <Link
-                href={`/events/${event.id}/campaigns/create`}
-                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white transition hover:bg-violet-700"
-              >
-                <Plus className="h-4 w-4" />
-                Create campaign
-              </Link>
-
-            </div>
-          </div>
-        </div>
-
-        {/* CAMPAIGNS */}
-
-        <section className="mt-10">
-
-          <div className="flex items-end justify-between gap-4">
-
-            <div>
-              <p className="text-sm font-semibold text-violet-600">
-                CAMPAIGNS
+              <p className="mb-4 text-sm leading-6 text-neutral-700">
+                {locationLabel}
               </p>
 
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight">
-                Your event campaigns
-              </h2>
-
-              <p className="mt-1 text-sm text-neutral-500">
-                Manage attendee DP campaigns for this event.
-              </p>
-            </div>
-
-            {eventCampaigns.length > 0 && (
-              <Link
-                href={`/events/${event.id}/campaigns/create`}
-                className="hidden items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 shadow-sm transition hover:bg-neutral-50 sm:inline-flex"
-              >
-                <Plus className="h-4 w-4" />
-                New campaign
-              </Link>
-            )}
-
+              <MapPreview
+                location={{
+                  venue_name: event.venue_name,
+                  address: event.address,
+                  city: event.city,
+                  state: event.state,
+                  country: event.country,
+                  latitude: event.latitude,
+                  longitude: event.longitude,
+                  place_id: event.location_place_id ?? null,
+                  is_online: event.is_online,
+                  online_url: event.online_url,
+                }}
+                height={280}
+                className="border-neutral-200"
+              />
+            </section>
           </div>
 
-          {eventCampaigns.length === 0 ? (
+          {/* Event information sidebar */}
+          <aside className="min-w-0 space-y-5 lg:sticky lg:top-6">
+            <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                Event details
+              </p>
 
-            /* EMPTY STATE */
+              <div className="mt-5 flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+                  <CalendarDays className="h-5 w-5" />
+                </div>
 
-            <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white p-10 text-center">
-
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-violet-50">
-                <Sparkles className="h-5 w-5 text-violet-600" />
+                <div className="min-w-0">
+                  <p className="font-semibold">Date</p>
+                  <p className="mt-1 text-sm leading-6 text-neutral-600">
+                    {formatDate(event.start_at)}
+                  </p>
+                </div>
               </div>
 
-              <h3 className="mt-4 font-semibold">
-                No campaigns yet
-              </h3>
+              <div className="mt-5 flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+                  <Clock3 className="h-5 w-5" />
+                </div>
 
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-500">
-                Create a personalized attendee campaign and let people
-                generate their own event graphics.
+                <div className="min-w-0">
+                  <p className="font-semibold">Time</p>
+                  <p className="mt-1 text-sm text-neutral-600">
+                    {formatTime(event.start_at)}
+                  </p>
+
+                  {event.end_at && (
+                    <p className="mt-1 text-sm text-neutral-500">
+                      Ends {formatTime(event.end_at)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-5 flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+                  <Users className="h-5 w-5" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">Community</p>
+                  <div className="mt-2">
+                    <AvatarStack
+                      eventId={event.id}
+                      fallbackCount={event.participant_count}
+                      label="attending"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-neutral-100 pt-5">
+                <EventPrimaryAction
+                  eventId={event.id}
+                  eventTitle={event.title}
+                  participationModel={participationModel}
+                  externalUrl={externalUrl}
+                  isLoggedIn={Boolean(user)}
+                  initialStatus={attendanceStatus}
+                  eventStatus={event.status}
+                  participationConfig={event.participation_config as any}
+                  userName={user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+                  userEmail={user?.email || ""}
+                />
+
+                <p className="mt-3 text-center text-xs leading-5 text-neutral-500">
+                  {participationModel === "paid"
+                    ? "Ticket availability and pricing depend on the organizer's setup."
+                    : participationModel === "registration"
+                      ? "Registration requirements may apply."
+                      : "Check the event details before making plans."}
+                </p>
+              </div>
+
+              {calendarContent && calendarUrl && (
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <a
+                    href={`data:text/calendar;charset=utf-8,${encodeURIComponent(calendarContent)}`}
+                    download={`${event.slug || event.id}.ics`}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 px-3 py-3 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                    Download .ics
+                  </a>
+
+                  <a
+                    href={calendarUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 px-3 py-3 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Google Calendar
+                  </a>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-2xl border border-violet-100 bg-violet-50/70 p-5">
+              <h2 className="font-bold text-neutral-900">
+                Know someone who would love this?
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-neutral-600">
+                Share this event with friends and make the experience better
+                together.
               </p>
 
-              <Link
-                href={`/events/${event.id}/campaigns/create`}
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
-              >
-                <Plus className="h-4 w-4" />
-                Create your first campaign
-              </Link>
+              <div className="mt-4">
+                <ShareButton
+                  title={event.title}
+                  path={`/events/${event.id}`}
+                  sourceType="event"
+                />
+              </div>
+            </section>
+          </aside>
+        </div>
 
+        {/* Day 12: campaigns connected to this event */}
+        <section className="mt-12">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold tracking-[0.18em] text-violet-700">
+                CONNECTED CAMPAIGNS
+              </p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+                Be part of the story
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
+                Discover campaigns connected to this event and create a graphic
+                you can personalize and share.
+              </p>
             </div>
 
-          ) : (
+            {(event.allow_participant_campaigns || isCreator) && (
+              <Link
+                href={`/events/${event.id}/campaigns/create`}
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white shadow-xs transition hover:bg-violet-700"
+              >
+                <Share2 className="h-4 w-4" />
+                {isCreator && !event.allow_participant_campaigns
+                  ? "Create Official Campaign"
+                  : "Create a Campaign"}
+              </Link>
+            )}
+          </div>
 
-            /* CAMPAIGN LIST */
+          {campaignsUnavailable ? (
+            <div className="mt-5 rounded-2xl border border-neutral-200 bg-white p-6">
+              <p className="text-sm text-neutral-600">
+                Campaigns are temporarily unavailable. Please try again later.
+              </p>
+            </div>
+          ) : campaigns.length > 0 ? (
+            <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {campaigns.map((campaign) => {
+                const campaignImage = getCampaignImage(campaign);
 
-            <div className="mt-5 space-y-3">
+                return (
+                  <article
+                    key={campaign.id}
+                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-neutral-200/90 bg-white shadow-xs transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-500/10 focus-within:ring-2 focus-within:ring-violet-500 focus-within:ring-offset-2"
+                  >
+                    <Link
+                      href={`/campaign/${campaign.slug}`}
+                      className="flex flex-1 flex-col focus:outline-none"
+                      aria-label={`Explore campaign: ${campaign.title}`}
+                    >
+                      <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-violet-100 via-white to-violet-200">
+                        {campaignImage ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={campaignImage}
+                            alt={campaign.title}
+                            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-violet-700">
+                            <ImageIcon className="h-8 w-8 transition-transform duration-300 group-hover:scale-110" />
+                            <span className="text-xs font-medium">
+                              Event campaign
+                            </span>
+                          </div>
+                        )}
 
-              {eventCampaigns.map((campaign) => (
-                <Link
-                  key={campaign.id}
-                  href={`/events/${event.id}/campaigns/${campaign.id}`}
-                  className="group block rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md"
-                >
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-                    {/* LEFT */}
-
-                    <div className="min-w-0">
-
-                      <div className="flex flex-wrap items-center gap-2">
-
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusStyles(
-                            campaign.status
-                          )}`}
-                        >
-                          {getStatusLabel(
-                            campaign.status
-                          )}
-                        </span>
-
-                        <span className="text-xs text-neutral-400">
+                        <span className="absolute left-3 top-3 rounded-full border border-white/40 bg-white/90 px-2.5 py-1 text-xs font-semibold text-violet-700 shadow-xs backdrop-blur-md">
                           Campaign
                         </span>
 
+                        {(campaign.generations > 0 || campaign.participants > 0) && (
+                          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-black/10 bg-black/60 px-2.5 py-1 text-xs font-medium text-white shadow-xs backdrop-blur-md">
+                            <Users className="h-3 w-3" />
+                            {campaign.generations > 0 ? campaign.generations : campaign.participants} shared
+                          </span>
+                        )}
                       </div>
 
-                      <h3 className="mt-2 truncate text-base font-semibold text-neutral-950 group-hover:text-violet-700">
-                        {campaign.title}
-                      </h3>
+                      <div className="flex flex-1 flex-col p-4">
+                        <h3 className="line-clamp-2 font-semibold text-neutral-900 transition-colors duration-200 group-hover:text-violet-700">
+                          {campaign.title}
+                        </h3>
 
-                      {campaign.description && (
-                        <p className="mt-1 line-clamp-2 max-w-xl text-sm leading-6 text-neutral-500">
-                          {campaign.description}
-                        </p>
-                      )}
+                        {campaign.description && (
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-neutral-600">
+                            {campaign.description}
+                          </p>
+                        )}
 
-                    </div>
-
-                    {/* STATS */}
-
-                    <div className="grid grid-cols-3 gap-5 sm:shrink-0">
-
-                      <CampaignStat
-                        icon={
-                          <Users className="h-4 w-4" />
-                        }
-                        value={
-                          campaign.participants || 0
-                        }
-                        label="People"
-                      />
-
-                      <CampaignStat
-                        icon={
-                          <ImageIcon className="h-4 w-4" />
-                        }
-                        value={
-                          campaign.generations || 0
-                        }
-                        label="Generated"
-                      />
-
-                      <CampaignStat
-                        icon={
-                          <Eye className="h-4 w-4" />
-                        }
-                        value={
-                          campaign.views || 0
-                        }
-                        label="Views"
-                      />
-
-                    </div>
-
-                  </div>
-
-                </Link>
-              ))}
-
+                        <div className="mt-auto flex items-center justify-between border-t border-neutral-100 pt-3 text-xs text-neutral-500">
+                          <span className="inline-flex items-center gap-1.5 font-medium">
+                            <Users className="h-3.5 w-3.5 text-neutral-400" />
+                            {campaign.participants ?? 0} participants
+                          </span>
+                          <span className="inline-flex items-center gap-1 font-semibold text-violet-700 transition-transform duration-200 group-hover:translate-x-0.5">
+                            Explore
+                            <ExternalLink className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  </article>
+                );
+              })}
             </div>
+          ) : isCreator ? (
+            <div className="mt-5 rounded-2xl border-2 border-dashed border-violet-200 bg-gradient-to-b from-violet-50/60 to-white px-5 py-10 text-center sm:px-8">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700 ring-8 ring-violet-50">
+                <Share2 className="h-6 w-6" />
+              </div>
 
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
+                  Organizer Controls
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    event.allow_participant_campaigns
+                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border border-amber-200 bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      event.allow_participant_campaigns
+                        ? "bg-emerald-500"
+                        : "bg-amber-500"
+                    }`}
+                  />
+                  {event.allow_participant_campaigns
+                    ? "Participant Campaigns: Enabled"
+                    : "Participant Campaigns: Disabled"}
+                </span>
+              </div>
+
+              <h3 className="mt-3 text-lg font-bold text-neutral-900">
+                No campaigns published yet
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-600">
+                {event.allow_participant_campaigns
+                  ? "Participant campaigns are enabled for this event. Launch an official campaign or template so attendees can personalize and share event graphics."
+                  : "Participant campaigns are currently disabled in event settings. As the organizer, only you can create and publish official graphics for this event."}
+              </p>
+
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href={`/events/${event.id}/campaigns/create`}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-6 text-sm font-semibold text-white shadow-xs transition hover:bg-violet-700"
+                >
+                  <Share2 className="h-4 w-4" />
+                  {event.allow_participant_campaigns
+                    ? "Launch Official Campaign"
+                    : "Create Official Campaign"}
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white px-5 py-10 text-center sm:px-8">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
+                <Share2 className="h-5 w-5" />
+              </div>
+
+              <h3 className="mt-4 font-semibold text-neutral-900">
+                No published campaigns yet
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-500">
+                {event.allow_participant_campaigns
+                  ? "Be the first to create a campaign and personalized graphic connected to this event."
+                  : "The organizer has not published an official campaign for this event yet, and attendee campaigns are disabled."}
+              </p>
+
+              {event.allow_participant_campaigns && (
+                <Link
+                  href={`/events/${event.id}/campaigns/create`}
+                  className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white shadow-xs transition hover:bg-violet-700"
+                >
+                  Create the first campaign
+                </Link>
+              )}
+            </div>
           )}
-
         </section>
-
-      </div>
-    </main>
-  );
-}
-
-/*
- * ---------------------------------------------------------
- * CAMPAIGN STAT
- * ---------------------------------------------------------
- */
-
-function CampaignStat({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: number;
-  label: string;
-}) {
-  return (
-    <div className="text-center">
-
-      <div className="flex items-center justify-center text-neutral-400">
-        {icon}
       </div>
 
-      <p className="mt-1 text-sm font-semibold text-neutral-900">
-        {value.toLocaleString()}
-      </p>
-
-      <p className="text-[11px] text-neutral-400">
-        {label}
-      </p>
-
-    </div>
-  );
+      <MobileEventActionBar
+        eventId={event.id}
+        eventTitle={event.title}
+        startDate={event.start_at}
+        participationModel={participationModel}
+        externalUrl={externalUrl}
+        isLoggedIn={Boolean(user)}
+        eventStatus={event.status}
+        isSaved={isSaved}
+      />
+    </EventAttendanceProvider>
+  </main>
+);
 }

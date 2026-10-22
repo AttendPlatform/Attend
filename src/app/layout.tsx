@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { AppShell } from "@/components/navigation/app-shell";
-import { AuthProvider } from "@/components/providers/AuthProvider";
+import { AuthProvider, NotificationProvider } from "@/components/providers";
 import "./globals.css";
 import GoogleAnalytics from "@/components/analytics/google-analytics";
 
 export const metadata: Metadata = {
-  title: "Attend — Discover. Create. Share.",
+  title: "Attend | Discover. Create. Share.",
   description:
     "Discover events around you and create personalized graphics worth sharing.",
   manifest: "/manifest.webmanifest",
@@ -32,7 +32,9 @@ export default function RootLayout({
       <body className="antialiased">
         <GoogleAnalytics />
         <AuthProvider>
-          <AppShell>{children}</AppShell>
+          <NotificationProvider>
+            <AppShell>{children}</AppShell>
+          </NotificationProvider>
         </AuthProvider>
         <Toaster />
       </body>

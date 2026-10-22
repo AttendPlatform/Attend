@@ -18,7 +18,7 @@ export default function NotificationsPage() {
     loading,
     markRead,
     markAllRead,
-  } = useNotifications("all");
+  } = useNotifications("all", { autoFetchList: true });
 
   return (
     <main className="min-h-screen bg-neutral-50/50">

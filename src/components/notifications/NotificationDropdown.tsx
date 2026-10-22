@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, Inbox } from "lucide-react";
+import { CheckCheck, Inbox } from "lucide-react";
 import type { Notification } from "@/lib/notifications/types";
 
 interface NotificationDropdownProps {
@@ -187,7 +187,7 @@ export function NotificationDropdown({
                 {filter === "unread" ? "No unread notifications" : "No notifications yet"}
               </p>
               <p className="mt-0.5 text-[11px] text-neutral-400">
-                We'll notify you when something important arrives.
+                We&apos;ll notify you when something important arrives.
               </p>
             </div>
           )}
