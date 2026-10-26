@@ -57,7 +57,8 @@ Attend/
 │   ├── verify-milestone1.ts
 │   ├── verify-day3.ts
 │   ├── verify-day4.ts
-│   └── verify-milestone2.ts
+│   ├── verify-milestone2.ts
+│   └── verify-w4-d1.ts
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
 │   │   ├── campaign/       # Public campaign view and share route
@@ -103,6 +104,8 @@ Attend/
 │   └── types/              # TypeScript domain types and contracts
 │       ├── attendance.ts
 │       ├── campaign-builder.ts
+│       ├── campaigns.ts
+│       ├── discover.ts
 │       ├── events.ts
 │       └── home.ts
 ├── supabase/
@@ -161,6 +164,7 @@ npm test
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
 | `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2) |
+| `npm run verify:w4-d1` | Week 4 Day 1 (Phase 3) | Data contracts (CampaignCardProps, DiscoverFilters), date quick-chips range engine, domain isolation between campaign participation and event attendance |
 | `npm run verify:m2` | Milestone 2 (Phase 2) | Public event destination, 4 participation tiers, AvatarStack, bookmark persistence, guest sign-in retention, OpenGraph metadata |
 | `npm run verify:day4` | Week 3 Day 4 | Connected campaign cards polish and creator empty states |
 | `npm run verify:day3` | Week 3 Day 3 | Mobile action bar, cancel confirmation modal, registration modal, and Zod schemas |
@@ -190,7 +194,7 @@ Detailed workflows, branch naming conventions, quality requirements, and daily o
 - [.github/pull_request_template.md](.github/pull_request_template.md): Standard Pull Request description template
 
 ### Daily Workflow Summary
-1. Synchronize with the active weekly parent branch set up by Sanaullah (e.g. `feat/w3-phase2-public-event-attendance`).
+1. Synchronize with the active weekly parent branch set up by Sanaullah (e.g. `feat/w4-phase3-campaigns-discover`).
 2. Create your daily feature branch (`feat/<name>-w<week>-d<day>-<feature>`).
 3. Implement the daily assignment from the implementation plan with clean atomic commits.
 4. Pass all verification checks (`npm test`, `npx tsc --noEmit`, `npm run build`).

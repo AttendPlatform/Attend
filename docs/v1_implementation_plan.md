@@ -6,8 +6,8 @@
 > - **Sanaullah**: Tech Lead & Project Supervisor (Architecture, PR Reviews, Security/RLS, Integration Testing & Release Orchestration)
 > - **Uzair**: Software Engineer (Core UI Primitives, Public Event Destination, Connected Campaigns & Organizer Dashboard)
 > - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)  
-> **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 & 2 Completed; Weeks 3 to 5 Active)  
-> **Status**: Weeks 1 & 2 **DONE** · Weeks 3 to 5 **SCHEDULED**
+> **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 3 Completed; Week 4 Active; Week 5 Scheduled)  
+> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Day 1 Done)** · Week 5 **SCHEDULED**
 
 ---
 
@@ -259,9 +259,12 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 
 #### Day 5 (4 hrs) - CampaignCard Upgrade & Discover Filter Bar
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Review data contracts for `CampaignCardProps` and `DiscoverFilters`.
-  - Ensure campaign participation logic remains strictly isolated from event attendance (generating a DP does not make a user an event attendee).
-  - Set up branch `feat/w4-phase3-campaigns-discover`.
+  - Review data contracts for `CampaignCardProps` and `DiscoverFilters` [DONE].
+  - Created centralized types in `src/types/campaigns.ts` and `src/types/discover.ts` with barrel exports [DONE].
+  - Ensure campaign participation logic remains strictly isolated from event attendance (generating a DP does not make a user an event attendee) [DONE].
+  - Added `checkCampaignAttendanceIsolation` domain guard to `src/services/campaigns.service.ts` [DONE].
+  - Set up weekly parent branch `feat/w4-phase3-campaigns-discover` and feature branch `feat/sanaullah-w4-d1-contracts-isolation` [DONE].
+  - Authored automated verification suite `scripts/verify-w4-d1.ts` (43/43 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Rebuild `src/components/campaigns/CampaignCard.tsx`:
     - Campaign template asset preview with high-definition rendering.
