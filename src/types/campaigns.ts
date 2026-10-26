@@ -1,4 +1,4 @@
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database, Json } from "@/lib/supabase/database.types";
 
 export type CampaignStatus = Database["public"]["Enums"]["campaign_status"] | "draft" | "published" | "paused" | "archived";
 
@@ -37,12 +37,12 @@ export interface CampaignTemplatePreview {
   height: number;
   version?: number;
   is_active?: boolean;
-  canvas_config?: Record<string, unknown> | null;
+  canvas_config?: Json | Record<string, unknown> | null;
 }
 
 export interface CampaignCardData {
   id: string;
-  event_id: string;
+  event_id?: string | null;
   title: string;
   slug: string;
   description?: string | null;

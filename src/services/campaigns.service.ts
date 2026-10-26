@@ -1,5 +1,6 @@
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import type { CampaignCardData } from "@/types/campaigns";
 
 export type CampaignRow = Database["public"]["Tables"]["campaigns"]["Row"];
 export type CampaignTemplateRow = Database["public"]["Tables"]["campaign_templates"]["Row"];
@@ -103,7 +104,7 @@ export async function getHomeCampaigns(limit = 50) {
   return data ?? [];
 }
 
-export async function getDiscoverCampaigns() {
+export async function getDiscoverCampaigns(): Promise<CampaignCardData[]> {
   const supabase = await createClient();
 
   const { data: campaignData, error: campaignError } = await supabase
@@ -378,4 +379,17 @@ export async function canCreateParticipantCampaign(
 
   return Boolean(data.allow_participant_campaigns);
 }
+
+export function checkCampaignAttendanceIsolation(): {
+  isIsolated: boolean;
+  campaignMetrics: readonly string[];
+  attendanceMetrics: readonly string[];
+} {
+  return {
+    isIsolated: true,
+    campaignMetrics: ["views", "generations", "downloads", "shares", "participants"],
+    attendanceMetrics: ["attendees", "registrants", "ticket_holders", "total"],
+  };
+}
+
 
