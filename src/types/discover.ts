@@ -75,11 +75,15 @@ export function resolveDateFilterRange(
   }
 
   const now = new Date(referenceDate.getTime());
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const date = now.getUTCDate();
+  const day = now.getUTCDay();
 
   switch (filter) {
     case "today": {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const start = new Date(Date.UTC(year, month, date, 0, 0, 0, 0));
+      const end = new Date(Date.UTC(year, month, date, 23, 59, 59, 999));
       return {
         start: start.toISOString(),
         end: end.toISOString(),
@@ -87,7 +91,6 @@ export function resolveDateFilterRange(
     }
 
     case "this_weekend": {
-      const day = now.getDay();
       let diffToFriday = 0;
 
       if (day === 0) {
@@ -100,24 +103,17 @@ export function resolveDateFilterRange(
         diffToFriday = 5 - day;
       }
 
-      const friday = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() + diffToFriday,
-        0,
-        0,
-        0,
-        0
-      );
-
+      const friday = new Date(Date.UTC(year, month, date + diffToFriday, 0, 0, 0, 0));
       const sunday = new Date(
-        friday.getFullYear(),
-        friday.getMonth(),
-        friday.getDate() + 2,
-        23,
-        59,
-        59,
-        999
+        Date.UTC(
+          friday.getUTCFullYear(),
+          friday.getUTCMonth(),
+          friday.getUTCDate() + 2,
+          23,
+          59,
+          59,
+          999
+        )
       );
 
       return {
@@ -127,27 +123,18 @@ export function resolveDateFilterRange(
     }
 
     case "this_week": {
-      const day = now.getDay();
       const diffToMonday = day === 0 ? -6 : 1 - day;
-
-      const monday = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() + diffToMonday,
-        0,
-        0,
-        0,
-        0
-      );
-
+      const monday = new Date(Date.UTC(year, month, date + diffToMonday, 0, 0, 0, 0));
       const sunday = new Date(
-        monday.getFullYear(),
-        monday.getMonth(),
-        monday.getDate() + 6,
-        23,
-        59,
-        59,
-        999
+        Date.UTC(
+          monday.getUTCFullYear(),
+          monday.getUTCMonth(),
+          monday.getUTCDate() + 6,
+          23,
+          59,
+          59,
+          999
+        )
       );
 
       return {
@@ -157,8 +144,8 @@ export function resolveDateFilterRange(
     }
 
     case "this_month": {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const start = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+      const end = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
       return {
         start: start.toISOString(),
         end: end.toISOString(),
