@@ -52,8 +52,8 @@ feat/w3-phase2-public-event-attendance (Weekly Parent Branch set up by Sanaullah
    - Created at the start of each phase:
      - Week 1: `feat/v1-phase0-schema` [Completed]
      - Week 2: `feat/v1-phase1-location-event-creation` [Completed]
-     - Week 3: `feat/w3-phase2-public-event-attendance` [Active]
-     - Week 4: `feat/w4-phase3-campaigns-discover` [Scheduled]
+     - Week 3: `feat/w3-phase2-public-event-attendance` [Completed]
+     - Week 4: `feat/w4-phase3-campaigns-discover` [Active]
      - Week 5: `feat/w5-phase4-organizer-saved-launch` [Scheduled]
 
 3. **Daily Engineer Branches (Created by Uzair & Hardik)**:
@@ -74,19 +74,19 @@ feat/w3-phase2-public-event-attendance (Weekly Parent Branch set up by Sanaullah
 At the start of your 4-hour session, sync your local environment with the latest changes in the weekly parent branch:
 
 ```bash
-git checkout feat/w3-phase2-public-event-attendance
-git pull origin feat/w3-phase2-public-event-attendance
+git checkout feat/w4-phase3-campaigns-discover
+git pull origin feat/w4-phase3-campaigns-discover
 ```
 
 ### Step 2: Create Your Daily Branch
 Create your feature branch directly from the updated weekly branch:
 
 ```bash
-git checkout -b feat/uzair-w3-d1-avatar-stack
+git checkout -b feat/uzair-w4-d1-campaign-card
 ```
 
 ### Step 3: Review Specifications & Shared Types
-Before writing code, check your daily objectives in [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md) and review shared data contracts in `src/types/` (such as `src/types/events.ts` and `src/types/attendance.ts`).
+Before writing code, check your daily objectives in [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md) and review shared data contracts in `src/types/` (such as `src/types/campaigns.ts` and `src/types/discover.ts`).
 
 ### Step 4: Implement with Atomic Commits
 Break your work into multiple logical, atomic commits as you progress. Follow the Conventional Commits format:
@@ -123,13 +123,13 @@ npm run build
 Push your daily branch to GitHub:
 
 ```bash
-git push -u origin feat/uzair-w3-d1-avatar-stack
+git push -u origin feat/uzair-w4-d1-campaign-card
 ```
 
 Open a Pull Request on GitHub:
-- **Base branch**: The active weekly branch (e.g. `feat/w3-phase2-public-event-attendance`).
-- **Compare branch**: Your daily branch (e.g. `feat/uzair-w3-d1-avatar-stack`).
-- **Title format**: `feat(w3-d1): implement AvatarStack and action primitives`
+- **Base branch**: The active weekly branch (e.g. `feat/w4-phase3-campaigns-discover`).
+- **Compare branch**: Your daily branch (e.g. `feat/uzair-w4-d1-campaign-card`).
+- **Title format**: `feat(w4-d1): rebuild CampaignCard with parent event link`
 - **Description**: Fill out the Pull Request template completely ([.github/pull_request_template.md](.github/pull_request_template.md)).
 - **Reviewer**: Assign **Sanaullah** as the required reviewer.
 
