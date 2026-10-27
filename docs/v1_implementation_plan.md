@@ -7,7 +7,7 @@
 > - **Uzair**: Software Engineer (Core UI Primitives, Public Event Destination, Connected Campaigns & Organizer Dashboard)
 > - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)  
 > **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 3 Completed; Week 4 Active; Week 5 Scheduled)  
-> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Day 1 Done)** · Week 5 **SCHEDULED**
+> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Day 1 & Day 2 Done)** · Week 5 **SCHEDULED**
 
 ---
 
@@ -280,8 +280,11 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 
 #### Day 6 (4 hrs) - Campaign Detail Parent Context & Location Dropdown
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Inspect query efficiency for location-based filtering (avoid PostGIS bloat; use bounding box and city matching per Brief Sec 19).
-  - Review Fabric.js canvas builder integrity on `/campaign/[slug]` to ensure no regressions occur while adding the parent event header.
+  - Inspect query efficiency for location-based filtering (avoid PostGIS bloat; use bounding box and city matching per Brief Sec 19) [DONE].
+  - Authored PostGIS-free spatial pruning and canonical city matching in `src/lib/location/bounding-box.ts` and integrated into `discover.service.ts` [DONE].
+  - Review Fabric.js canvas builder integrity on `/campaign/[slug]` to ensure no regressions occur while adding the parent event header [DONE].
+  - Authored canvas integrity guard assertions and layer schema validators in `src/lib/campaigns/canvas-integrity.ts` and integrated into `generate.ts` [DONE].
+  - Authored automated verification suite `scripts/verify-w4-d2.ts` (44/44 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Overhaul `src/app/campaign/[slug]/page.tsx` header:
     - Display prominent parent event banner: *"This campaign is for [Event Title] · [View Event Page]"*.
