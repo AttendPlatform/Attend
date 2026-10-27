@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { calculateDistance } from "@/lib/location/distance";
+import { calculateBoundingBox, isWithinBoundingBox, matchesCity, type BoundingBox } from "@/lib/location";
 import type { DiscoverFilters } from "@/types/discover";
 import { resolveDateFilterRange } from "@/types/discover";
 import type { CampaignCardData, CampaignParentEventSummary, CampaignTemplatePreview } from "@/types/campaigns";
@@ -64,11 +65,27 @@ function includesQuery(value: string | null | undefined, query: string): boolean
   return Boolean(value?.toLocaleLowerCase().includes(query));
 }
 
-function matchesEvent(event: DiscoverEvent, filters: DiscoverFilters, search: string, range: { start: string; end: string } | null) {
+function matchesEvent(
+  event: DiscoverEvent,
+  filters: DiscoverFilters,
+  search: string,
+  range: { start: string; end: string } | null,
+  boundingBox?: BoundingBox | null
+) {
   if (filters.categoryId && event.category_id !== filters.categoryId) return false;
   if (typeof filters.isOnline === "boolean" && event.is_online !== filters.isOnline) return false;
-  if (filters.city && event.city?.toLocaleLowerCase() !== filters.city.toLocaleLowerCase()) return false;
-  if (range && (event.start_at < range.start || event.start_at > range.end)) return false;
+  if (filters.city && !matchesCity(event.city, filters.city)) return false;
+  if (boundingBox && event.latitude != null && event.longitude != null) {
+    if (!isWithinBoundingBox({ latitude: event.latitude, longitude: event.longitude }, boundingBox)) {
+      return false;
+    }
+  }
+  if (range) {
+    const eventTime = new Date(event.start_at).getTime();
+    const startTime = new Date(range.start).getTime();
+    const endTime = new Date(range.end).getTime();
+    if (eventTime < startTime || eventTime > endTime) return false;
+  }
   return !search || [event.title, event.description, event.organizerName, event.category?.name]
     .some((value) => includesQuery(value, search));
 }
@@ -147,12 +164,15 @@ export async function getDiscoverData(
   const allEvents = rawEvents.map(toEvent);
   const search = filters.search?.trim().toLocaleLowerCase() ?? "";
   const range = resolveDateFilterRange(filters.dateFilter);
-  const filteredEvents = rankEvents(allEvents.filter((event) => matchesEvent(event, filters, search, range)), filters);
+  const boundingBox = filters.nearMe && filters.userCoordinates
+    ? calculateBoundingBox(filters.userCoordinates, 60)
+    : null;
+  const filteredEvents = rankEvents(allEvents.filter((event) => matchesEvent(event, filters, search, range, boundingBox)), filters);
 
   const filteredCampaigns = rawCampaigns.flatMap((campaign) => {
     const parent = campaign.event_id ? eventsById.get(campaign.event_id) : null;
     if (!parent || parent.status !== "published") return [];
-    if (!matchesEvent(parent, { ...filters, search: undefined }, "", range)) return [];
+    if (!matchesEvent(parent, { ...filters, search: undefined }, "", range, boundingBox)) return [];
     if (search && ![campaign.title, campaign.description, parent.title, parent.description, parent.organizerName, parent.category?.name]
       .some((value) => includesQuery(value, search))) return [];
     const template = templatesResult.data?.find((item) => item.campaign_id === campaign.id) ?? null;
