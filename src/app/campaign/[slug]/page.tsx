@@ -44,6 +44,7 @@ import CampaignGeneratedImage from "@/components/campaigns/CampaignGeneratedImag
 import CampaignResultActions from "@/components/campaigns/CampaignResultActions";
 import CampaignLoadingState from "@/components/campaigns/CampaignLoadingState";
 import CampaignErrorState from "@/components/campaigns/CampaignErrorState";
+import type { CampaignParentEventSummary } from "@/types/campaigns";
 
 export default function PublicCampaignPage() {
   const params = useParams();
@@ -54,6 +55,17 @@ export default function PublicCampaignPage() {
 
   const [campaign, setCampaign] =
     useState<Campaign | null>(null);
+
+  const [parentEvent, setParentEvent] =
+    useState<CampaignParentEventSummary | null>(null);
+
+  const [creator, setCreator] =
+    useState<{
+      id: string;
+      name: string;
+      avatar_url?: string | null;
+      is_verified?: boolean;
+    } | null>(null);
 
   const [template, setTemplate] =
     useState<Template | null>(null);
@@ -197,6 +209,56 @@ export default function PublicCampaignPage() {
         setCampaign(
           typedCampaign
         );
+
+        // Fetch parent event details
+        if (campaignData.event_id) {
+          const { data: eventData } = await supabase
+            .from("events")
+            .select(`
+              id,
+              title,
+              slug,
+              cover_image,
+              start_at,
+              end_at,
+              venue_name,
+              address,
+              city,
+              state,
+              country,
+              is_online,
+              status,
+              event_categories (
+                id,
+                name,
+                slug
+              )
+            `)
+            .eq("id", campaignData.event_id)
+            .maybeSingle();
+
+          if (eventData) {
+            setParentEvent(eventData as unknown as CampaignParentEventSummary);
+          }
+        }
+
+        // Fetch campaign creator profile
+        if (campaignData.creator_id) {
+          const { data: creatorData } = await supabase
+            .from("profiles")
+            .select("id, name, avatar_url")
+            .eq("id", campaignData.creator_id)
+            .maybeSingle();
+
+          if (creatorData && creatorData.name) {
+            setCreator({
+              id: creatorData.id,
+              name: creatorData.name,
+              avatar_url: creatorData.avatar_url,
+              is_verified: true,
+            });
+          }
+        }
 
         const {
           data: templateData,
@@ -945,11 +1007,16 @@ export default function PublicCampaignPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <CampaignHeader />
+      <CampaignHeader
+        parentEvent={parentEvent}
+        creator={creator}
+      />
 
       <div className="mx-auto max-w-5xl px-5 py-8 sm:py-12">
         <CampaignIntro
           title={campaign.title}
+          parentEvent={parentEvent}
+          participantCount={campaign.participants || campaign.generations || 0}
         />
 
         <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_420px] lg:items-start">
@@ -1033,13 +1100,11 @@ export default function PublicCampaignPage() {
           <section className="order-1 lg:order-2">
             <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-base font-semibold">
-                Personalize your DP
+                Create from campaign
               </h2>
 
               <p className="mt-1 text-xs leading-5 text-neutral-500">
-                Your photo and name
-                will be placed into
-                the campaign design.
+                Your photo and name will be placed into the campaign design for you.
               </p>
 
               <CampaignPhotoUpload
@@ -1086,8 +1151,8 @@ export default function PublicCampaignPage() {
                   className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {generating
-                    ? "Generating DP..."
-                    : "Generate DP"}
+                    ? "Generating version..."
+                    : "Create your version"}
                 </button>
               ) : (
                 <CampaignResultActions
@@ -1099,6 +1164,9 @@ export default function PublicCampaignPage() {
                   }
                   shared={
                     shared
+                  }
+                  parentEvent={
+                    parentEvent
                   }
                   onDownload={
                     downloadDP
