@@ -7,7 +7,7 @@
 > - **Uzair**: Software Engineer (Core UI Primitives, Public Event Destination, Connected Campaigns & Organizer Dashboard)
 > - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)  
 > **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 3 Completed; Week 4 Active; Week 5 Scheduled)  
-> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Day 1 Done)** · Week 5 **SCHEDULED**
+> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Day 1 & Day 2 Done)** · Week 5 **SCHEDULED**
 
 ---
 
@@ -273,15 +273,18 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Integrated `SaveButton` configured for `targetType: "campaign"`.
     - Primary CTA: `[ Create Version ]` or `[ Participate ]`.
 - **Hardik (Software Engineer)**:
-  - Build `src/components/discover/DiscoverFilterBar.tsx`:
-    - **Search Input**: Debounced search targeting event titles, descriptions, and organizers.
-    - **Date Quick-Chips**: Horizontal pills for `[ All ]`, `[ Today ]`, `[ This Weekend ]`, `[ This Week ]`, `[ This Month ]`.
-    - **Category Pills**: Dynamic category selector fetched from `event_categories`.
+  - Build `src/components/discover/DiscoverFilterBar.tsx` [DONE]:
+    - **Search Input**: Debounced search targeting event titles, descriptions, and organizers [DONE].
+    - **Date Quick-Chips**: Horizontal pills for `[ All ]`, `[ Today ]`, `[ This Weekend ]`, `[ This Week ]`, `[ This Month ]` [DONE].
+    - **Category Pills**: Dynamic category selector fetched from `event_categories` [DONE].
 
 #### Day 6 (4 hrs) - Campaign Detail Parent Context & Location Dropdown
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Inspect query efficiency for location-based filtering (avoid PostGIS bloat; use bounding box and city matching per Brief Sec 19).
-  - Review Fabric.js canvas builder integrity on `/campaign/[slug]` to ensure no regressions occur while adding the parent event header.
+  - Inspect query efficiency for location-based filtering (avoid PostGIS bloat; use bounding box and city matching per Brief Sec 19) [DONE].
+  - Authored PostGIS-free spatial pruning and canonical city matching in `src/lib/location/bounding-box.ts` and integrated into `discover.service.ts` [DONE].
+  - Review Fabric.js canvas builder integrity on `/campaign/[slug]` to ensure no regressions occur while adding the parent event header [DONE].
+  - Authored canvas integrity guard assertions and layer schema validators in `src/lib/campaigns/canvas-integrity.ts` and integrated into `generate.ts` [DONE].
+  - Authored automated verification suite `scripts/verify-w4-d2.ts` (44/44 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Overhaul `src/app/campaign/[slug]/page.tsx` header:
     - Display prominent parent event banner: *"This campaign is for [Event Title] · [View Event Page]"*.
@@ -291,12 +294,12 @@ Per Section 60 of the Development Brief, every existing asset is classified into
       - *"Create your version"*
       - *"Participate with this campaign"*
 - **Hardik (Software Engineer)**:
-  - Build Location Filter Selector in `DiscoverFilterBar`:
-    - Option 1: *"Near Me"* (uses browser Geolocation API with graceful fallback).
-    - Option 2: Pre-selected Nigerian tech hubs (*Lagos*, *Abuja*, *Port Harcourt*, *Ibadan*, *Enugu*, *Kano*).
-    - Option 3: *"Online Events"*.
-    - Option 4: *"All Locations"*.
-  - Sync filter state cleanly with Next.js URL query parameters (`?q=...&city=...&date=...`).
+  - Build Location Filter Selector in `DiscoverFilterBar` [DONE]:
+    - Option 1: *"Near Me"* (uses browser Geolocation API with graceful fallback) [DONE].
+    - Option 2: Pre-selected Nigerian tech hubs (*Lagos*, *Abuja*, *Port Harcourt*, *Ibadan*, *Enugu*, *Kano*) [DONE].
+    - Option 3: *"Online Events"* [DONE].
+    - Option 4: *"All Locations"* [DONE].
+  - Sync filter state cleanly with Next.js URL query parameters (`?q=...&city=...&date=...`) [DONE].
 
 #### Day 7 (4 hrs) - Conversion Funnel CTA & Discover Query Engine
 - **Sanaullah (Tech Lead / Supervisor)**:
@@ -308,10 +311,10 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Social share buttons with source tracking (`?src=campaign_share`).
     - **Conversion Funnel Banner**: *"Attending the event? [Go to Event Page to RSVP / Get Tickets]"* with one-click navigation to parent `/events/[id]`.
 - **Hardik (Software Engineer)**:
-  - Build `src/services/discover.service.ts`:
-    - Unified query builder taking `{ search, city, isOnline, dateRange, categoryId }`.
-    - Implements deterministic ranking: Location match -> Category match -> Upcoming dates first (Brief Sec 35).
-    - Parallel fetching: Returns both matching events and active connected campaigns.
+  - Build `src/services/discover.service.ts` [DONE]:
+    - Unified query builder taking `{ search, city, isOnline, dateRange, categoryId }` [DONE].
+    - Implements deterministic ranking: Location match -> Category match -> Upcoming dates first (Brief Sec 35) [DONE].
+    - Parallel fetching: Returns both matching events and active connected campaigns [DONE].
 
 #### Day 8 (4 hrs) - Modular Discover Page & Milestone 3 Checkpoint
 - **Sanaullah (Tech Lead / Supervisor)**:
@@ -326,8 +329,8 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Section 2: **Featured Campaigns** (responsive grid of standard `CampaignCard` components).
     - Section 3: Clean empty states with "Clear Filters" action.
 - **Hardik (Software Engineer)**:
-  - Build loading skeleton components (`EventCardSkeleton`, `CampaignCardSkeleton`) for smooth SSR streaming.
-  - Implement browser geolocation distance sorting helper in `discover.service.ts`.
+  - Build loading skeleton components (`EventCardSkeleton`, `CampaignCardSkeleton`) for smooth SSR streaming [DONE].
+  - Implement browser geolocation distance sorting helper in `discover.service.ts` [DONE].
 
 > **Week 4 Deliverables Checkpoint**:
 > - Rebuilt `CampaignCard` with parent event deep-links.

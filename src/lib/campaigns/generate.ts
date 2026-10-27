@@ -7,6 +7,7 @@ import {
   loadImage,
   coverSize,
 } from "./image";
+import { assertCanvasIntegrity } from "./canvas-integrity";
 
 type GenerateCampaignImageParams = {
   templateUrl: string;
@@ -35,6 +36,13 @@ export async function generateCampaignImage({
   offsetX,
   offsetY,
 }: GenerateCampaignImageParams): Promise<string> {
+  assertCanvasIntegrity(
+    canvasWidth,
+    canvasHeight,
+    photoPosition,
+    namePosition
+  );
+
   const canvas = document.createElement("canvas");
 
   canvas.width = canvasWidth;
