@@ -21,7 +21,9 @@
     "verify:m2": "node --experimental-strip-types scripts/verify-milestone2.ts",
     "verify:milestone2": "node --experimental-strip-types scripts/verify-milestone2.ts",
     "verify:w4-d1": "node --experimental-strip-types scripts/verify-w4-d1.ts",
-    "verify:d5": "node --experimental-strip-types scripts/verify-w4-d1.ts"
+    "verify:d5": "node --experimental-strip-types scripts/verify-w4-d1.ts",
+    "verify:w4-d2": "node --experimental-strip-types scripts/verify-w4-d2.ts",
+    "verify:d6": "node --experimental-strip-types scripts/verify-w4-d2.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
