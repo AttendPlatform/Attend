@@ -58,7 +58,8 @@ Attend/
 │   ├── verify-day3.ts
 │   ├── verify-day4.ts
 │   ├── verify-milestone2.ts
-│   └── verify-w4-d1.ts
+│   ├── verify-w4-d1.ts
+│   └── verify-w4-d2.ts
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
 │   │   ├── campaign/       # Public campaign view and share route
@@ -77,6 +78,7 @@ Attend/
 │   ├── components/         # Reusable modular UI components
 │   │   ├── analytics/      # Tracking and telemetry components
 │   │   ├── campaigns/      # Promotional campaign cards and canvas builder
+│   │   ├── discover/       # DiscoverFilterBar, DiscoverHub, and card skeletons
 │   │   ├── events/         # Event cards and participation model selector
 │   │   ├── home/           # Landing page sections and filter controls
 │   │   ├── location/       # LocationPicker and MapPreview components
@@ -86,14 +88,15 @@ Attend/
 │   │   └── ui/             # Primitives and shared UI controls
 │   ├── hooks/              # Custom React hooks (useNotifications, useToast)
 │   ├── lib/                # Core libraries and utility abstractions
-│   │   ├── campaigns/      # Campaign canvas renderer and template helpers
-│   │   ├── location/       # Pluggable location abstraction layer
+│   │   ├── campaigns/      # Canvas renderer, integrity guards, and templates
+│   │   ├── location/       # Pluggable location layer and bounding box filters
 │   │   ├── notifications/  # Notification processing engine and client
 │   │   ├── supabase/       # Supabase browser, server, and proxy clients
 │   │   └── utils/          # Formatting helpers and error handlers
 │   ├── services/           # Domain services and Server Actions
 │   │   ├── attendance.service.ts
 │   │   ├── campaigns.service.ts
+│   │   ├── discover.service.ts
 │   │   ├── events.service.ts
 │   │   ├── profile.service.ts
 │   │   └── saved.service.ts
@@ -164,6 +167,7 @@ npm test
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
 | `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2) |
+| `npm run verify:w4-d2` | Week 4 Day 2 (Phase 3) | Location query efficiency, PostGIS-free bounding box calculations, Nigerian city matching, Fabric.js canvas builder integrity guards |
 | `npm run verify:w4-d1` | Week 4 Day 1 (Phase 3) | Data contracts (CampaignCardProps, DiscoverFilters), date quick-chips range engine, domain isolation between campaign participation and event attendance |
 | `npm run verify:m2` | Milestone 2 (Phase 2) | Public event destination, 4 participation tiers, AvatarStack, bookmark persistence, guest sign-in retention, OpenGraph metadata |
 | `npm run verify:day4` | Week 3 Day 4 | Connected campaign cards polish and creator empty states |
