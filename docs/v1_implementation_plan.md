@@ -7,7 +7,7 @@
 > - **Uzair**: Software Engineer (Core UI Primitives, Public Event Destination, Connected Campaigns & Organizer Dashboard)
 > - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)  
 > **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 3 Completed; Week 4 Active; Week 5 Scheduled)  
-> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Day 1 & Day 2 Done)** · Week 5 **SCHEDULED**
+> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Days 1, 2, and Day 3 Conversion Funnel DONE)** · Week 5 **SCHEDULED**
 
 ---
 
@@ -51,7 +51,7 @@ Attend is an event discovery and participation platform where **the Event is the
 | **Public Event Detail** | Dedicated public destination at `/events/[id]` with hero banner, host info, map preview, calendar export, and OpenGraph metadata. | Brief Section 13 public page. | **DONE (Week 3 - Days 1-2)** |
 | **Social Proof & Action UI** | `AvatarStack`, `SaveButton`, `ShareButton`, `ExpandableEventCover` primitives with optimistic updates and fallbacks. | Matches brief Section 10 & 11. | **DONE (Week 3 - Days 1-2)** |
 | **Event Participation CTAs**| Dynamic `EventPrimaryAction`, validated `RegistrationModal`, `CancelRsvpModal`, `MobileEventActionBar`, guest sign-in intent retention, and Milestone 2 test suite. | Matches brief Section 14 & 37. | **DONE (Week 3 - Days 1-4)** |
-| **Connected Campaign Detail** | `/campaign/[slug]` needs parent event banner, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **SCHEDULED (Week 4)** |
+| **Connected Campaign Detail** | `/campaign/[slug]` has parent event banner, verified creator badge, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **DONE (Week 4 - Days 1-2)** |
 | **Discover Experience** | Redesign `/discover` with search input, Nigerian city selector, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **SCHEDULED (Week 4)** |
 | **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **SCHEDULED (Week 5)** |
 | **Saved System** | Implement `/saved` hub with tabs for Saved Events and Saved Campaigns. | Matches brief Section 17 & 33. | **SCHEDULED (Week 5)** |
@@ -266,12 +266,12 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Set up weekly parent branch `feat/w4-phase3-campaigns-discover` and feature branch `feat/sanaullah-w4-d1-contracts-isolation` [DONE].
   - Authored automated verification suite `scripts/verify-w4-d1.ts` (43/43 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Rebuild `src/components/campaigns/CampaignCard.tsx`:
-    - Campaign template asset preview with high-definition rendering.
-    - Campaign title and participant badge (`👥 18 participating`).
-    - **Explicit Parent Event Link**: `For: [Event Title]` with deep-link directly to `/events/[id]`.
-    - Integrated `SaveButton` configured for `targetType: "campaign"`.
-    - Primary CTA: `[ Create Version ]` or `[ Participate ]`.
+  - Rebuild `src/components/campaigns/CampaignCard.tsx` [DONE]:
+    - Campaign template asset preview with high-definition rendering [DONE].
+    - Campaign title and participant badge (`👥 18 participating`) [DONE].
+    - **Explicit Parent Event Link**: `For: [Event Title]` with deep-link directly to `/events/[id]` [DONE].
+    - Integrated `SaveButton` configured for `targetType: "campaign"` [DONE].
+    - Primary CTA: `[ Create Version ]` or `[ Participate ]` [DONE].
 - **Hardik (Software Engineer)**:
   - Build `src/components/discover/DiscoverFilterBar.tsx` [DONE]:
     - **Search Input**: Debounced search targeting event titles, descriptions, and organizers [DONE].
@@ -286,13 +286,13 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Authored canvas integrity guard assertions and layer schema validators in `src/lib/campaigns/canvas-integrity.ts` and integrated into `generate.ts` [DONE].
   - Authored automated verification suite `scripts/verify-w4-d2.ts` (44/44 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Overhaul `src/app/campaign/[slug]/page.tsx` header:
-    - Display prominent parent event banner: *"This campaign is for [Event Title] · [View Event Page]"*.
-    - Display creator profile info and verified badge.
-    - Update user-facing copy from legacy "Create your DP" to:
-      - *"Create from campaign"*
-      - *"Create your version"*
-      - *"Participate with this campaign"*
+  - Overhaul `src/app/campaign/[slug]/page.tsx` header [DONE]:
+    - Display prominent parent event banner: *"Official Campaign for [Event Title] · [View Event Page]"* [DONE].
+    - Display creator profile info and verified badge [DONE].
+    - Update user-facing copy from legacy "Create your DP" to [DONE]:
+      - *"Create from campaign"* [DONE]
+      - *"Create your version"* [DONE]
+      - *"Participate with this campaign"* [DONE]
 - **Hardik (Software Engineer)**:
   - Build Location Filter Selector in `DiscoverFilterBar` [DONE]:
     - Option 1: *"Near Me"* (uses browser Geolocation API with graceful fallback) [DONE].
@@ -306,10 +306,10 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Review the conversion funnel flow: Campaign Shared -> Viewed -> Participated -> Event RSVP (Brief Sec 16 & 20).
   - Review Supabase query performance and indexing in `discover.service.ts`.
 - **Uzair (Software Engineer)**:
-  - Build post-generation funnel in `CampaignResultActions`:
-    - Download generated banner graphic.
-    - Social share buttons with source tracking (`?src=campaign_share`).
-    - **Conversion Funnel Banner**: *"Attending the event? [Go to Event Page to RSVP / Get Tickets]"* with one-click navigation to parent `/events/[id]`.
+  - Build post-generation funnel in `CampaignResultActions` [DONE]:
+    - Download generated banner graphic ("Download Graphic") [DONE].
+    - Social share buttons with source tracking (`?src=campaign_share`) [DONE].
+    - **Conversion Funnel Banner**: *"Attending the event? [Go to Event Page to RSVP / Get Tickets]"* with one-click navigation to parent `/events/[id]` [DONE].
 - **Hardik (Software Engineer)**:
   - Build `src/services/discover.service.ts` [DONE]:
     - Unified query builder taking `{ search, city, isOnline, dateRange, categoryId }` [DONE].
@@ -438,11 +438,11 @@ Every item in Section 58 of the specification is mapped to its implementing mile
 | | Share event | Week 3 (Day 1) | Uzair | Native share with `?src=event_share` tracking. |
 | | Attend / Register / Ticket | Week 3 (Day 2 & 3) | Hardik | Dynamic CTA triggers correct flow per config. |
 | **Campaign** | Discover campaign | Week 4 (Day 8) | Uzair & Hardik | Campaigns grid displayed on `/discover`. |
-| | Open campaign | Week 4 (Day 6) | Uzair | `/campaign/[slug]` loads template and settings. |
-| | Connected parent event | Week 4 (Day 6) | Uzair | Prominent banner links directly to parent event. |
-| | Participate where allowed | Week 4 (Day 7) | Uzair | Photo adjustment, canvas generation, and download. |
-| | Share campaign | Week 4 (Day 7) | Uzair | Share modal tracks campaign source platform. |
-| | Navigate to event | Week 4 (Day 7) | Uzair | Conversion banner routes user to event RSVP. |
+| | Open campaign | Week 4 (Day 6) | Uzair | `/campaign/[slug]` loads template and settings [DONE]. |
+| | Connected parent event | Week 4 (Day 6) | Uzair | Prominent banner links directly to parent event [DONE]. |
+| | Participate where allowed | Week 4 (Day 7) | Uzair | Photo adjustment, canvas generation, and download [DONE]. |
+| | Share campaign | Week 4 (Day 7) | Uzair | Share modal tracks campaign source platform [DONE]. |
+| | Navigate to event | Week 4 (Day 7) | Uzair | Conversion banner routes user to event RSVP [DONE]. |
 | **Organizer** | Create event & location | Week 2 (Day 7) | Completed (W2) | Structured coordinates and Nigerian hub presets saved. |
 | | Configure participation | Week 2 (Day 7) | Completed (W2) | Sets Free, Registration, Paid, or External. |
 | | Configure campaign toggle | Week 2 (Day 7) | Completed (W2) | Sets `allow_participant_campaigns` ON/OFF. |
