@@ -7,7 +7,7 @@
 > - **Uzair**: Software Engineer (Core UI Primitives, Public Event Destination, Connected Campaigns & Organizer Dashboard)
 > - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)  
 > **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 3 Completed; Week 4 Active; Week 5 Scheduled)  
-> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Days 1, 2, and Day 3 Conversion Funnel DONE)** · Week 5 **SCHEDULED**
+> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Days 1, 2, and 3 DONE)** · Week 5 **SCHEDULED**
 
 ---
 
@@ -303,8 +303,14 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 
 #### Day 7 (4 hrs) - Conversion Funnel CTA & Discover Query Engine
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Review the conversion funnel flow: Campaign Shared -> Viewed -> Participated -> Event RSVP (Brief Sec 16 & 20).
-  - Review Supabase query performance and indexing in `discover.service.ts`.
+  - Review the conversion funnel flow: Campaign Shared -> Viewed -> Participated -> Event RSVP (Brief Sec 16 & 20) [DONE].
+  - Implemented conversion funnel routing helpers and share link builders in `src/lib/campaigns/funnel.ts` [DONE].
+  - Wired `?src=campaign_funnel` one-click conversion routing from `CampaignResultActions` to `/events/[id]` and integrated arrival banner [DONE].
+  - Updated `analytics.ts` and `campaign/[slug]/page.tsx` with `?src=campaign_share` tracking and modernized participation copy [DONE].
+  - Review Supabase query performance and indexing in `discover.service.ts` [DONE].
+  - Authored database migration `20261028140000_discover_query_performance_indexes.sql` establishing composite and secondary indexes across events, campaigns, and templates [DONE].
+  - Optimized `discover.service.ts` with SQL query pushdowns and O(1) Map indexing for categories, profiles, and templates [DONE].
+  - Authored automated verification suite `scripts/verify-w4-d3.ts` (49/49 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Build post-generation funnel in `CampaignResultActions` [DONE]:
     - Download generated banner graphic ("Download Graphic") [DONE].
