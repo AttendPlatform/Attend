@@ -27,8 +27,10 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - Participant Campaign Permissions: Creator control allowing or restricting participant-led promotional campaigns
 
 ### 3. Campaign & Promotion Layer (`src/services/campaigns.service.ts`, `src/app/campaign`)
-- Connected participant campaigns linked to parent events via database referential constraints
-- Canvas-based visual banner builder for personalized promotional assets
+- Canonical CampaignCard component (`src/components/campaigns/CampaignCard.tsx`) with explicit parent event deep-links (`For: [Event Title]`), participant social proof badges, dynamic CTA variants, and integrated optimistic SaveButton
+- Connected public campaign destination (`/campaign/[slug]`) with official parent event conversion banner, verified creator profile card, and modernized participation copy
+- Post-generation conversion funnel in `CampaignResultActions` routing participants directly back to the parent event for registration and ticketing
+- Canvas integrity guards (`src/lib/campaigns/canvas-integrity.ts`) ensuring dimension validation and Fabric.js layer processing stability
 - Analytics tracking for impressions, clicks, RSVPs, and referral conversions
 
 ### 4. Attendance & Bookmark Systems (`src/services/attendance.service.ts`, `src/services/saved.service.ts`)
@@ -59,7 +61,8 @@ Attend/
 │   ├── verify-day4.ts
 │   ├── verify-milestone2.ts
 │   ├── verify-w4-d1.ts
-│   └── verify-w4-d2.ts
+│   ├── verify-w4-d2.ts
+│   └── verify-w4-d3.ts
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
 │   │   ├── campaign/       # Public campaign view and share route
@@ -88,7 +91,7 @@ Attend/
 │   │   └── ui/             # Primitives and shared UI controls
 │   ├── hooks/              # Custom React hooks (useNotifications, useToast)
 │   ├── lib/                # Core libraries and utility abstractions
-│   │   ├── campaigns/      # Canvas renderer, integrity guards, and templates
+│   │   ├── campaigns/      # Canvas renderer, integrity guards, funnel routing, and templates
 │   │   ├── location/       # Pluggable location layer and bounding box filters
 │   │   ├── notifications/  # Notification processing engine and client
 │   │   ├── supabase/       # Supabase browser, server, and proxy clients
@@ -116,7 +119,9 @@ Attend/
 │       ├── 20261005195800_v1_phase0_tables.sql
 │       ├── 20261006171600_v1_phase0_attendance_schema.sql
 │       ├── 20261006171700_v1_phase0_indexes.sql
-│       └── 20261008154000_v1_phase0_data_integrity.sql
+│       ├── 20261008154000_v1_phase0_data_integrity.sql
+│       ├── 20261028120000_secure_event_participants.sql
+│       └── 20261028140000_discover_query_performance_indexes.sql
 ├── CONTRIBUTING.md         # Engineering contribution guide and daily PR workflow
 ├── package.json            # Scripts, dependencies, and project metadata
 ├── tsconfig.json           # TypeScript configuration and path aliases
@@ -167,6 +172,7 @@ npm test
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
 | `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2) |
+| `npm run verify:w4-d3` | Week 4 Day 3 (Phase 3) | Conversion funnel routing, campaign share tracking, discover query index optimizations, and Map-based lookups |
 | `npm run verify:w4-d2` | Week 4 Day 2 (Phase 3) | Location query efficiency, PostGIS-free bounding box calculations, Nigerian city matching, Fabric.js canvas builder integrity guards |
 | `npm run verify:w4-d1` | Week 4 Day 1 (Phase 3) | Data contracts (CampaignCardProps, DiscoverFilters), date quick-chips range engine, domain isolation between campaign participation and event attendance |
 | `npm run verify:m2` | Milestone 2 (Phase 2) | Public event destination, 4 participation tiers, AvatarStack, bookmark persistence, guest sign-in retention, OpenGraph metadata |

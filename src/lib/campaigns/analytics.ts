@@ -15,6 +15,7 @@ export type TrafficSource =
   | "telegram"
   | "email"
   | "direct"
+  | "campaign_share"
   | "other";
 
 export const VALID_TRAFFIC_SOURCES: TrafficSource[] = [
@@ -26,6 +27,7 @@ export const VALID_TRAFFIC_SOURCES: TrafficSource[] = [
   "telegram",
   "email",
   "direct",
+  "campaign_share",
   "other",
 ];
 
@@ -74,6 +76,10 @@ export function getCampaignTrafficSource(
         .toLowerCase() ||
       params
         .get("utm_source")
+        ?.trim()
+        .toLowerCase() ||
+      params
+        .get("src")
         ?.trim()
         .toLowerCase();
 
