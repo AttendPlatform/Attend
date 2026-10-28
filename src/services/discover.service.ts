@@ -75,13 +75,15 @@ function matchesEvent(
   if (filters.categoryId && event.category_id !== filters.categoryId) return false;
   if (typeof filters.isOnline === "boolean" && event.is_online !== filters.isOnline) return false;
   if (filters.city && !matchesCity(event.city, filters.city)) return false;
-  if (boundingBox && event.latitude != null && event.longitude != null) {
+  if (boundingBox) {
+    if (event.latitude == null || event.longitude == null) return false;
     if (!isWithinBoundingBox({ latitude: event.latitude, longitude: event.longitude }, boundingBox)) {
       return false;
     }
   }
   if (range) {
     const eventTime = new Date(event.start_at).getTime();
+    if (Number.isNaN(eventTime)) return false;
     const startTime = new Date(range.start).getTime();
     const endTime = new Date(range.end).getTime();
     if (eventTime < startTime || eventTime > endTime) return false;
@@ -111,8 +113,14 @@ function rankEvents(events: DiscoverEvent[], filters: DiscoverFilters): Discover
     const aUpcoming = new Date(a.start_at).getTime() >= now;
     const bUpcoming = new Date(b.start_at).getTime() >= now;
     if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
-    if (filters.sortBy === "popular") return b.participant_count - a.participant_count;
-    return new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+    if (filters.sortBy === "popular") {
+      const aCount = a.participant_count ?? 0;
+      const bCount = b.participant_count ?? 0;
+      if (bCount !== aCount) return bCount - aCount;
+    }
+    const timeDiff = new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+    if (timeDiff !== 0) return timeDiff;
+    return a.id.localeCompare(b.id);
   });
 }
 
@@ -121,15 +129,29 @@ export async function getDiscoverData(
   supabase: SupabaseClient<Database>,
   filters: DiscoverFilters = {}
 ): Promise<DiscoverResults> {
+  let eventQuery = supabase
+    .from("events")
+    .select(EVENT_COLUMNS)
+    .eq("status", "published")
+    .order("start_at", { ascending: true });
+
+  if (filters.categoryId) {
+    eventQuery = eventQuery.eq("category_id", filters.categoryId);
+  }
+  if (typeof filters.isOnline === "boolean") {
+    eventQuery = eventQuery.eq("is_online", filters.isOnline);
+  }
+
   const [categoryResult, eventResult, campaignResult] = await Promise.all([
     supabase.from("event_categories").select("id, name, slug, icon").order("name"),
-    supabase.from("events").select(EVENT_COLUMNS).eq("status", "published").order("start_at", { ascending: true }),
+    eventQuery,
     supabase.from("campaigns").select(`id, event_id, creator_id, title, slug, description, status, views, generations, downloads, participants, created_at`).eq("status", "published").order("created_at", { ascending: false }),
   ]);
 
   if (eventResult.error) throw eventResult.error;
   if (campaignResult.error) throw campaignResult.error;
   const categories = categoryResult.data ?? [];
+  const categoryMap = new Map(categories.map((c) => [c.id, c]));
   const rawEvents = (eventResult.data ?? []) as unknown as Omit<DiscoverEvent, "category" | "organizerName">[];
   const rawCampaigns = campaignResult.data ?? [];
   const creatorIds = [...new Set(rawEvents.map((event) => event.creator_id))];
@@ -152,13 +174,24 @@ export async function getDiscoverData(
   if (templatesResult.error) throw templatesResult.error;
 
   const profiles = profilesResult.data ?? [];
+  const profileNameMap = new Map(
+    profiles.map((p) => [
+      p.id,
+      p.display_name || p.full_name || p.username || null,
+    ])
+  );
+
+  const templateMap = new Map<string, CampaignTemplatePreview>();
+  for (const template of templatesResult.data ?? []) {
+    if (template.campaign_id && !templateMap.has(template.campaign_id)) {
+      templateMap.set(template.campaign_id, template as CampaignTemplatePreview);
+    }
+  }
+
   const toEvent = (row: Omit<DiscoverEvent, "category" | "organizerName">): DiscoverEvent => ({
     ...row,
-    category: categories.find((category) => category.id === row.category_id) ?? null,
-    organizerName: profiles.find((profile) => profile.id === row.creator_id)?.display_name
-      || profiles.find((profile) => profile.id === row.creator_id)?.full_name
-      || profiles.find((profile) => profile.id === row.creator_id)?.username
-      || null,
+    category: row.category_id ? categoryMap.get(row.category_id) ?? null : null,
+    organizerName: profileNameMap.get(row.creator_id) ?? null,
   });
   const eventsById = new Map(((parentEventsResult.data ?? []) as unknown as Omit<DiscoverEvent, "category" | "organizerName">[]).map((row) => [row.id, toEvent(row)]));
   const allEvents = rawEvents.map(toEvent);
@@ -175,14 +208,14 @@ export async function getDiscoverData(
     if (!matchesEvent(parent, { ...filters, search: undefined }, "", range, boundingBox)) return [];
     if (search && ![campaign.title, campaign.description, parent.title, parent.description, parent.organizerName, parent.category?.name]
       .some((value) => includesQuery(value, search))) return [];
-    const template = templatesResult.data?.find((item) => item.campaign_id === campaign.id) ?? null;
+    const template = templateMap.get(campaign.id) ?? null;
     return [{
       ...campaign,
       event: {
         ...parent,
         category: parent.category,
       },
-      template: template as CampaignTemplatePreview | null,
+      template,
     } as DiscoverCampaign];
   });
 
