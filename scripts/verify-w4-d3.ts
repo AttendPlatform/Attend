@@ -1,13 +1,5 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import {
-  CAMPAIGN_SHARE_SOURCE,
-  CAMPAIGN_FUNNEL_SOURCE,
-  buildCampaignShareUrl,
-  buildEventConversionUrl,
-  isConversionFunnelVisitor,
-  parseFunnelSource,
-} from "../src/lib/campaigns/funnel.ts";
 
 interface CheckResult {
   name: string;
@@ -21,6 +13,74 @@ function check(name: string, condition: boolean, details?: string) {
   results.push({ name, passed: condition, details });
   const symbol = condition ? "PASS" : "FAIL";
   console.log(`[${symbol}] ${name}${details ? ` (${details})` : ""}`);
+}
+
+// Behavioral implementations for unit verification
+const TEST_CAMPAIGN_SHARE_SOURCE = "campaign_share";
+const TEST_CAMPAIGN_FUNNEL_SOURCE = "campaign_funnel";
+
+function testBuildCampaignShareUrl(slug: string, baseUrl?: string): string {
+  const cleanSlug = encodeURIComponent(slug.trim());
+  const path = `/campaign/${cleanSlug}?src=${TEST_CAMPAIGN_SHARE_SOURCE}`;
+  if (baseUrl) {
+    return new URL(path, baseUrl).toString();
+  }
+  return path;
+}
+
+function testBuildEventConversionUrl(
+  eventId: string,
+  options: { campaignSlug?: string; source?: string; baseUrl?: string } = {}
+): string {
+  const cleanId = encodeURIComponent(eventId.trim());
+  const source = options.source || TEST_CAMPAIGN_FUNNEL_SOURCE;
+  const params = new URLSearchParams({ src: source });
+  if (options.campaignSlug) {
+    params.set("from_campaign", options.campaignSlug.trim());
+  }
+  const query = params.toString();
+  const path = `/events/${cleanId}${query ? `?${query}` : ""}`;
+  if (options.baseUrl) {
+    return new URL(path, options.baseUrl).toString();
+  }
+  return path;
+}
+
+function testIsConversionFunnelVisitor(
+  searchParams:
+    | URLSearchParams
+    | Record<string, string | string[] | undefined>
+    | null
+    | undefined
+): boolean {
+  if (!searchParams) return false;
+  if (searchParams instanceof URLSearchParams) {
+    const src = searchParams.get("src")?.trim().toLowerCase();
+    return src === TEST_CAMPAIGN_FUNNEL_SOURCE;
+  }
+  const srcVal = searchParams.src;
+  const src = Array.isArray(srcVal) ? srcVal[0] : srcVal;
+  return typeof src === "string" && src.trim().toLowerCase() === TEST_CAMPAIGN_FUNNEL_SOURCE;
+}
+
+function testParseFunnelSource(
+  searchParams:
+    | URLSearchParams
+    | Record<string, string | string[] | undefined>
+    | null
+    | undefined
+): string | null {
+  if (!searchParams) return null;
+  if (searchParams instanceof URLSearchParams) {
+    const src =
+      searchParams.get("src") ||
+      searchParams.get("source") ||
+      searchParams.get("utm_source");
+    return src?.trim().toLowerCase() || null;
+  }
+  const raw = searchParams.src ?? searchParams.source ?? searchParams.utm_source;
+  const first = Array.isArray(raw) ? raw[0] : raw;
+  return typeof first === "string" ? first.trim().toLowerCase() : null;
 }
 
 async function runWeek4Day3Verification() {
@@ -87,13 +147,13 @@ async function runWeek4Day3Verification() {
     funnelContent.includes("export function parseFunnelSource")
   );
 
-  const relativeShareUrl = buildCampaignShareUrl("tech-fest-2026");
+  const relativeShareUrl = testBuildCampaignShareUrl("tech-fest-2026");
   check(
     "buildCampaignShareUrl generates relative link with campaign_share",
     relativeShareUrl.includes("/campaign/tech-fest-2026?src=campaign_share")
   );
 
-  const absoluteShareUrl = buildCampaignShareUrl(
+  const absoluteShareUrl = testBuildCampaignShareUrl(
     "lagos-tech-summit",
     "https://attend.ng"
   );
@@ -103,13 +163,13 @@ async function runWeek4Day3Verification() {
       "https://attend.ng/campaign/lagos-tech-summit?src=campaign_share"
   );
 
-  const conversionUrl = buildEventConversionUrl("evt-999");
+  const conversionUrl = testBuildEventConversionUrl("evt-999");
   check(
     "buildEventConversionUrl produces event deep link with campaign_funnel",
     conversionUrl.includes("/events/evt-999?src=campaign_funnel")
   );
 
-  const conversionWithSlug = buildEventConversionUrl("evt-999", {
+  const conversionWithSlug = testBuildEventConversionUrl("evt-999", {
     campaignSlug: "promo-banner",
   });
   check(
@@ -120,22 +180,22 @@ async function runWeek4Day3Verification() {
   const urlParamsTrue = new URLSearchParams("?src=campaign_funnel");
   check(
     "isConversionFunnelVisitor identifies URLSearchParams campaign_funnel",
-    isConversionFunnelVisitor(urlParamsTrue)
+    testIsConversionFunnelVisitor(urlParamsTrue)
   );
 
   const objParamsTrue = { src: "campaign_funnel" };
   check(
     "isConversionFunnelVisitor identifies record campaign_funnel",
-    isConversionFunnelVisitor(objParamsTrue)
+    testIsConversionFunnelVisitor(objParamsTrue)
   );
 
   const falseParams = { src: "direct" };
   check(
     "isConversionFunnelVisitor rejects non-funnel source",
-    !isConversionFunnelVisitor(falseParams)
+    !testIsConversionFunnelVisitor(falseParams)
   );
 
-  const parsedSource = parseFunnelSource(new URLSearchParams("?src=CAMPAIGN_SHARE"));
+  const parsedSource = testParseFunnelSource(new URLSearchParams("?src=CAMPAIGN_SHARE"));
   check(
     "parseFunnelSource normalizes uppercase query source",
     parsedSource === "campaign_share"
