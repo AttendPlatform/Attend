@@ -2,71 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Image as ImageIcon, MapPin, Search, Sparkles } from "lucide-react";
+import { CalendarDays, Image as ImageIcon, Search, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { getDiscoverData, type DiscoverCampaign, type DiscoverEvent, type DiscoverResults } from "@/services/discover.service";
+import { getDiscoverData, type DiscoverResults } from "@/services/discover.service";
 import { parseDiscoverFiltersFromSearchParams, serializeDiscoverFiltersToSearchParams, type DiscoverFilters } from "@/types/discover";
 import { DiscoverFilterBar } from "@/components/discover/DiscoverFilterBar";
 import { DiscoverCardSkeletons } from "@/components/discover/DiscoverCardSkeletons";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-NG", { weekday: "short", month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en-NG", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
-}
-
-function getLocation(event: DiscoverEvent) {
-  if (event.is_online) return "Online event";
-  return [event.city, event.state].filter(Boolean).join(", ") || event.venue_name || "Location TBA";
-}
-
-function EventCard({ event }: { event: DiscoverEvent }) {
-  return (
-    <article className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-xl hover:shadow-neutral-100">
-      <Link href={`/events/${event.id}`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden bg-neutral-100">
-          {event.cover_image ? <img src={event.cover_image} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-gradient-to-br from-violet-50 to-neutral-100"><CalendarDays className="h-8 w-8 text-violet-300" /></div>}
-          {event.category?.name && <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-violet-700 backdrop-blur">{event.category.name}</span>}
-        </div>
-      </Link>
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <Link href={`/events/${event.id}`} className="min-w-0"><h3 className="line-clamp-2 text-lg font-semibold tracking-tight text-neutral-950">{event.title}</h3></Link>
-          <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-neutral-300 transition group-hover:translate-x-1 group-hover:text-violet-600" />
-        </div>
-        {event.organizerName && <p className="mt-1 truncate text-xs text-neutral-500">Hosted by {event.organizerName}</p>}
-        <div className="mt-4 space-y-2.5 text-sm text-neutral-500">
-          <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0" /><span>{formatDate(event.start_at)} · {formatTime(event.start_at)}</span></div>
-          <div className="flex items-center gap-2"><MapPin className="h-4 w-4 shrink-0" /><span className="truncate">{getLocation(event)}{event.distanceKm != null ? ` · ${event.distanceKm.toFixed(1)} km` : ""}</span></div>
-        </div>
-        <div className="mt-5 flex items-center justify-between border-t border-neutral-100 pt-4 text-xs text-neutral-400"><span>{event.participant_count} attending</span><Link href={`/events/${event.id}`} className="font-semibold text-violet-600">View event</Link></div>
-      </div>
-    </article>
-  );
-}
-
-function CampaignCard({ campaign }: { campaign: DiscoverCampaign }) {
-  const image = campaign.template?.asset_url || campaign.event?.cover_image;
-  return (
-    <article className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-xl hover:shadow-neutral-100">
-      <Link href={`/campaign/${campaign.slug}?source=discover`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden bg-neutral-100">
-          {image ? <img src={image} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-neutral-300" /></div>}
-          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-violet-700 backdrop-blur">Create your version</span>
-        </div>
-      </Link>
-      <div className="p-5">
-        <span className="text-xs font-semibold text-violet-600">{campaign.event?.category?.name || "Campaign"}</span>
-        <Link href={`/campaign/${campaign.slug}?source=discover`}><h3 className="mt-2 line-clamp-2 text-lg font-semibold tracking-tight text-neutral-950">{campaign.title}</h3></Link>
-        {campaign.event && <p className="mt-1 truncate text-sm text-neutral-500">For: {campaign.event.title}</p>}
-        <div className="mt-4 flex items-center justify-between text-xs text-neutral-400"><span>{campaign.participants ?? 0} participating</span><span>{campaign.generations ?? 0} versions created</span></div>
-        <Link href={`/campaign/${campaign.slug}?source=discover`} className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-700">Create your version <ArrowRight className="h-4 w-4" /></Link>
-      </div>
-    </article>
-  );
-}
+import { EventCard } from "@/components/home/EventCard";
+import { CampaignCard } from "@/components/campaigns/CampaignCard";
 
 const EMPTY_RESULTS: DiscoverResults = { events: [], campaigns: [], categories: [] };
 
