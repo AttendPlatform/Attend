@@ -27,8 +27,10 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - Participant Campaign Permissions: Creator control allowing or restricting participant-led promotional campaigns
 
 ### 3. Campaign & Promotion Layer (`src/services/campaigns.service.ts`, `src/app/campaign`)
-- Connected participant campaigns linked to parent events via database referential constraints
-- Canvas-based visual banner builder for personalized promotional assets
+- Canonical CampaignCard component (`src/components/campaigns/CampaignCard.tsx`) with explicit parent event deep-links (`For: [Event Title]`), participant social proof badges, dynamic CTA variants, and integrated optimistic SaveButton
+- Connected public campaign destination (`/campaign/[slug]`) with official parent event conversion banner, verified creator profile card, and modernized participation copy
+- Post-generation conversion funnel in `CampaignResultActions` routing participants directly back to the parent event for registration and ticketing
+- Canvas integrity guards (`src/lib/campaigns/canvas-integrity.ts`) ensuring dimension validation and Fabric.js layer processing stability
 - Analytics tracking for impressions, clicks, RSVPs, and referral conversions
 
 ### 4. Attendance & Bookmark Systems (`src/services/attendance.service.ts`, `src/services/saved.service.ts`)
