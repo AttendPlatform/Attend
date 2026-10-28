@@ -1,19 +1,19 @@
 # Attend V1: Architecture Audit & Accelerated 5-Week Implementation Plan
 
-> **Based on**: *Discover - Event - Campaign Flow & Architecture Development Brief*  
-> **Cadence**: 4 hours/day · 4 days/week per person (16 hours/week per person · 48 person-hours/week)  
+> **Based on**: *Discover - Event - Campaign Flow & Architecture Development Brief*
+> **Cadence**: 4 hours/day · 4 days/week per person (16 hours/week per person · 48 person-hours/week)
 > **Team Structure**: 3 People
 > - **Sanaullah**: Tech Lead & Project Supervisor (Architecture, PR Reviews, Security/RLS, Integration Testing & Release Orchestration)
 > - **Uzair**: Software Engineer (Core UI Primitives, Public Event Destination, Connected Campaigns & Organizer Dashboard)
-> - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)  
-> **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 & 2 Completed; Weeks 3 to 5 Active)  
-> **Status**: Weeks 1 & 2 **DONE** · Weeks 3 to 5 **SCHEDULED**
+> - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)
+> **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 3 Completed; Week 4 Active; Week 5 Scheduled)
+> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Days 1, 2, and 3 DONE)** · Week 5 **SCHEDULED**
 
 ---
 
 ## 1. Executive Summary & Where Attend Currently Stands
 
-Attend is an event discovery and participation platform where **the Event is the central destination** and **Campaigns form a connected promotional & participation layer**. 
+Attend is an event discovery and participation platform where **the Event is the central destination** and **Campaigns form a connected promotional & participation layer**.
 
 ```
                           ┌──────────────────────────┐
@@ -51,7 +51,7 @@ Attend is an event discovery and participation platform where **the Event is the
 | **Public Event Detail** | Dedicated public destination at `/events/[id]` with hero banner, host info, map preview, calendar export, and OpenGraph metadata. | Brief Section 13 public page. | **DONE (Week 3 - Days 1-2)** |
 | **Social Proof & Action UI** | `AvatarStack`, `SaveButton`, `ShareButton`, `ExpandableEventCover` primitives with optimistic updates and fallbacks. | Matches brief Section 10 & 11. | **DONE (Week 3 - Days 1-2)** |
 | **Event Participation CTAs**| Dynamic `EventPrimaryAction`, validated `RegistrationModal`, `CancelRsvpModal`, `MobileEventActionBar`, guest sign-in intent retention, and Milestone 2 test suite. | Matches brief Section 14 & 37. | **DONE (Week 3 - Days 1-4)** |
-| **Connected Campaign Detail** | `/campaign/[slug]` needs parent event banner, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **SCHEDULED (Week 4)** |
+| **Connected Campaign Detail** | `/campaign/[slug]` has parent event banner, verified creator badge, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **DONE (Week 4 - Days 1-2)** |
 | **Discover Experience** | Redesign `/discover` with search input, Nigerian city selector, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **SCHEDULED (Week 4)** |
 | **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **SCHEDULED (Week 5)** |
 | **Saved System** | Implement `/saved` hub with tabs for Saved Events and Saved Campaigns. | Matches brief Section 17 & 33. | **SCHEDULED (Week 5)** |
@@ -177,8 +177,8 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 ---
 
 ### Week 1 - Phase 0: Schema Evolution & Domain Foundation
-> **Status**: **COMPLETED (DONE)**  
-> **Volume**: 16 hours · 1 person · Verified  
+> **Status**: **COMPLETED (DONE)**
+> **Volume**: 16 hours · 1 person · Verified
 > **Deliverables Summary**:
 > - Migration `20261005195800_v1_phase0_tables.sql`: Added `participation_model`, `participation_config`, `allow_participant_campaigns`, `place_id`, `saved_campaigns`, and `event_organizers`.
 > - Migration `20261006171600_v1_phase0_attendance_schema.sql`: Separated event attendance from campaign participation with `participation_type`, `status`, and `registration_data`.
@@ -190,8 +190,8 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 ---
 
 ### Week 2 - Phase 1: Location Abstraction & Event Creation Engine
-> **Status**: **COMPLETED (DONE)**  
-> **Volume**: 16 hours · 1 person · Verified  
+> **Status**: **COMPLETED (DONE)**
+> **Volume**: 16 hours · 1 person · Verified
 > **Deliverables Summary**:
 > - Location Abstraction: Created `src/lib/location/types.ts` and `src/lib/location/provider.ts` with OpenStreetMap geocoding, 8 Nigerian tech hub presets (Lagos, Abuja, Port Harcourt, Ibadan, Enugu, Kano, Kaduna, Benin City), Haversine proximity calculations, and native directions URLs.
 > - Components: Built `LocationPicker.tsx` (preset hub selector, manual coordinate override, online toggle) and `MapPreview.tsx` (OpenStreetMap embed and directions links).
@@ -259,56 +259,68 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 
 #### Day 5 (4 hrs) - CampaignCard Upgrade & Discover Filter Bar
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Review data contracts for `CampaignCardProps` and `DiscoverFilters`.
-  - Ensure campaign participation logic remains strictly isolated from event attendance (generating a DP does not make a user an event attendee).
-  - Set up branch `feat/w4-phase3-campaigns-discover`.
+  - Review data contracts for `CampaignCardProps` and `DiscoverFilters` [DONE].
+  - Created centralized types in `src/types/campaigns.ts` and `src/types/discover.ts` with barrel exports [DONE].
+  - Ensure campaign participation logic remains strictly isolated from event attendance (generating a DP does not make a user an event attendee) [DONE].
+  - Added `checkCampaignAttendanceIsolation` domain guard to `src/services/campaigns.service.ts` [DONE].
+  - Set up weekly parent branch `feat/w4-phase3-campaigns-discover` and feature branch `feat/sanaullah-w4-d1-contracts-isolation` [DONE].
+  - Authored automated verification suite `scripts/verify-w4-d1.ts` (43/43 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Rebuild `src/components/campaigns/CampaignCard.tsx`:
-    - Campaign template asset preview with high-definition rendering.
-    - Campaign title and participant badge (`👥 18 participating`).
-    - **Explicit Parent Event Link**: `For: [Event Title]` with deep-link directly to `/events/[id]`.
-    - Integrated `SaveButton` configured for `targetType: "campaign"`.
-    - Primary CTA: `[ Create Version ]` or `[ Participate ]`.
+  - Rebuild `src/components/campaigns/CampaignCard.tsx` [DONE]:
+    - Campaign template asset preview with high-definition rendering [DONE].
+    - Campaign title and participant badge (`👥 18 participating`) [DONE].
+    - **Explicit Parent Event Link**: `For: [Event Title]` with deep-link directly to `/events/[id]` [DONE].
+    - Integrated `SaveButton` configured for `targetType: "campaign"` [DONE].
+    - Primary CTA: `[ Create Version ]` or `[ Participate ]` [DONE].
 - **Hardik (Software Engineer)**:
-  - Build `src/components/discover/DiscoverFilterBar.tsx`:
-    - **Search Input**: Debounced search targeting event titles, descriptions, and organizers.
-    - **Date Quick-Chips**: Horizontal pills for `[ All ]`, `[ Today ]`, `[ This Weekend ]`, `[ This Week ]`, `[ This Month ]`.
-    - **Category Pills**: Dynamic category selector fetched from `event_categories`.
+  - Build `src/components/discover/DiscoverFilterBar.tsx` [DONE]:
+    - **Search Input**: Debounced search targeting event titles, descriptions, and organizers [DONE].
+    - **Date Quick-Chips**: Horizontal pills for `[ All ]`, `[ Today ]`, `[ This Weekend ]`, `[ This Week ]`, `[ This Month ]` [DONE].
+    - **Category Pills**: Dynamic category selector fetched from `event_categories` [DONE].
 
 #### Day 6 (4 hrs) - Campaign Detail Parent Context & Location Dropdown
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Inspect query efficiency for location-based filtering (avoid PostGIS bloat; use bounding box and city matching per Brief Sec 19).
-  - Review Fabric.js canvas builder integrity on `/campaign/[slug]` to ensure no regressions occur while adding the parent event header.
+  - Inspect query efficiency for location-based filtering (avoid PostGIS bloat; use bounding box and city matching per Brief Sec 19) [DONE].
+  - Authored PostGIS-free spatial pruning and canonical city matching in `src/lib/location/bounding-box.ts` and integrated into `discover.service.ts` [DONE].
+  - Review Fabric.js canvas builder integrity on `/campaign/[slug]` to ensure no regressions occur while adding the parent event header [DONE].
+  - Authored canvas integrity guard assertions and layer schema validators in `src/lib/campaigns/canvas-integrity.ts` and integrated into `generate.ts` [DONE].
+  - Authored automated verification suite `scripts/verify-w4-d2.ts` (44/44 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Overhaul `src/app/campaign/[slug]/page.tsx` header:
-    - Display prominent parent event banner: *"This campaign is for [Event Title] · [View Event Page]"*.
-    - Display creator profile info and verified badge.
-    - Update user-facing copy from legacy "Create your DP" to:
-      - *"Create from campaign"*
-      - *"Create your version"*
-      - *"Participate with this campaign"*
+  - Overhaul `src/app/campaign/[slug]/page.tsx` header [DONE]:
+    - Display prominent parent event banner: *"Official Campaign for [Event Title] · [View Event Page]"* [DONE].
+    - Display creator profile info and verified badge [DONE].
+    - Update user-facing copy from legacy "Create your DP" to [DONE]:
+      - *"Create from campaign"* [DONE]
+      - *"Create your version"* [DONE]
+      - *"Participate with this campaign"* [DONE]
 - **Hardik (Software Engineer)**:
-  - Build Location Filter Selector in `DiscoverFilterBar`:
-    - Option 1: *"Near Me"* (uses browser Geolocation API with graceful fallback).
-    - Option 2: Pre-selected Nigerian tech hubs (*Lagos*, *Abuja*, *Port Harcourt*, *Ibadan*, *Enugu*, *Kano*).
-    - Option 3: *"Online Events"*.
-    - Option 4: *"All Locations"*.
-  - Sync filter state cleanly with Next.js URL query parameters (`?q=...&city=...&date=...`).
+  - Build Location Filter Selector in `DiscoverFilterBar` [DONE]:
+    - Option 1: *"Near Me"* (uses browser Geolocation API with graceful fallback) [DONE].
+    - Option 2: Pre-selected Nigerian tech hubs (*Lagos*, *Abuja*, *Port Harcourt*, *Ibadan*, *Enugu*, *Kano*) [DONE].
+    - Option 3: *"Online Events"* [DONE].
+    - Option 4: *"All Locations"* [DONE].
+  - Sync filter state cleanly with Next.js URL query parameters (`?q=...&city=...&date=...`) [DONE].
 
 #### Day 7 (4 hrs) - Conversion Funnel CTA & Discover Query Engine
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Review the conversion funnel flow: Campaign Shared -> Viewed -> Participated -> Event RSVP (Brief Sec 16 & 20).
-  - Review Supabase query performance and indexing in `discover.service.ts`.
+  - Review the conversion funnel flow: Campaign Shared -> Viewed -> Participated -> Event RSVP (Brief Sec 16 & 20) [DONE].
+  - Implemented conversion funnel routing helpers and share link builders in `src/lib/campaigns/funnel.ts` [DONE].
+  - Wired `?src=campaign_funnel` one-click conversion routing from `CampaignResultActions` to `/events/[id]` and integrated arrival banner [DONE].
+  - Updated `analytics.ts` and `campaign/[slug]/page.tsx` with `?src=campaign_share` tracking and modernized participation copy [DONE].
+  - Review Supabase query performance and indexing in `discover.service.ts` [DONE].
+  - Authored database migration `20261028140000_discover_query_performance_indexes.sql` establishing composite and secondary indexes across events, campaigns, and templates [DONE].
+  - Optimized `discover.service.ts` with SQL query pushdowns and O(1) Map indexing for categories, profiles, and templates [DONE].
+  - Authored automated verification suite `scripts/verify-w4-d3.ts` (49/49 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Build post-generation funnel in `CampaignResultActions`:
-    - Download generated banner graphic.
-    - Social share buttons with source tracking (`?src=campaign_share`).
-    - **Conversion Funnel Banner**: *"Attending the event? [Go to Event Page to RSVP / Get Tickets]"* with one-click navigation to parent `/events/[id]`.
+  - Build post-generation funnel in `CampaignResultActions` [DONE]:
+    - Download generated banner graphic ("Download Graphic") [DONE].
+    - Social share buttons with source tracking (`?src=campaign_share`) [DONE].
+    - **Conversion Funnel Banner**: *"Attending the event? [Go to Event Page to RSVP / Get Tickets]"* with one-click navigation to parent `/events/[id]` [DONE].
 - **Hardik (Software Engineer)**:
-  - Build `src/services/discover.service.ts`:
-    - Unified query builder taking `{ search, city, isOnline, dateRange, categoryId }`.
-    - Implements deterministic ranking: Location match -> Category match -> Upcoming dates first (Brief Sec 35).
-    - Parallel fetching: Returns both matching events and active connected campaigns.
+  - Build `src/services/discover.service.ts` [DONE]:
+    - Unified query builder taking `{ search, city, isOnline, dateRange, categoryId }` [DONE].
+    - Implements deterministic ranking: Location match -> Category match -> Upcoming dates first (Brief Sec 35) [DONE].
+    - Parallel fetching: Returns both matching events and active connected campaigns [DONE].
 
 #### Day 8 (4 hrs) - Modular Discover Page & Milestone 3 Checkpoint
 - **Sanaullah (Tech Lead / Supervisor)**:
@@ -323,8 +335,8 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Section 2: **Featured Campaigns** (responsive grid of standard `CampaignCard` components).
     - Section 3: Clean empty states with "Clear Filters" action.
 - **Hardik (Software Engineer)**:
-  - Build loading skeleton components (`EventCardSkeleton`, `CampaignCardSkeleton`) for smooth SSR streaming.
-  - Implement browser geolocation distance sorting helper in `discover.service.ts`.
+  - Build loading skeleton components (`EventCardSkeleton`, `CampaignCardSkeleton`) for smooth SSR streaming [DONE].
+  - Implement browser geolocation distance sorting helper in `discover.service.ts` [DONE].
 
 > **Week 4 Deliverables Checkpoint**:
 > - Rebuilt `CampaignCard` with parent event deep-links.
@@ -432,11 +444,11 @@ Every item in Section 58 of the specification is mapped to its implementing mile
 | | Share event | Week 3 (Day 1) | Uzair | Native share with `?src=event_share` tracking. |
 | | Attend / Register / Ticket | Week 3 (Day 2 & 3) | Hardik | Dynamic CTA triggers correct flow per config. |
 | **Campaign** | Discover campaign | Week 4 (Day 8) | Uzair & Hardik | Campaigns grid displayed on `/discover`. |
-| | Open campaign | Week 4 (Day 6) | Uzair | `/campaign/[slug]` loads template and settings. |
-| | Connected parent event | Week 4 (Day 6) | Uzair | Prominent banner links directly to parent event. |
-| | Participate where allowed | Week 4 (Day 7) | Uzair | Photo adjustment, canvas generation, and download. |
-| | Share campaign | Week 4 (Day 7) | Uzair | Share modal tracks campaign source platform. |
-| | Navigate to event | Week 4 (Day 7) | Uzair | Conversion banner routes user to event RSVP. |
+| | Open campaign | Week 4 (Day 6) | Uzair | `/campaign/[slug]` loads template and settings [DONE]. |
+| | Connected parent event | Week 4 (Day 6) | Uzair | Prominent banner links directly to parent event [DONE]. |
+| | Participate where allowed | Week 4 (Day 7) | Uzair | Photo adjustment, canvas generation, and download [DONE]. |
+| | Share campaign | Week 4 (Day 7) | Uzair | Share modal tracks campaign source platform [DONE]. |
+| | Navigate to event | Week 4 (Day 7) | Uzair | Conversion banner routes user to event RSVP [DONE]. |
 | **Organizer** | Create event & location | Week 2 (Day 7) | Completed (W2) | Structured coordinates and Nigerian hub presets saved. |
 | | Configure participation | Week 2 (Day 7) | Completed (W2) | Sets Free, Registration, Paid, or External. |
 | | Configure campaign toggle | Week 2 (Day 7) | Completed (W2) | Sets `allow_participant_campaigns` ON/OFF. |

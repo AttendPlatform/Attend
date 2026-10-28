@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, MapPin } from "lucide-react";
 import type { Event } from "@/types/home";
+import type { DiscoverEvent } from "@/services/discover.service";
 import {
   getCategory,
   formatLocation,
@@ -8,8 +9,8 @@ import {
 import AvatarStack from "@/components/ui/AvatarStack";
 import SaveButton from "@/components/ui/SaveButton";
 
-export function EventCard({ event }: { event: Event }) {
-  const category = getCategory(event);
+export function EventCard({ event }: { event: Event | DiscoverEvent }) {
+  const category = "category" in event && event.category ? event.category : getCategory(event as Event);
 
   const formattedDate = event.start_at
     ? (() => {
@@ -88,7 +89,11 @@ export function EventCard({ event }: { event: Event }) {
       {/* LOCATION */}
       <div className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-neutral-500">
         <MapPin className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">{formatLocation(event)}</span>
+        <span className="truncate">
+          {event.is_online
+            ? "Online event"
+            : [event.city, event.state].filter(Boolean).join(", ") || ("venue_name" in event && event.venue_name ? event.venue_name : "Location TBA")}
+        </span>
       </div>
 
       {/* ATTENDEES + ATTEND ACTION */}

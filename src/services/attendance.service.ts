@@ -1,4 +1,3 @@
-
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import type {
@@ -14,9 +13,9 @@ export async function getEventAttendees(
   eventId: string,
   limit = 10
 ): Promise<EventParticipantWithProfile[]> {
-  const publicClient = createPublicClient();
+  const supabase = await createClient();
 
-  const { data, error } = await publicClient
+  const { data, error } = await supabase
     .from("public_event_attendees")
     .select(`
       id,
@@ -39,7 +38,6 @@ export async function getEventAttendees(
   }
 
   return (data || []).flatMap((row) => {
-    // Ignore incomplete rows from the nullable public view.
     if (
       !row.id ||
       !row.event_id ||
@@ -81,7 +79,6 @@ export async function getOrganizerEventRegistrations(
   eventId: string
 ): Promise<EventParticipantWithProfile[]> {
   const supabase = await createClient();
-
   const { data, error } = await supabase
     .from("event_participants")
     .select(`
@@ -124,7 +121,7 @@ export async function getEventAttendanceCounts(
     .eq("event_id", eventId)
     .in("status", ["attending", "registered", "ticketed", "attended"]);
 
-  if (error && (error.code === "PGRST303" || error.code === "PGRST301")) {
+  if (error && ["PGRST301", "PGRST303"].includes(error.code)) {
     const publicClient = createPublicClient();
 
     const fallback = await publicClient
@@ -133,20 +130,22 @@ export async function getEventAttendanceCounts(
       .eq("event_id", eventId)
       .in("status", ["attending", "registered", "ticketed", "attended"]);
 
+    if (fallback.error) {
+      throw fallback.error;
+    }
+
     data = (fallback.data || []).flatMap((row) => {
       if (!row.participation_type || !row.status) {
         return [];
       }
 
-      return [
-        {
-          participation_type: row.participation_type,
-          status: row.status,
-        },
-      ];
+      return [{
+        participation_type: row.participation_type,
+        status: row.status,
+      }];
     });
 
-    error = fallback.error;
+    error = null;
   }
 
   if (error) {
@@ -181,7 +180,6 @@ export async function getUserEventAttendance(
   userId: string
 ): Promise<EventParticipantRow | null> {
   const supabase = await createClient();
-
   const { data, error } = await supabase
     .from("event_participants")
     .select("*")
@@ -192,7 +190,6 @@ export async function getUserEventAttendance(
   if (error) {
     throw error;
   }
-
   return data;
 }
 
@@ -204,14 +201,7 @@ export async function rsvpEvent(params: {
   registrationData?: Record<string, unknown>;
 }): Promise<EventParticipantRow> {
   const supabase = await createClient();
-
-  const {
-    eventId,
-    userId,
-    name,
-    participationType = "attendee",
-    registrationData = {},
-  } = params;
+  const { eventId, userId, name, participationType = "attendee", registrationData = {} } = params;
 
   const { data, error } = await supabase
     .from("event_participants")
@@ -232,7 +222,6 @@ export async function rsvpEvent(params: {
   if (error) {
     throw error;
   }
-
   return data;
 }
 
@@ -241,7 +230,6 @@ export async function cancelEventAttendance(
   userId: string
 ): Promise<void> {
   const supabase = await createClient();
-
   const { error } = await supabase
     .from("event_participants")
     .update({ status: "cancelled" })
