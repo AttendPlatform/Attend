@@ -33,9 +33,11 @@ import {
   MobileEventActionBar,
   EventAttendanceProvider,
 } from "@/components/events";
+import { isConversionFunnelVisitor } from "@/lib/campaigns/funnel";
 
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 export async function generateMetadata({
@@ -197,8 +199,13 @@ function getCampaignImage(campaign: CampaignRecord) {
     null;
 }
 
-export default async function PublicEventPage({ params }: PageProps) {
+export default async function PublicEventPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const isFromFunnel = isConversionFunnelVisitor(resolvedSearchParams);
   const supabase = await createClient();
 
   // Public visitors can only access published events.
@@ -431,6 +438,19 @@ export default async function PublicEventPage({ params }: PageProps) {
       </header>
 
       <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6 sm:pt-8">
+        {isFromFunnel && (
+          <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50/90 px-4 py-3 text-sm text-violet-900 shadow-xs sm:px-5">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white">
+                ✓
+              </span>
+              <span>
+                Personalized your campaign graphic? Secure your official RSVP below to confirm attendance.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Expandable event cover */}
         <section className="relative overflow-hidden rounded-2xl bg-violet-950 sm:rounded-3xl">
           <div className="relative">

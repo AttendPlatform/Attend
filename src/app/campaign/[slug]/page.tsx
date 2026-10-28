@@ -45,6 +45,7 @@ import CampaignResultActions from "@/components/campaigns/CampaignResultActions"
 import CampaignLoadingState from "@/components/campaigns/CampaignLoadingState";
 import CampaignErrorState from "@/components/campaigns/CampaignErrorState";
 import type { CampaignParentEventSummary } from "@/types/campaigns";
+import { buildCampaignShareUrl } from "@/lib/campaigns/funnel";
 
 export default function PublicCampaignPage() {
   const params = useParams();
@@ -921,7 +922,7 @@ export default function PublicCampaignPage() {
           files: [file],
           title:
             campaign.title,
-          text: `Check out my personalized DP for ${campaign.title}!`,
+          text: `Check out my personalized graphic for ${campaign.title}!`,
         });
       } else if (
         navigator.share
@@ -929,9 +930,9 @@ export default function PublicCampaignPage() {
         await navigator.share({
           title:
             campaign.title,
-          text: `I'm attending ${campaign.title}! Create yours here:`,
+          text: `I'm participating with ${campaign.title}! Create your version here:`,
           url:
-            window.location.href,
+            buildCampaignShareUrl(campaign.slug),
         });
       } else {
         await downloadDP();
