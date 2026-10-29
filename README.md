@@ -38,6 +38,11 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - Independent bookmarks for both events (`saved_events`) and campaigns (`saved_campaigns`)
 - Automated notification dispatch for event organizers and participants
 
+### 5. Client Caching & Quota Optimization (`src/components/ui/AvatarStack.tsx`, `src/lib/supabase/client.ts`)
+- In-memory client cache (`attendeeCache`) and in-flight request deduplication (`pendingRequests`) for public event attendees, preventing query storms and Supabase quota exhaustion
+- Referentially stable browser client singleton preventing duplicate Supabase connection pools and auth listener leaks
+- Reactive unmount cancellation guards and state updater stabilization across all discovery filters and forms
+
 ## Project Directory Structure
 
 ```text
@@ -206,7 +211,7 @@ Detailed workflows, branch naming conventions, quality requirements, and daily o
 - [.github/pull_request_template.md](.github/pull_request_template.md): Standard Pull Request description template
 
 ### Daily Workflow Summary
-1. Synchronize with the active weekly parent branch set up by Sanaullah (e.g. `feat/w4-phase3-campaigns-discover`).
+1. Synchronize with the active weekly parent branch set up by Sanaullah (e.g. `feat/w5-phase4-organizer-saved-launch`).
 2. Create your daily feature branch (`feat/<name>-w<week>-d<day>-<feature>`).
 3. Implement the daily assignment from the implementation plan with clean atomic commits.
 4. Pass all verification checks (`npm test`, `npx tsc --noEmit`, `npm run build`).

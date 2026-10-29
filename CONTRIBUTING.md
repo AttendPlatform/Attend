@@ -37,9 +37,9 @@ main (Production Ready)
   ▲
   │ (Weekly Milestone PR merged by Sanaullah)
   │
-feat/w3-phase2-public-event-attendance (Weekly Parent Branch set up by Sanaullah)
-  ├── feat/uzair-w3-d1-avatar-stack (Daily feature branch by Uzair)
-  └── feat/hardik-w3-d1-attendance-service (Daily feature branch by Hardik)
+feat/w5-phase4-organizer-saved-launch (Weekly Parent Branch set up by Sanaullah)
+  ├── feat/uzair-w5-d9-organizer-shell (Daily feature branch by Uzair)
+  └── feat/hardik-w5-d9-saved-hub (Daily feature branch by Hardik)
 ```
 
 ### Branch Hierarchy
@@ -53,18 +53,18 @@ feat/w3-phase2-public-event-attendance (Weekly Parent Branch set up by Sanaullah
      - Week 1: `feat/v1-phase0-schema` [Completed]
      - Week 2: `feat/v1-phase1-location-event-creation` [Completed]
      - Week 3: `feat/w3-phase2-public-event-attendance` [Completed]
-     - Week 4: `feat/w4-phase3-campaigns-discover` [Active]
-     - Week 5: `feat/w5-phase4-organizer-saved-launch` [Scheduled]
+     - Week 4: `feat/w4-phase3-campaigns-discover` [Completed]
+     - Week 5: `feat/w5-phase4-organizer-saved-launch` [Active]
 
 3. **Daily Engineer Branches (Created by Uzair & Hardik)**:
    - Always cut from the current active weekly parent branch.
    - Naming convention:
      `feat/<engineer>-w<week>-d<day>-<short-description>`
    - Examples:
-     - `feat/uzair-w3-d1-avatar-stack`
-     - `feat/hardik-w3-d1-attendance-service`
-     - `feat/uzair-w3-d2-event-card`
-     - `feat/hardik-w3-d2-primary-action`
+     - `feat/uzair-w5-d9-organizer-shell`
+     - `feat/hardik-w5-d9-saved-hub`
+     - `feat/uzair-w5-d10-people-tab`
+     - `feat/hardik-w5-d10-lifecycle-notifications`
 
 ---
 
@@ -74,15 +74,15 @@ feat/w3-phase2-public-event-attendance (Weekly Parent Branch set up by Sanaullah
 At the start of your 4-hour session, sync your local environment with the latest changes in the weekly parent branch:
 
 ```bash
-git checkout feat/w4-phase3-campaigns-discover
-git pull origin feat/w4-phase3-campaigns-discover
+git checkout feat/w5-phase4-organizer-saved-launch
+git pull origin feat/w5-phase4-organizer-saved-launch
 ```
 
 ### Step 2: Create Your Daily Branch
 Create your feature branch directly from the updated weekly branch:
 
 ```bash
-git checkout -b feat/uzair-w4-d1-campaign-card
+git checkout -b feat/uzair-w5-d9-organizer-shell
 ```
 
 ### Step 3: Review Specifications & Shared Types

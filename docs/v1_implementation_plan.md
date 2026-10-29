@@ -6,8 +6,8 @@
 > - **Sanaullah**: Tech Lead & Project Supervisor (Architecture, PR Reviews, Security/RLS, Integration Testing & Release Orchestration)
 > - **Uzair**: Software Engineer (Core UI Primitives, Public Event Destination, Connected Campaigns & Organizer Dashboard)
 > - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)  
-> **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 4 Completed; Week 5 Scheduled)  
-> **Status**: Weeks 1 to 4 **DONE** · Week 5 **SCHEDULED**
+> **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 4 Completed; Week 5 Active)  
+> **Status**: Weeks 1 to 4 **DONE** · Week 5 **ACTIVE**
 
 ---
 
