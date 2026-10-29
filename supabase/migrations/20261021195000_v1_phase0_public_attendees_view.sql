@@ -1,4 +1,5 @@
-﻿-- Public attendee social proof view with privacy masking
+-- Public attendee social proof view with privacy masking
+DROP VIEW IF EXISTS public.public_event_attendees CASCADE;
 CREATE OR REPLACE VIEW public.public_event_attendees AS
 SELECT
   ep.id,
