@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Briefcase,
   Calendar,
@@ -75,14 +75,19 @@ export function DiscoverFilterBar({
     );
   }, [filters.nearMe, filters.userCoordinates, onFiltersChange]);
 
+  const filtersRef = useRef(filters);
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      if (search.trim() !== (filters.search ?? "")) {
-        onFiltersChange({ ...filters, search: search.trim() || undefined });
+      if (search.trim() !== (filtersRef.current.search ?? "")) {
+        onFiltersChange({ ...filtersRef.current, search: search.trim() || undefined });
       }
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [search, filters, onFiltersChange]);
+  }, [search, onFiltersChange]);
 
   const selectedLocation = filters.nearMe
     ? "near_me"
