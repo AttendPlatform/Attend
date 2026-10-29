@@ -43,11 +43,18 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - Referentially stable browser client singleton preventing duplicate Supabase connection pools and auth listener leaks
 - Reactive unmount cancellation guards and state updater stabilization across all discovery filters and forms
 
+### 6. Automated CI/CD Database Migration Pipeline (`.github/workflows`)
+- `db-migration-ci.yml`: Pull request validation workflow that enforces migration timestamp naming conventions, verifies SQL file integrity, and executes dry-run validation against the linked project
+- `db-migration-deploy.yml`: Production deployment pipeline triggered on merges to `main` with concurrency locks (`cancel-in-progress: false`) to push pending migrations atomically to the production database
+
 ## Project Directory Structure
 
 ```text
 Attend/
-├── .github/                # GitHub templates and workflows
+├── .github/                # GitHub templates and CI/CD workflows
+│   ├── workflows/          # Automated GitHub Actions pipelines
+│   │   ├── db-migration-ci.yml      # PR migration validation and dry-run
+│   │   └── db-migration-deploy.yml  # Production migration deployment
 │   └── pull_request_template.md
 ├── docs/                   # Implementation roadmaps and architectural plans
 │   └── v1_implementation_plan.md
@@ -121,13 +128,20 @@ Attend/
 │       ├── events.ts
 │       └── home.ts
 ├── supabase/
-│   └── migrations/         # PostgreSQL schema migrations and RLS policies
-│       ├── 20261005195800_v1_phase0_tables.sql
-│       ├── 20261006171600_v1_phase0_attendance_schema.sql
-│       ├── 20261006171700_v1_phase0_indexes.sql
-│       ├── 20261008154000_v1_phase0_data_integrity.sql
-│       ├── 20261028120000_secure_event_participants.sql
-│       └── 20261028140000_discover_query_performance_indexes.sql
+│   ├── migrations/         # PostgreSQL schema migrations and RLS policies
+│   │   ├── 20260922202204_remote_schema.sql
+│   │   ├── 20260927020724_remote_schema.sql
+│   │   ├── 20261005195800_v1_phase0_tables.sql
+│   │   ├── 20261006171600_v1_phase0_attendance_schema.sql
+│   │   ├── 20261006171700_v1_phase0_indexes.sql
+│   │   ├── 20261008154000_v1_phase0_data_integrity.sql
+│   │   ├── 20261014020000_attendee_privacy_reconciliation.sql
+│   │   ├── 20261021195000_v1_phase0_public_attendees_view.sql
+│   │   ├── 20261028120000_secure_event_participants.sql
+│   │   ├── 20261028140000_discover_query_performance_indexes.sql
+│   │   └── 20261028162857_remote.sql
+│   ├── .gitignore          # Supabase CLI local ignore rules
+│   └── config.toml         # Local development configuration and CLI settings
 ├── CONTRIBUTING.md         # Engineering contribution guide and daily PR workflow
 ├── package.json            # Scripts, dependencies, and project metadata
 ├── tsconfig.json           # TypeScript configuration and path aliases

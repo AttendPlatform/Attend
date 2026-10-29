@@ -351,9 +351,11 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 
 #### Day 9 (4 hrs) - Dedicated Organizer Shell & Saved Hub Foundation
 - **Sanaullah (Tech Lead / Supervisor)**:
+  - Set up weekly parent branch `feat/w5-phase4-organizer-saved-launch` and remote tracking [DONE].
+  - Resolve Supabase quota exhaustion via AvatarStack attendee caching, deduplication, and browser client singleton [DONE].
+  - Implement automated Supabase database migration CI/CD workflows (`db-migration-ci.yml`, `db-migration-deploy.yml`) with zero-downtime view recreation [DONE].
   - Enforce access control for organizer routes: Verify viewer is event creator or present in `event_organizers` table.
   - Review RLS security policies for organizer dashboard queries.
-  - Set up branch `feat/w5-phase4-organizer-saved-launch`.
 - **Uzair (Software Engineer)**:
   - Build `src/app/dashboard/events/[id]/page.tsx` layout and shell:
     - Event Header: Title, status badge (`Draft`, `Published`, `Cancelled`), and quick-link to public `/events/[id]`.
