@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type PublicAttendee = {
+export type PublicAttendee = {
   user_id: string | null;
   name: string | null;
   profile_display_name: string | null;
@@ -20,36 +20,101 @@ type Props = {
   compact?: boolean;
 };
 
+const EMPTY_ATTENDEES: PublicAttendee[] = [];
+
+const attendeeCache = new Map<string, PublicAttendee[]>();
+const pendingRequests = new Map<string, Promise<PublicAttendee[]>>();
+
+export function invalidateAttendeeCache(eventId?: string) {
+  if (eventId) {
+    attendeeCache.delete(eventId);
+    pendingRequests.delete(eventId);
+  } else {
+    attendeeCache.clear();
+    pendingRequests.clear();
+  }
+}
+
 export default function AvatarStack({
   eventId,
   fallbackCount = 0,
   label = "attending",
-  initialAttendees = [],
+  initialAttendees = EMPTY_ATTENDEES,
   compact = false,
 }: Props) {
-  const [attendees, setAttendees] = useState<PublicAttendee[]>(initialAttendees);
-  const [count, setCount] = useState(fallbackCount ?? 0);
+  const [attendees, setAttendees] = useState<PublicAttendee[]>(() => {
+    if (initialAttendees.length > 0) {
+      if (eventId) attendeeCache.set(eventId, initialAttendees);
+      return initialAttendees;
+    }
+    return eventId ? attendeeCache.get(eventId) ?? EMPTY_ATTENDEES : EMPTY_ATTENDEES;
+  });
+
+  const [count, setCount] = useState(() =>
+    Math.max(fallbackCount ?? 0, attendees.length)
+  );
 
   useEffect(() => {
+    if (typeof fallbackCount === "number") {
+      setCount((prev) => Math.max(prev, fallbackCount));
+    }
+  }, [fallbackCount]);
+
+  useEffect(() => {
+    if (initialAttendees.length > 0) {
+      if (eventId) attendeeCache.set(eventId, initialAttendees);
+      setAttendees(initialAttendees);
+      setCount((prev) => Math.max(prev, initialAttendees.length));
+    }
+  }, [eventId, initialAttendees]);
+
+  useEffect(() => {
+    if (!eventId) return;
+
+    if (initialAttendees.length > 0) return;
+
+    if (attendeeCache.has(eventId)) {
+      const cached = attendeeCache.get(eventId)!;
+      setAttendees(cached);
+      setCount((prev) => Math.max(prev, cached.length));
+      return;
+    }
+
     let active = true;
 
     async function loadAttendees() {
-      if (initialAttendees.length > 0) return;
-
-      const supabase = createClient();
-
       try {
-        const { data, error } = await supabase
-          .from("public_event_attendees")
-          .select(
-            "user_id,name,profile_display_name,profile_avatar_url,profile_username"
-          )
-          .eq("event_id", eventId)
-          .limit(5);
+        let request = pendingRequests.get(eventId);
+        if (!request) {
+          const fetchPromise = (async (): Promise<PublicAttendee[]> => {
+            try {
+              const supabase = createClient();
+              const { data, error } = await supabase
+                .from("public_event_attendees")
+                .select(
+                  "user_id,name,profile_display_name,profile_avatar_url,profile_username"
+                )
+                .eq("event_id", eventId)
+                .limit(5);
 
-        if (!active || error || !data) return;
+              if (error || !data) return EMPTY_ATTENDEES;
+              return data as PublicAttendee[];
+            } catch {
+              return EMPTY_ATTENDEES;
+            } finally {
+              pendingRequests.delete(eventId);
+            }
+          })();
 
-        setAttendees(data as PublicAttendee[]);
+          pendingRequests.set(eventId, fetchPromise);
+          request = fetchPromise;
+        }
+
+        const data = await request;
+        if (!active || !data) return;
+
+        attendeeCache.set(eventId, data);
+        setAttendees(data);
         setCount((prev) => Math.max(prev, data.length));
       } catch {
         // Fallback gracefully if public_event_attendees view is not present
@@ -61,7 +126,7 @@ export default function AvatarStack({
     return () => {
       active = false;
     };
-  }, [eventId, initialAttendees]);
+  }, [eventId]);
 
   const visibleAttendees = attendees.slice(0, 4);
   const displayedAttendees = compact ? visibleAttendees.slice(0, 3) : visibleAttendees;
