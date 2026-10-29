@@ -24,7 +24,7 @@ Engineering operates on a focused cadence of **4 hours per day, 4 days per week*
 Each day represents a complete, self-contained unit of work:
 1. Every engineer branches off from the active weekly parent branch created by Sanaullah.
 2. The engineer implements the day's assigned deliverables from [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md).
-3. The engineer tests locally, creates atomic commits, and submits a Pull Request using the project template.
+3. The engineer tests locally, creates atomic commits, and submits a Pull Request targeting the active weekly parent branch using the project template.
 4. The engineer assigns **Sanaullah** as the required reviewer.
 5. **Once Sanaullah has reviewed, approved, and merged the PR into the weekly branch, the day is officially concluded.**
 
@@ -123,13 +123,13 @@ npm run build
 Push your daily branch to GitHub:
 
 ```bash
-git push -u origin feat/uzair-w4-d1-campaign-card
+git push -u origin feat/uzair-w5-d9-organizer-shell
 ```
 
 Open a Pull Request on GitHub:
-- **Base branch**: The active weekly branch (e.g. `feat/w4-phase3-campaigns-discover`).
-- **Compare branch**: Your daily branch (e.g. `feat/uzair-w4-d1-campaign-card`).
-- **Title format**: `feat(w4-d1): rebuild CampaignCard with parent event link`
+- **Base branch**: The active weekly branch set up in advance by Sanaullah (e.g. `feat/w5-phase4-organizer-saved-launch`). Do NOT target `main` directly.
+- **Compare branch**: Your daily branch (e.g. `feat/uzair-w5-d9-organizer-shell`).
+- **Title format**: `feat(w5-d9): build organizer dashboard layout and shell`
 - **Description**: Fill out the Pull Request template completely ([.github/pull_request_template.md](.github/pull_request_template.md)).
 - **Reviewer**: Assign **Sanaullah** as the required reviewer.
 

@@ -38,6 +38,7 @@
 ## Pre-Review Checklist
 <!-- Confirm each item before tagging for review -->
 - [ ] My branch was cut directly from the active weekly parent branch.
+- [ ] My pull request targets the active weekly parent branch (not `main`).
 - [ ] My code adheres to the project directory structure and clean architecture boundaries.
 - [ ] My commits are atomic, self-contained, and follow the Conventional Commits specification.
 - [ ] Zero em dashes exist in any added or edited code, comments, or documentation.

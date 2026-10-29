@@ -138,13 +138,13 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 - **Hour 0:00 - 0:30 (Daily Sync & Interface Handshake)**:
   - 10-minute standup led by Sanaullah: review API contracts and shared TypeScript types in [src/types/](file:///home/sanaullah/Office-Work/Attend/src/types).
 - **Hour 0:30 - 3:15 (Focused Feature Coding)**:
-  - Uzair and Hardik work on their independent feature branches (`feat/w*-d*-feature-name`).
+  - Uzair and Hardik branch off from the active weekly parent branch set up in advance by Sanaullah and implement their daily feature deliverables.
   - Sanaullah conducts continuous code reviews, writes verification scripts, and prepares test harnesses.
 - **Hour 3:15 - 3:45 (Review, Merge & Test)**:
-  - Uzair and Hardik open PRs to `main`.
-  - Sanaullah reviews code, verifies tests, and merges to `main`.
+  - Uzair and Hardik push daily branches and open PRs targeting the active weekly parent branch (e.g. `feat/w5-phase4-organizer-saved-launch`).
+  - Sanaullah reviews code, verifies tests, and merges PRs into the weekly parent branch.
 - **Hour 3:45 - 4:00 (Checkpoint & Git Status)**:
-  - Pull latest `main`, run `npm test` and `npm run build`, log daily checkpoint.
+  - Pull latest weekly parent branch, run `npm test` and `npm run build`, log daily checkpoint.
 
 ---
 
@@ -495,7 +495,9 @@ To protect the accelerated 5-week timeline, the following remain strictly out of
    - Uzair: `feat/uzair-w[week]-d[day]-[feature-name]` (e.g. `feat/uzair-w3-d1-avatar-stack`)
    - Hardik: `feat/hardik-w[week]-d[day]-[feature-name]` (e.g. `feat/hardik-w3-d1-attendance-service`)
 2. **Commit Messages**: Clean conventional commits (`feat:`, `fix:`, `refactor:`, `test:`).
-3. **Daily Pull Requests**:
-   - Uzair and Hardik push daily branches and open PRs targeting `main`.
-   - Sanaullah conducts code reviews, tests locally, runs verification scripts, and merges to `main`.
-   - All 3 developers pull `main` at the start of every session to maintain clean synchronization.
+3. **Daily Pull Requests & Branch Hierarchy**:
+   - Uzair and Hardik branch directly off from the active weekly parent branch (e.g. `feat/w5-phase4-organizer-saved-launch`) set up in advance by Sanaullah.
+   - Uzair and Hardik push daily branches and open PRs targeting the active weekly parent branch (never targeting `main` directly).
+   - Sanaullah conducts code reviews, tests locally, runs verification test suites, and merges daily PRs into the active weekly parent branch.
+   - At the completion of each weekly milestone, Sanaullah performs end-to-end acceptance checks and merges the weekly parent branch into `main`.
+   - All 3 developers synchronize with the active weekly parent branch at the start of every session to maintain clean coordination.

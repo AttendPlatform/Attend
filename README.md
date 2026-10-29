@@ -229,6 +229,6 @@ Detailed workflows, branch naming conventions, quality requirements, and daily o
 2. Create your daily feature branch (`feat/<name>-w<week>-d<day>-<feature>`).
 3. Implement the daily assignment from the implementation plan with clean atomic commits.
 4. Pass all verification checks (`npm test`, `npx tsc --noEmit`, `npm run build`).
-5. Open a Pull Request using the PR template and request review from Sanaullah.
-6. Once Sanaullah reviews and merges the PR, the day is officially concluded.
+5. Open a Pull Request targeting the active weekly parent branch using the PR template and request review from Sanaullah.
+6. Once Sanaullah reviews and merges the PR into the weekly parent branch, the day is officially concluded.
 
