@@ -232,3 +232,8 @@ Detailed workflows, branch naming conventions, quality requirements, and daily o
 5. Open a Pull Request targeting the active weekly parent branch using the PR template and request review from Sanaullah.
 6. Once Sanaullah reviews and merges the PR into the weekly parent branch, the day is officially concluded.
 
+## License
+
+This project is licensed under the **Business Source License 1.1 (BUSL-1.1)**. See the [LICENSE](LICENSE) file for terms and parameters.
+
+
