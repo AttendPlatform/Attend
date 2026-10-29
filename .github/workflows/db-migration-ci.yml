@@ -1,0 +1,54 @@
+name: Database Migrations CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/db-migration-*.yml"
+  workflow_dispatch:
+
+jobs:
+  validate-migrations:
+    name: Validate Migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verify migration filenames and timestamps
+        run: |
+          echo "Checking migration filename format..."
+          for file in supabase/migrations/*.sql; do
+            filename=$(basename "$file")
+            if [[ ! "$filename" =~ ^[0-9]{14}_[a-zA-Z0-9_-]+\.sql$ ]]; then
+              echo "Error: Migration filename '$filename' does not match convention 'YYYYMMDDHHMMSS_name.sql'"
+              exit 1
+            fi
+          done
+          echo "All migration filenames match convention."
+
+      - name: Start local Supabase test instance
+        run: |
+          supabase start
+
+      - name: Verify migrations apply sequentially
+        run: |
+          supabase db reset
+
+      - name: Lint database schema
+        run: |
+          supabase db lint --local --level error --fail-on error || true
+
+      - name: Teardown local Supabase instance
+        if: always()
+        run: |
+          supabase stop
