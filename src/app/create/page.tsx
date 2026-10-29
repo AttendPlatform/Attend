@@ -76,11 +76,14 @@ export default function CreateEventPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
+
     async function initPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
+      if (!active) return;
       if (!user) {
         router.push("/login");
         return;
@@ -91,6 +94,7 @@ export default function CreateEventPage() {
         .select("*")
         .order("name");
 
+      if (!active) return;
       if (error) {
         console.error(error);
         setError("Could not load event categories.");
@@ -108,6 +112,10 @@ export default function CreateEventPage() {
     }
 
     initPage();
+
+    return () => {
+      active = false;
+    };
   }, [supabase, router]);
 
   function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {

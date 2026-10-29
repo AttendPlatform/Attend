@@ -24,7 +24,7 @@ Engineering operates on a focused cadence of **4 hours per day, 4 days per week*
 Each day represents a complete, self-contained unit of work:
 1. Every engineer branches off from the active weekly parent branch created by Sanaullah.
 2. The engineer implements the day's assigned deliverables from [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md).
-3. The engineer tests locally, creates atomic commits, and submits a Pull Request using the project template.
+3. The engineer tests locally, creates atomic commits, and submits a Pull Request targeting the active weekly parent branch using the project template.
 4. The engineer assigns **Sanaullah** as the required reviewer.
 5. **Once Sanaullah has reviewed, approved, and merged the PR into the weekly branch, the day is officially concluded.**
 
@@ -37,9 +37,9 @@ main (Production Ready)
   ▲
   │ (Weekly Milestone PR merged by Sanaullah)
   │
-feat/w3-phase2-public-event-attendance (Weekly Parent Branch set up by Sanaullah)
-  ├── feat/uzair-w3-d1-avatar-stack (Daily feature branch by Uzair)
-  └── feat/hardik-w3-d1-attendance-service (Daily feature branch by Hardik)
+feat/w5-phase4-organizer-saved-launch (Weekly Parent Branch set up by Sanaullah)
+  ├── feat/uzair-w5-d9-organizer-shell (Daily feature branch by Uzair)
+  └── feat/hardik-w5-d9-saved-hub (Daily feature branch by Hardik)
 ```
 
 ### Branch Hierarchy
@@ -53,18 +53,18 @@ feat/w3-phase2-public-event-attendance (Weekly Parent Branch set up by Sanaullah
      - Week 1: `feat/v1-phase0-schema` [Completed]
      - Week 2: `feat/v1-phase1-location-event-creation` [Completed]
      - Week 3: `feat/w3-phase2-public-event-attendance` [Completed]
-     - Week 4: `feat/w4-phase3-campaigns-discover` [Active]
-     - Week 5: `feat/w5-phase4-organizer-saved-launch` [Scheduled]
+     - Week 4: `feat/w4-phase3-campaigns-discover` [Completed]
+     - Week 5: `feat/w5-phase4-organizer-saved-launch` [Active]
 
 3. **Daily Engineer Branches (Created by Uzair & Hardik)**:
    - Always cut from the current active weekly parent branch.
    - Naming convention:
      `feat/<engineer>-w<week>-d<day>-<short-description>`
    - Examples:
-     - `feat/uzair-w3-d1-avatar-stack`
-     - `feat/hardik-w3-d1-attendance-service`
-     - `feat/uzair-w3-d2-event-card`
-     - `feat/hardik-w3-d2-primary-action`
+     - `feat/uzair-w5-d9-organizer-shell`
+     - `feat/hardik-w5-d9-saved-hub`
+     - `feat/uzair-w5-d10-people-tab`
+     - `feat/hardik-w5-d10-lifecycle-notifications`
 
 ---
 
@@ -74,15 +74,15 @@ feat/w3-phase2-public-event-attendance (Weekly Parent Branch set up by Sanaullah
 At the start of your 4-hour session, sync your local environment with the latest changes in the weekly parent branch:
 
 ```bash
-git checkout feat/w4-phase3-campaigns-discover
-git pull origin feat/w4-phase3-campaigns-discover
+git checkout feat/w5-phase4-organizer-saved-launch
+git pull origin feat/w5-phase4-organizer-saved-launch
 ```
 
 ### Step 2: Create Your Daily Branch
 Create your feature branch directly from the updated weekly branch:
 
 ```bash
-git checkout -b feat/uzair-w4-d1-campaign-card
+git checkout -b feat/uzair-w5-d9-organizer-shell
 ```
 
 ### Step 3: Review Specifications & Shared Types
@@ -123,13 +123,13 @@ npm run build
 Push your daily branch to GitHub:
 
 ```bash
-git push -u origin feat/uzair-w4-d1-campaign-card
+git push -u origin feat/uzair-w5-d9-organizer-shell
 ```
 
 Open a Pull Request on GitHub:
-- **Base branch**: The active weekly branch (e.g. `feat/w4-phase3-campaigns-discover`).
-- **Compare branch**: Your daily branch (e.g. `feat/uzair-w4-d1-campaign-card`).
-- **Title format**: `feat(w4-d1): rebuild CampaignCard with parent event link`
+- **Base branch**: The active weekly branch set up in advance by Sanaullah (e.g. `feat/w5-phase4-organizer-saved-launch`). Do NOT target `main` directly.
+- **Compare branch**: Your daily branch (e.g. `feat/uzair-w5-d9-organizer-shell`).
+- **Title format**: `feat(w5-d9): build organizer dashboard layout and shell`
 - **Description**: Fill out the Pull Request template completely ([.github/pull_request_template.md](.github/pull_request_template.md)).
 - **Reviewer**: Assign **Sanaullah** as the required reviewer.
 

@@ -56,18 +56,17 @@ export function LocationPicker({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    if (value) {
-      setIsOnline(Boolean(value.is_online))
-      setVenueName(value.venue_name || '')
-      setAddress(value.address || '')
-      setCity(value.city || '')
-      setState(value.state || '')
-      setCountry(value.country || 'Nigeria')
-      setLatitude(value.latitude ?? null)
-      setLongitude(value.longitude ?? null)
-      setPlaceId(value.place_id ?? null)
-      setOnlineUrl(value.online_url || '')
-    }
+    if (!value) return
+    setIsOnline((prev) => (prev !== Boolean(value.is_online) ? Boolean(value.is_online) : prev))
+    setVenueName((prev) => (prev !== (value.venue_name || '') ? (value.venue_name || '') : prev))
+    setAddress((prev) => (prev !== (value.address || '') ? (value.address || '') : prev))
+    setCity((prev) => (prev !== (value.city || '') ? (value.city || '') : prev))
+    setState((prev) => (prev !== (value.state || '') ? (value.state || '') : prev))
+    setCountry((prev) => (prev !== (value.country || 'Nigeria') ? (value.country || 'Nigeria') : prev))
+    setLatitude((prev) => (prev !== (value.latitude ?? null) ? (value.latitude ?? null) : prev))
+    setLongitude((prev) => (prev !== (value.longitude ?? null) ? (value.longitude ?? null) : prev))
+    setPlaceId((prev) => (prev !== (value.place_id ?? null) ? (value.place_id ?? null) : prev))
+    setOnlineUrl((prev) => (prev !== (value.online_url || '') ? (value.online_url || '') : prev))
   }, [value])
 
   const notifyChange = useCallback(

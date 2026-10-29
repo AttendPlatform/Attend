@@ -95,6 +95,7 @@ CREATE POLICY "Authenticated users can participate in events"
   );
 
 -- 7. Update public_event_attendees view to enforce published events and avoid leaking draft/cancelled event social proof.
+DROP VIEW IF EXISTS public.public_event_attendees CASCADE;
 CREATE OR REPLACE VIEW public.public_event_attendees AS
 SELECT
   ep.id,

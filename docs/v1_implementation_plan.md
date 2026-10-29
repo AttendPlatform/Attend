@@ -1,19 +1,19 @@
 # Attend V1: Architecture Audit & Accelerated 5-Week Implementation Plan
 
-> **Based on**: *Discover - Event - Campaign Flow & Architecture Development Brief*
-> **Cadence**: 4 hours/day · 4 days/week per person (16 hours/week per person · 48 person-hours/week)
+> **Based on**: *Discover - Event - Campaign Flow & Architecture Development Brief*  
+> **Cadence**: 4 hours/day · 4 days/week per person (16 hours/week per person · 48 person-hours/week)  
 > **Team Structure**: 3 People
 > - **Sanaullah**: Tech Lead & Project Supervisor (Architecture, PR Reviews, Security/RLS, Integration Testing & Release Orchestration)
 > - **Uzair**: Software Engineer (Core UI Primitives, Public Event Destination, Connected Campaigns & Organizer Dashboard)
-> - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)
-> **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 3 Completed; Week 4 Active; Week 5 Scheduled)
-> **Status**: Weeks 1 to 3 **DONE** · Week 4 **ACTIVE (Days 1, 2, and 3 DONE)** · Week 5 **SCHEDULED**
+> - **Hardik**: Software Engineer (Attendance Engine, Dynamic CTAs, Discover Hub Query Engine, Saved System & Lifecycle Engine)  
+> **Timeline**: Compressed from 8 Weeks to **5 Weeks** (Weeks 1 to 4 Completed; Week 5 Active)  
+> **Status**: Weeks 1 to 4 **DONE** · Week 5 **ACTIVE**
 
 ---
 
 ## 1. Executive Summary & Where Attend Currently Stands
 
-Attend is an event discovery and participation platform where **the Event is the central destination** and **Campaigns form a connected promotional & participation layer**.
+Attend is an event discovery and participation platform where **the Event is the central destination** and **Campaigns form a connected promotional & participation layer**. 
 
 ```
                           ┌──────────────────────────┐
@@ -48,13 +48,14 @@ Attend is an event discovery and participation platform where **the Event is the
 | **Location Abstraction** | Pluggable provider with OpenStreetMap geocoding, 8 Nigerian tech hub presets, Haversine proximity, native directions. | Matches brief Section 18-20. | **DONE (Week 2)** |
 | **Location UI Components** | `LocationPicker.tsx` (hub presets, coordinate inputs, online toggle) and `MapPreview.tsx`. | Matches brief Section 19. | **DONE (Week 2)** |
 | **Event Creation Engine** | Rebuilt `/create` with 4 participation models, creator campaign toggle, draft/publish controls. | Matches brief Section 14 & 21. | **DONE (Week 2)** |
-| **Public Event Detail** | Dedicated public destination at `/events/[id]` with hero banner, host info, map preview, calendar export, and OpenGraph metadata. | Brief Section 13 public page. | **DONE (Week 3 - Days 1-2)** |
-| **Social Proof & Action UI** | `AvatarStack`, `SaveButton`, `ShareButton`, `ExpandableEventCover` primitives with optimistic updates and fallbacks. | Matches brief Section 10 & 11. | **DONE (Week 3 - Days 1-2)** |
-| **Event Participation CTAs**| Dynamic `EventPrimaryAction`, validated `RegistrationModal`, `CancelRsvpModal`, `MobileEventActionBar`, guest sign-in intent retention, and Milestone 2 test suite. | Matches brief Section 14 & 37. | **DONE (Week 3 - Days 1-4)** |
-| **Connected Campaign Detail** | `/campaign/[slug]` has parent event banner, verified creator badge, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **DONE (Week 4 - Days 1-2)** |
-| **Discover Experience** | Redesign `/discover` with search input, Nigerian city selector, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **SCHEDULED (Week 4)** |
-| **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **SCHEDULED (Week 5)** |
-| **Saved System** | Implement `/saved` hub with tabs for Saved Events and Saved Campaigns. | Matches brief Section 17 & 33. | **SCHEDULED (Week 5)** |
+| **Public Event Detail** | Dedicated public destination at `/events/[id]` with hero banner, host info, map preview, calendar export, and OpenGraph metadata. | Brief Section 13 public page. | **DONE (Week 3)** |
+| **Social Proof & Action UI** | `AvatarStack`, `SaveButton`, `ShareButton`, `ExpandableEventCover` primitives with optimistic updates and fallbacks. | Matches brief Section 10 & 11. | **DONE (Week 3)** |
+| **Event Participation CTAs**| Dynamic `EventPrimaryAction`, validated `RegistrationModal`, `CancelRsvpModal`, `MobileEventActionBar`, guest sign-in intent retention, and Milestone 2 test suite. | Matches brief Section 14 & 37. | **DONE (Week 3)** |
+| **Connected Campaign Detail** | `/campaign/[slug]` has parent event banner, verified creator badge, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **DONE (Week 4)** |
+| **Discover Experience** | Redesigned `/discover` with parallel query engine, search, Nigerian tech hubs, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **DONE (Week 4)** |
+| **Database CI/CD & Performance** | Automated GitHub Actions migration CI/CD (`db-migration-ci.yml`, `db-migration-deploy.yml`), AvatarStack attendee caching, and query storm prevention. | Matches production reliability requirements. | **DONE (Week 5 - Day 9)** |
+| **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **IN PROGRESS (Week 5)** |
+| **Saved System** | Implement `/saved` hub with tabs for Saved Events and Saved Campaigns. | Matches brief Section 17 & 33. | **IN PROGRESS (Week 5)** |
 | **Lifecycle Notifications** | Automated notifications for event date/venue updates, cancellations, and new campaigns. | Matches brief Section 27-29. | **SCHEDULED (Week 5)** |
 
 ---
@@ -137,13 +138,13 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 - **Hour 0:00 - 0:30 (Daily Sync & Interface Handshake)**:
   - 10-minute standup led by Sanaullah: review API contracts and shared TypeScript types in [src/types/](file:///home/sanaullah/Office-Work/Attend/src/types).
 - **Hour 0:30 - 3:15 (Focused Feature Coding)**:
-  - Uzair and Hardik work on their independent feature branches (`feat/w*-d*-feature-name`).
+  - Uzair and Hardik branch off from the active weekly parent branch set up in advance by Sanaullah and implement their daily feature deliverables.
   - Sanaullah conducts continuous code reviews, writes verification scripts, and prepares test harnesses.
 - **Hour 3:15 - 3:45 (Review, Merge & Test)**:
-  - Uzair and Hardik open PRs to `main`.
-  - Sanaullah reviews code, verifies tests, and merges to `main`.
+  - Uzair and Hardik push daily branches and open PRs targeting the active weekly parent branch (e.g. `feat/w5-phase4-organizer-saved-launch`).
+  - Sanaullah reviews code, verifies tests, and merges PRs into the weekly parent branch.
 - **Hour 3:45 - 4:00 (Checkpoint & Git Status)**:
-  - Pull latest `main`, run `npm test` and `npm run build`, log daily checkpoint.
+  - Pull latest weekly parent branch, run `npm test` and `npm run build`, log daily checkpoint.
 
 ---
 
@@ -157,17 +158,11 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 ├─────────┼─────────────────────────────────────────────────────────┼─────────┤
 │ Week 2  │ Phase 1: Location Abstraction & Event Creation Engine   │ DONE    │
 ├─────────┼─────────────────────────────────────────────────────────┼─────────┤
-│ Week 3  │ Phase 2: Public Event Destination & Attendance CTAs     │ 48 hrs  │
-│         │ Uzair: Public Event Page & Primitives                   │         │
-│         │ Hardik: Attendance Service, Dynamic CTAs & Modals       │         │
-│         │ Sanaullah: Supervise, Integration Tests, Milestone 2 PRs│         │
+│ Week 3  │ Phase 2: Public Event Destination & Attendance CTAs     │ DONE    │
 ├─────────┼─────────────────────────────────────────────────────────┼─────────┤
-│ Week 4  │ Phase 3: Connected Campaigns & Discover Hub Redesign    │ 48 hrs  │
-│         │ Uzair: Connected Campaign Detail & Parent Conversion    │         │
-│         │ Hardik: Discover Filters, Multi-Location & Query Service│         │
-│         │ Sanaullah: Supervise, Cross-linking, Milestone 3 PRs    │         │
+│ Week 4  │ Phase 3: Connected Campaigns & Discover Hub Redesign    │ DONE    │
 ├─────────┼─────────────────────────────────────────────────────────┼─────────┤
-│ Week 5  │ Phase 4: Organizer Dashboard, Saved Hub & V1 Launch     │ 48 hrs  │
+│ Week 5  │ Phase 4: Organizer Dashboard, Saved Hub & V1 Launch     │ ACTIVE  │
 │         │ Uzair: /dashboard/events/[id] (Overview, People, Admin) │         │
 │         │ Hardik: /saved Hub, Lifecycle Notifications, Polish     │         │
 │         │ Sanaullah: Supervise, End-to-End Acceptance, V1 Release │         │
@@ -177,8 +172,8 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 ---
 
 ### Week 1 - Phase 0: Schema Evolution & Domain Foundation
-> **Status**: **COMPLETED (DONE)**
-> **Volume**: 16 hours · 1 person · Verified
+> **Status**: **COMPLETED (DONE)**  
+> **Volume**: 16 hours · 1 person · Verified  
 > **Deliverables Summary**:
 > - Migration `20261005195800_v1_phase0_tables.sql`: Added `participation_model`, `participation_config`, `allow_participant_campaigns`, `place_id`, `saved_campaigns`, and `event_organizers`.
 > - Migration `20261006171600_v1_phase0_attendance_schema.sql`: Separated event attendance from campaign participation with `participation_type`, `status`, and `registration_data`.
@@ -190,8 +185,8 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 ---
 
 ### Week 2 - Phase 1: Location Abstraction & Event Creation Engine
-> **Status**: **COMPLETED (DONE)**
-> **Volume**: 16 hours · 1 person · Verified
+> **Status**: **COMPLETED (DONE)**  
+> **Volume**: 16 hours · 1 person · Verified  
 > **Deliverables Summary**:
 > - Location Abstraction: Created `src/lib/location/types.ts` and `src/lib/location/provider.ts` with OpenStreetMap geocoding, 8 Nigerian tech hub presets (Lagos, Abuja, Port Harcourt, Ibadan, Enugu, Kano, Kaduna, Benin City), Haversine proximity calculations, and native directions URLs.
 > - Components: Built `LocationPicker.tsx` (preset hub selector, manual coordinate override, online toggle) and `MapPreview.tsx` (OpenStreetMap embed and directions links).
@@ -202,9 +197,15 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 ---
 
 ### Week 3 - Phase 2: Public Event Destination & Attendance CTAs
-**Focus**: Construct the public Event Detail page (`/events/[id]`), build shared UI primitives (`AvatarStack`, `SaveButton`, `ShareButton`), and wire up the dynamic 4-tier attendance state machine with registration dialogs.
-
-> **Status Update**: Days 1 and 2 completed and verified. Days 3 and 4 reallocated below.
+> **Status**: **COMPLETED (DONE)**  
+> **Volume**: 48 hours · 3 people · Verified (Milestone 2)  
+> **Deliverables Summary**:
+> - Public Event Destination: Full `/events/[id]` public layout with hero banner, organizer profile, `MapPreview`, calendar export, and dynamic OpenGraph metadata.
+> - Social Proof & Action Primitives: Reusable `AvatarStack` with privacy masking, `SaveButton`, `ShareButton`, and `ExpandableEventCover`.
+> - Attendance State Machine & CTAs: Dynamic `EventPrimaryAction` supporting Free RSVP, external tickets, and paid tiers.
+> - Registration System: Accessible `RegistrationModal` with dynamic Zod question schemas, `CancelRsvpModal`, and sticky `MobileEventActionBar`.
+> - Auth & State Continuity: Guest sign-in intent retention across auth boundaries via `EventAttendanceProvider`.
+> - Verification: Automated Milestone 2 verification suite (`scripts/verify-milestone2.ts`) passing 73/73 checks.
 
 #### Days 1 & 2 (8 hrs) - Completed Core UI Primitives, Public Layout & RSVP Controller [DONE]
 - **Completed Deliverables**:
@@ -255,7 +256,14 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 ---
 
 ### Week 4 - Phase 3: Connected Campaigns & Discover Hub Redesign
-**Focus**: Connect campaigns directly to parent events on `/campaign/[slug]`, build the conversion funnel (Campaign -> Event RSVP), overhaul `/discover` with search, city selection, date chips, and parallel query architecture.
+> **Status**: **COMPLETED (DONE)**  
+> **Volume**: 48 hours · 3 people · Verified (Milestone 3)  
+> **Deliverables Summary**:
+> - Connected Campaign Details: Overhauled `/campaign/[slug]` with prominent parent event banner, verified creator badge, and modernized participation terminology.
+> - Conversion Funnel Architecture: Connected campaign participation to parent event RSVP via `CampaignResultActions` and `?src=campaign_funnel` routing.
+> - High-Performance Discover Hub: Rebuilt `/discover` with parallel event and campaign query engine, debounced search, date chips, and Nigerian hub presets.
+> - Performance Indexing & Spatial Pruning: Migration `20261028140000_discover_query_performance_indexes.sql` with composite indexes and bounding box calculations without PostGIS bloat.
+> - Verification: Automated Milestone 3 verification suite (`scripts/verify-milestone3.ts`) passing 62/62 checks.
 
 #### Day 5 (4 hrs) - CampaignCard Upgrade & Discover Filter Bar
 - **Sanaullah (Tech Lead / Supervisor)**:
@@ -324,16 +332,16 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 
 #### Day 8 (4 hrs) - Modular Discover Page & Milestone 3 Checkpoint
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Author and run automated verification suite `scripts/verify-milestone3.ts`:
-    - Tests Discover query filtering by city, date chip, and search keyword.
-    - Tests Campaign page parent event linking and copy alignment.
-    - Tests campaign generation analytics isolation from event attendance.
-  - Review PRs, execute clean merge into `main`, and verify production build.
+  - Author and run automated verification suite `scripts/verify-milestone3.ts` (62/62 passing) [DONE]:
+    - Tests Discover query filtering by city, date chip, and search keyword [DONE].
+    - Tests Campaign page parent event linking and copy alignment [DONE].
+    - Tests campaign generation analytics isolation from event attendance [DONE].
+  - Author Milestone 3 verification suite, reconcile production notification changes, and verify clean production build [DONE].
 - **Uzair (Software Engineer)**:
-  - Refactor `src/app/discover/page.tsx` into modular dual-grid layout:
-    - Section 1: **Upcoming Events** (responsive grid of standard `EventCard` components).
-    - Section 2: **Featured Campaigns** (responsive grid of standard `CampaignCard` components).
-    - Section 3: Clean empty states with "Clear Filters" action.
+  - Refactor `src/app/discover/page.tsx` into modular dual-grid layout [DONE]:
+    - Section 1: **Upcoming Events** (responsive grid of standard `EventCard` components) [DONE].
+    - Section 2: **Featured Campaigns** (responsive grid of standard `CampaignCard` components) [DONE].
+    - Section 3: Clean empty states with "Clear Filters" action [DONE].
 - **Hardik (Software Engineer)**:
   - Build loading skeleton components (`EventCardSkeleton`, `CampaignCardSkeleton`) for smooth SSR streaming [DONE].
   - Implement browser geolocation distance sorting helper in `discover.service.ts` [DONE].
@@ -342,18 +350,25 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 > - Rebuilt `CampaignCard` with parent event deep-links.
 > - Refactored `/campaign/[slug]` with parent event banner and conversion funnel.
 > - High-performance `/discover` page with search, city selector, date chips, and dual grids.
-> - Automated test suite `verify-milestone3.ts` passing 100%.
+> - Automated test suite `verify-milestone3.ts` passing 100% (62/62 checks).
 
 ---
 
 ### Week 5 - Phase 4: Organizer Event Dashboard, Saved Hub & V1 Launch
-**Focus**: Move the organizer experience to `/dashboard/events/[id]`, build the dedicated `/saved` hub, connect lifecycle notifications, execute end-to-end acceptance verification (Section 58), and prepare production release.
+> **Status**: **ACTIVE (IN PROGRESS)**  
+> **Volume**: 48 hours · 3 people · Days 9-12  
+> **Focus**: Move the organizer experience to `/dashboard/events/[id]`, build the dedicated `/saved` hub, connect lifecycle notifications, execute end-to-end acceptance verification (Section 58), and prepare production release.
 
-#### Day 9 (4 hrs) - Dedicated Organizer Shell & Saved Hub Foundation
+#### Day 9 (4 hrs) - Dedicated Organizer Shell & Saved Hub Foundation [IN PROGRESS]
 - **Sanaullah (Tech Lead / Supervisor)**:
+  - Set up weekly parent branch `feat/w5-phase4-organizer-saved-launch` and remote tracking [DONE].
+  - Resolve Supabase quota exhaustion via AvatarStack attendee caching, deduplication, and browser client singleton [DONE].
+  - Implement automated Supabase database migration CI/CD workflows (`db-migration-ci.yml`, `db-migration-deploy.yml`) with zero-downtime view recreation [DONE].
+  - Add migration `20261028162857_remote.sql` to synchronize remote migration ledger [DONE].
+  - Fix PostgreSQL view column ordering in `20261028120000_secure_event_participants.sql` with `DROP VIEW IF EXISTS CASCADE` [DONE].
+  - Pass unified milestone test suite (M0, M1, M2, M3: 193/193 checks) and production build [DONE].
   - Enforce access control for organizer routes: Verify viewer is event creator or present in `event_organizers` table.
   - Review RLS security policies for organizer dashboard queries.
-  - Set up branch `feat/w5-phase4-organizer-saved-launch`.
 - **Uzair (Software Engineer)**:
   - Build `src/app/dashboard/events/[id]/page.tsx` layout and shell:
     - Event Header: Title, status badge (`Draft`, `Published`, `Cancelled`), and quick-link to public `/events/[id]`.
@@ -430,34 +445,34 @@ Every item in Section 58 of the specification is mapped to its implementing mile
 
 | Section | Acceptance Requirement | Accelerated Milestone | Responsible Owner | Verification Check |
 | :--- | :--- | :--- | :--- | :--- |
-| **Discovery** | Open Discover | Week 4 (Day 8) | Hardik & Uzair | `/discover` loads instantly with SSR skeletons. |
-| | Search events | Week 4 (Day 5) | Hardik | Debounced input filters titles and descriptions. |
-| | Select location | Week 4 (Day 6) | Hardik | Switching to "Lagos" or "Online" filters grid. |
-| | Filter basic events | Week 4 (Day 5) | Hardik | Date chips ("This Weekend") constrain date ranges. |
-| | See event cards | Week 3 (Day 2) | Uzair | Cards render image, category, date, venue, AvatarStack. |
-| | See social indicators | Week 3 (Day 1) | Uzair | `AvatarStack` renders verified attendee count/avatars. |
-| | Open an event | Week 3 (Day 3) | Uzair | Clicking card navigates to public `/events/[id]`. |
-| **Event** | Understand event | Week 3 (Day 3) | Uzair | Header, host profile, description, details grid rendered. |
-| | See date/time/location | Week 3 (Day 3) | Uzair | Formatted date/time with calendar export link. |
-| | View map / location | Week 2 & 3 | Uzair & Sanaullah | `MapPreview` shows venue and opens native directions. |
-| | Save event | Week 3 (Day 1) | Uzair & Hardik | Bookmark toggles save in `saved_events`. |
-| | Share event | Week 3 (Day 1) | Uzair | Native share with `?src=event_share` tracking. |
-| | Attend / Register / Ticket | Week 3 (Day 2 & 3) | Hardik | Dynamic CTA triggers correct flow per config. |
-| **Campaign** | Discover campaign | Week 4 (Day 8) | Uzair & Hardik | Campaigns grid displayed on `/discover`. |
-| | Open campaign | Week 4 (Day 6) | Uzair | `/campaign/[slug]` loads template and settings [DONE]. |
-| | Connected parent event | Week 4 (Day 6) | Uzair | Prominent banner links directly to parent event [DONE]. |
-| | Participate where allowed | Week 4 (Day 7) | Uzair | Photo adjustment, canvas generation, and download [DONE]. |
-| | Share campaign | Week 4 (Day 7) | Uzair | Share modal tracks campaign source platform [DONE]. |
-| | Navigate to event | Week 4 (Day 7) | Uzair | Conversion banner routes user to event RSVP [DONE]. |
-| **Organizer** | Create event & location | Week 2 (Day 7) | Completed (W2) | Structured coordinates and Nigerian hub presets saved. |
-| | Configure participation | Week 2 (Day 7) | Completed (W2) | Sets Free, Registration, Paid, or External. |
-| | Configure campaign toggle | Week 2 (Day 7) | Completed (W2) | Sets `allow_participant_campaigns` ON/OFF. |
+| **Discovery** | Open Discover | Completed (W4) [DONE] | Hardik & Uzair | `/discover` loads instantly with SSR skeletons. |
+| | Search events | Completed (W4) [DONE] | Hardik | Debounced input filters titles and descriptions. |
+| | Select location | Completed (W4) [DONE] | Hardik | Switching to "Lagos" or "Online" filters grid. |
+| | Filter basic events | Completed (W4) [DONE] | Hardik | Date chips ("This Weekend") constrain date ranges. |
+| | See event cards | Completed (W3) [DONE] | Uzair | Cards render image, category, date, venue, AvatarStack. |
+| | See social indicators | Completed (W3) [DONE] | Uzair | `AvatarStack` renders verified attendee count/avatars. |
+| | Open an event | Completed (W3) [DONE] | Uzair | Clicking card navigates to public `/events/[id]`. |
+| **Event** | Understand event | Completed (W3) [DONE] | Uzair | Header, host profile, description, details grid rendered. |
+| | See date/time/location | Completed (W3) [DONE] | Uzair | Formatted date/time with calendar export link. |
+| | View map / location | Completed (W2/W3) [DONE] | Uzair & Sanaullah | `MapPreview` shows venue and opens native directions. |
+| | Save event | Completed (W3) [DONE] | Uzair & Hardik | Bookmark toggles save in `saved_events`. |
+| | Share event | Completed (W3) [DONE] | Uzair | Native share with `?src=event_share` tracking. |
+| | Attend / Register / Ticket | Completed (W3) [DONE] | Hardik | Dynamic CTA triggers correct flow per config. |
+| **Campaign** | Discover campaign | Completed (W4) [DONE] | Uzair & Hardik | Campaigns grid displayed on `/discover`. |
+| | Open campaign | Completed (W4) [DONE] | Uzair | `/campaign/[slug]` loads template and settings. |
+| | Connected parent event | Completed (W4) [DONE] | Uzair | Prominent banner links directly to parent event. |
+| | Participate where allowed | Completed (W4) [DONE] | Uzair | Photo adjustment, canvas generation, and download. |
+| | Share campaign | Completed (W4) [DONE] | Uzair | Share modal tracks campaign source platform. |
+| | Navigate to event | Completed (W4) [DONE] | Uzair | Conversion banner routes user to event RSVP. |
+| **Organizer** | Create event & location | Completed (W2) [DONE] | Uzair & Sanaullah | Structured coordinates and Nigerian hub presets saved. |
+| | Configure participation | Completed (W2) [DONE] | Hardik & Sanaullah | Sets Free, Registration, Paid, or External. |
+| | Configure campaign toggle | Completed (W2) [DONE] | Uzair & Sanaullah | Sets `allow_participant_campaigns` ON/OFF. |
 | | Create campaign | Week 5 (Day 11) | Uzair | Launches campaign builder attached to event. |
 | | View people distinction | Week 5 (Day 10) | Uzair & Hardik | Separates Attendees vs Registrants vs DP users. |
 | | View analytics | Week 5 (Day 11) | Uzair | Direct deep-link to campaign analytics dashboard. |
 | **Notifications** | Event updates | Week 5 (Day 10) | Hardik | Venue/time updates notify confirmed attendees. |
 | | Campaign updates | Week 5 (Day 10) | Hardik | New campaign creation alerts organizer. |
-| | Registration receipt | Week 3 & 5 | Hardik | Confirmation appears in notification bell feed. |
+| | Registration receipt | Completed (W3) [DONE] | Hardik | Confirmation appears in notification bell feed. |
 
 ---
 
@@ -480,7 +495,9 @@ To protect the accelerated 5-week timeline, the following remain strictly out of
    - Uzair: `feat/uzair-w[week]-d[day]-[feature-name]` (e.g. `feat/uzair-w3-d1-avatar-stack`)
    - Hardik: `feat/hardik-w[week]-d[day]-[feature-name]` (e.g. `feat/hardik-w3-d1-attendance-service`)
 2. **Commit Messages**: Clean conventional commits (`feat:`, `fix:`, `refactor:`, `test:`).
-3. **Daily Pull Requests**:
-   - Uzair and Hardik push daily branches and open PRs targeting `main`.
-   - Sanaullah conducts code reviews, tests locally, runs verification scripts, and merges to `main`.
-   - All 3 developers pull `main` at the start of every session to maintain clean synchronization.
+3. **Daily Pull Requests & Branch Hierarchy**:
+   - Uzair and Hardik branch directly off from the active weekly parent branch (e.g. `feat/w5-phase4-organizer-saved-launch`) set up in advance by Sanaullah.
+   - Uzair and Hardik push daily branches and open PRs targeting the active weekly parent branch (never targeting `main` directly).
+   - Sanaullah conducts code reviews, tests locally, runs verification test suites, and merges daily PRs into the active weekly parent branch.
+   - At the completion of each weekly milestone, Sanaullah performs end-to-end acceptance checks and merges the weekly parent branch into `main`.
+   - All 3 developers synchronize with the active weekly parent branch at the start of every session to maintain clean coordination.

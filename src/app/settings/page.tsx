@@ -40,11 +40,14 @@ export default function SettingsPage() {
   const [passMessage, setPassMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
     async function loadSettings() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
+      if (!active) return;
       if (!user) {
         router.push("/login");
         return;
@@ -59,6 +62,7 @@ export default function SettingsPage() {
         .eq("id", user.id)
         .maybeSingle();
 
+      if (!active) return;
       if (profile) {
         setFullName(profile.full_name || profile.name || "");
       }
@@ -67,6 +71,10 @@ export default function SettingsPage() {
     }
 
     loadSettings();
+
+    return () => {
+      active = false;
+    };
   }, [supabase, router]);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {

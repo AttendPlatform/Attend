@@ -1,4 +1,4 @@
-﻿-- Attend: attendee privacy reconciliation
+-- Attend: attendee privacy reconciliation
 -- Safe to rerun. Keeps public attendee social proof separate
 -- from private registration data.
 
@@ -38,6 +38,7 @@ CREATE POLICY "Users and event organizers can view participation records"
   );
 
 -- The public view exposes attendee identity and attendance status only.
+DROP VIEW IF EXISTS public.public_event_attendees CASCADE;
 CREATE OR REPLACE VIEW public.public_event_attendees AS
 SELECT
   ep.id,

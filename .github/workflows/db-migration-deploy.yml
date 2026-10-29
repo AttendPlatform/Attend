@@ -1,0 +1,79 @@
+name: Deploy Database Migrations
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run only (verify pending migrations without applying)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: production-db-migrations
+  cancel-in-progress: false
+
+jobs:
+  deploy-migrations:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Validate configuration secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -n "$SUPABASE_DB_URL" ]; then
+            echo "Using direct SUPABASE_DB_URL for database connection."
+          elif [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_PROJECT_ID" ] && [ -n "$SUPABASE_DB_PASSWORD" ]; then
+            echo "Using Supabase CLI project link authentication."
+          else
+            echo "::error::Missing required deployment credentials."
+            echo "Configure either SUPABASE_DB_URL or (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_ID, SUPABASE_DB_PASSWORD) in repository secrets."
+            exit 1
+          fi
+
+      - name: Push migrations to remote database
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          IS_DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          DRY_RUN_FLAG=""
+          if [ "$IS_DRY_RUN" = "true" ]; then
+            echo "Running in DRY RUN mode. No migrations will be written to remote database."
+            DRY_RUN_FLAG="--dry-run"
+          fi
+
+          if [ -n "$SUPABASE_DB_URL" ]; then
+            echo "Pushing migrations via direct connection URL..."
+            supabase db push --db-url "$SUPABASE_DB_URL" $DRY_RUN_FLAG --include-all
+          else
+            echo "Linking project $SUPABASE_PROJECT_ID..."
+            supabase link --project-ref "$SUPABASE_PROJECT_ID"
+            echo "Pushing migrations via project link..."
+            supabase db push --linked --password "$SUPABASE_DB_PASSWORD" $DRY_RUN_FLAG --include-all
+          fi
+
+          echo "Database migrations step completed successfully."
+
