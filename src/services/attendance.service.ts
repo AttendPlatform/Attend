@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database, Json } from "@/lib/supabase/database.types";
 import type {
   EventParticipationType,
   EventParticipantWithProfile,
@@ -100,10 +100,15 @@ export async function getOrganizerEventRegistrations(
     throw error;
   }
 
-  return (data || []).map((row: any) => ({
-    ...row,
-    profile: Array.isArray(row.profiles) ? row.profiles[0] : row.profiles,
-  })) as EventParticipantWithProfile[];
+  return (data || []).map((row) => {
+    const record = row as unknown as EventParticipantWithProfile & {
+      profiles?: EventParticipantWithProfile["profile"] | EventParticipantWithProfile["profile"][];
+    };
+    return {
+      ...record,
+      profile: Array.isArray(record.profiles) ? record.profiles[0] : record.profiles,
+    };
+  }) as EventParticipantWithProfile[];
 }
 
 export async function getEventAttendanceCounts(
@@ -180,7 +185,7 @@ export async function rsvpEvent(params: {
         name: name || null,
         participation_type: participationType,
         status: participationType === "registrant" ? "registered" : "attending",
-        registration_data: registrationData as any,
+        registration_data: (registrationData as unknown as Json) ?? {},
       },
       { onConflict: "event_id,user_id" }
     )
