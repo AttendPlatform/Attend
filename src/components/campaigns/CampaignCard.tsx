@@ -39,7 +39,7 @@ export function CampaignCard({
   const categoryName = parentEvent?.category?.name || "Campaign";
   const ctaLabel = getCampaignCtaLabel(ctaVariant);
 
-  const descriptionText = campaign.description || parentEvent?.description;
+  const descriptionText = campaign.description;
   const formattedDate = parentEvent?.start_at
     ? (() => {
         const date = new Date(parentEvent.start_at);
