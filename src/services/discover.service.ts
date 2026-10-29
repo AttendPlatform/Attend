@@ -33,6 +33,7 @@ export type DiscoverEvent = Pick<
   | "created_at"
   | "latitude"
   | "longitude"
+  | "participation_model"
 > & {
   category: Pick<CategoryRow, "id" | "name" | "slug" | "icon"> | null;
   organizerName: string | null;
@@ -58,7 +59,8 @@ export interface DiscoverResults {
 const EVENT_COLUMNS = `
   id, creator_id, category_id, title, slug, description, cover_image,
   venue_name, address, city, state, country, is_online, online_url,
-  start_at, end_at, status, views, participant_count, created_at, latitude, longitude
+  start_at, end_at, status, views, participant_count, created_at, latitude, longitude,
+  participation_model
 `;
 
 function includesQuery(value: string | null | undefined, query: string): boolean {
@@ -74,6 +76,7 @@ function matchesEvent(
 ) {
   if (filters.categoryId && event.category_id !== filters.categoryId) return false;
   if (typeof filters.isOnline === "boolean" && event.is_online !== filters.isOnline) return false;
+  if (typeof filters.isFree === "boolean" && filters.isFree && event.participation_model && event.participation_model !== "free") return false;
   if (filters.city && !matchesCity(event.city, filters.city)) return false;
   if (boundingBox) {
     if (event.latitude == null || event.longitude == null) return false;
