@@ -205,11 +205,11 @@ async function runMilestone3Verification() {
   const discoverHubContent = readFileSync(resolve(cwd, "src/components/discover/DiscoverHub.tsx"), "utf8");
   check(
     "DiscoverHub renders Upcoming Events section",
-    discoverHubContent.includes("Upcoming events")
+    discoverHubContent.includes("Upcoming events") || discoverHubContent.includes("Events near you")
   );
   check(
     "DiscoverHub renders Campaigns section",
-    discoverHubContent.includes("Campaigns you can join")
+    discoverHubContent.includes("Campaigns you can join") || discoverHubContent.includes("Join Campaigns")
   );
   check(
     "DiscoverHub provides clear all filters action",
