@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Plus } from "lucide-react";
+import { Home, Compass, CirclePlus } from "lucide-react";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -12,8 +12,8 @@ export function MobileNav() {
       <div className="mx-auto flex h-16 max-w-md items-center justify-around">
         <Link
           href="/"
-          className={`flex flex-col items-center gap-1 text-xs font-medium ${
-            pathname === "/" ? "text-violet-600" : "text-neutral-400 hover:text-neutral-600"
+          className={`flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
+            pathname === "/" ? "text-violet-600 font-semibold" : "text-neutral-400 hover:text-neutral-600"
           }`}
         >
           <Home className="h-5 w-5" strokeWidth={2} />
@@ -22,8 +22,8 @@ export function MobileNav() {
 
         <Link
           href="/discover"
-          className={`flex flex-col items-center gap-1 text-xs font-medium ${
-            pathname?.startsWith("/discover") ? "text-violet-600" : "text-neutral-400 hover:text-neutral-600"
+          className={`flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
+            pathname?.startsWith("/discover") ? "text-violet-600 font-semibold" : "text-neutral-400 hover:text-neutral-600"
           }`}
         >
           <Compass className="h-5 w-5" strokeWidth={2} />
@@ -32,13 +32,12 @@ export function MobileNav() {
 
         <Link
           href="/create"
-          className="flex flex-col items-center gap-1 text-xs font-medium text-neutral-400"
+          className={`flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
+            pathname === "/create" ? "text-violet-600 font-semibold" : "text-neutral-400 hover:text-neutral-600"
+          }`}
         >
-          <div className="flex h-11 w-11 -translate-y-3 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg shadow-violet-200">
-            <Plus className="h-5 w-5" />
-          </div>
-
-          <span className="-mt-3">Create</span>
+          <CirclePlus className="h-5 w-5" strokeWidth={2} />
+          Create
         </Link>
       </div>
     </nav>

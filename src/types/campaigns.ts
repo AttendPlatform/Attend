@@ -65,6 +65,7 @@ export interface CampaignCardProps {
   campaign: CampaignCardData;
   className?: string;
   priority?: boolean;
+  layout?: "vertical" | "horizontal";
   ctaVariant?: CampaignCtaVariant;
   showParentEvent?: boolean;
   showSaveButton?: boolean;

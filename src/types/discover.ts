@@ -26,6 +26,7 @@ export interface DiscoverFilters {
   dateFilter?: DateFilterOption;
   city?: string;
   isOnline?: boolean;
+  isFree?: boolean;
   categoryId?: string;
   nearMe?: boolean;
   userCoordinates?: {
@@ -176,6 +177,7 @@ export function parseDiscoverFiltersFromSearchParams(
   const rawDate = getParam("date");
   const rawCategory = getParam("category") || getParam("categoryId");
   const rawOnline = getParam("online") || getParam("isOnline");
+  const rawFree = getParam("free") || getParam("isFree");
   const rawNearMe = getParam("near_me") || getParam("nearMe");
   const rawSort = getParam("sort") || getParam("sortBy");
 
@@ -198,6 +200,7 @@ export function parseDiscoverFiltersFromSearchParams(
     : undefined;
 
   const isOnline = rawOnline !== undefined ? rawOnline === "true" || rawOnline === "1" : undefined;
+  const isFree = rawFree !== undefined ? rawFree === "true" || rawFree === "1" : undefined;
   const nearMe = rawNearMe !== undefined ? rawNearMe === "true" || rawNearMe === "1" : undefined;
 
   return {
@@ -206,6 +209,7 @@ export function parseDiscoverFiltersFromSearchParams(
     dateFilter,
     categoryId: rawCategory?.trim() ? rawCategory.trim() : undefined,
     isOnline,
+    isFree,
     nearMe,
     sortBy,
   };
@@ -234,6 +238,10 @@ export function serializeDiscoverFiltersToSearchParams(
 
   if (typeof filters.isOnline === "boolean") {
     params.set("online", filters.isOnline ? "true" : "false");
+  }
+
+  if (typeof filters.isFree === "boolean" && filters.isFree) {
+    params.set("free", "true");
   }
 
   if (typeof filters.nearMe === "boolean" && filters.nearMe) {
