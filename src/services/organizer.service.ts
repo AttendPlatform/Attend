@@ -144,3 +144,19 @@ export async function getOrganizerEventStats(
     dpGenerationsCount,
   };
 }
+
+export async function getOrganizerEventCampaigns(
+  supabase: SupabaseClient,
+  eventId: string
+) {
+  const { data, error } = await supabase
+    .from("campaigns")
+    .select("id, title, slug, status, generations, created_at")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return [];
+  }
+  return data ?? [];
+}
