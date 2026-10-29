@@ -391,5 +391,3 @@ export function checkCampaignAttendanceIsolation(): {
     attendanceMetrics: ["attendees", "registrants", "ticket_holders", "total"],
   };
 }
-
-

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/database.types";
 
 type CampaignActivity = {
   campaignId: string;
@@ -12,349 +13,305 @@ type CampaignActivity = {
   participants: number;
 };
 
+type CreatedNotification = {
+  id?: string | null;
+  user_id?: string | null;
+  type?: string | null;
+  category?: string | null;
+  title?: string | null;
+  message?: string | null;
+  action_url?: string | null;
+  action_label?: string | null;
+  event_id?: string | null;
+  campaign_id?: string | null;
+  metadata?: Json | null;
+  dedupe_key?: string | null;
+  priority?: string | null;
+};
+
 const MILESTONES = [10, 25, 50, 100, 250, 500, 1000];
+
+function toJson(value: Record<string, unknown>): Json {
+  return value as Json;
+}
+
+function parseCreatedNotification(
+  value: unknown
+): CreatedNotification | null {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+
+      if (parsed && typeof parsed === "object") {
+        return parsed as CreatedNotification;
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as CreatedNotification;
+  }
+
+  return null;
+}
+
+async function sendPushNotification(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  notification: CreatedNotification
+) {
+  if (!notification.user_id) {
+    return;
+  }
+
+  const { data: preferences, error: preferencesError } = await supabase
+    .from("notification_preferences")
+    .select("push_enabled")
+    .eq("user_id", notification.user_id)
+    .maybeSingle();
+
+  if (preferencesError) {
+    console.error(
+      "Failed to fetch push notification preferences:",
+      preferencesError
+    );
+    return;
+  }
+
+  if (!preferences?.push_enabled) {
+    return;
+  }
+
+  try {
+    const { error } = await supabase.functions.invoke("send-push", {
+      body: {
+        title: notification.title ?? "Attend",
+        body: notification.message ?? "",
+        url: notification.action_url ?? "/notifications",
+        tag: notification.id
+          ? `notification-${notification.id}`
+          : "attend-notification",
+      },
+    });
+
+    if (error) {
+      console.error("Failed to send push notification:", error);
+    }
+  } catch (error) {
+    console.error("Push notification error:", error);
+  }
+}
+
+async function createNotification(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  params: {
+    userId: string;
+    type: string;
+    category: string;
+    title: string;
+    message: string;
+    actionUrl?: string | null;
+    actionLabel?: string | null;
+    eventId?: string | null;
+    campaignId?: string | null;
+    metadata?: Record<string, unknown>;
+    dedupeKey?: string | null;
+    priority?: "low" | "normal" | "high" | "urgent";
+  }
+): Promise<CreatedNotification | null> {
+  const { data, error } = await supabase.rpc(
+  "create_notification_for_user",
+  {
+    p_user_id: params.userId,
+    p_type: params.type,
+    p_category: params.category,
+    p_title: params.title,
+    p_message: params.message,
+    p_action_url: params.actionUrl ?? undefined,
+    p_action_label: params.actionLabel ?? undefined,
+    p_event_id: params.eventId ?? undefined,
+    p_campaign_id: params.campaignId ?? undefined,
+    p_metadata: params.metadata
+      ? toJson(params.metadata)
+      : undefined,
+    p_dedupe_key: params.dedupeKey ?? undefined,
+    p_priority: params.priority ?? "normal",
+  }
+);
+
+  if (error) {
+    console.error("Failed to create notification:", error);
+    return null;
+  }
+
+  const notification = parseCreatedNotification(data);
+
+  if (notification) {
+    await sendPushNotification(supabase, notification);
+  }
+
+  return notification;
+}
 
 export async function processCampaignActivity(
   activity: CampaignActivity
 ) {
   const supabase = await createClient();
 
-  const results = [];
+  const results: CreatedNotification[] = [];
 
-  /*
-   * ----------------------------------------------------------
-   * 1. GENERATION MILESTONES
-   * ----------------------------------------------------------
-   */
+  // ------------------------------------------------------------
+  // 1. First generation
+  // ------------------------------------------------------------
 
-  const reachedMilestone = MILESTONES.find(
-    (milestone) =>
-      activity.generations >= milestone
-  );
+  if (activity.generations === 1) {
+    const notification = await createNotification(supabase, {
+      userId: activity.creatorId,
+      type: "campaign_generation",
+      category: "campaign_activity",
+      title: "Your campaign got its first generation",
+      message: `"${activity.campaignName}" has received its first generated version.`,
+      actionUrl: `/campaign/${activity.campaignId}`,
+      actionLabel: "View campaign",
+      eventId: activity.eventId ?? null,
+      campaignId: activity.campaignId,
+      metadata: {
+        generations: activity.generations,
+        campaign_name: activity.campaignName,
+      },
+      dedupeKey: `campaign-${activity.campaignId}-first-generation`,
+      priority: "normal",
+    });
 
-  if (reachedMilestone) {
-    const dedupeKey =
-      `campaign-milestone:${activity.campaignId}:${reachedMilestone}`;
-
-    const { data, error } =
-      await supabase.rpc(
-        "create_notification_for_user",
-        {
-          p_user_id: activity.creatorId,
-
-          p_type: "campaign_milestone",
-
-          p_category: "campaigns",
-
-          p_title:
-            "Your campaign reached a milestone",
-
-          p_message:
-            `${activity.campaignName} has reached ${reachedMilestone} personalized graphics.`,
-
-          p_action_url:
-            `/events/${activity.eventId}/campaigns/${activity.campaignId}`,
-
-          p_action_label:
-            "View campaign",
-
-          p_event_id:
-            activity.eventId ?? undefined,
-
-          p_campaign_id:
-            activity.campaignId,
-
-          p_metadata: {
-            milestone: reachedMilestone,
-            generations:
-              activity.generations,
-          },
-
-          p_dedupe_key:
-            dedupeKey,
-
-          p_priority:
-            reachedMilestone >= 100
-              ? "high"
-              : "normal",
-        }
-      );
-
-    if (!error && data) {
-      results.push(data);
+    if (notification) {
+      results.push(notification);
     }
   }
 
-
-  /*
-   * ----------------------------------------------------------
-   * 2. FIRST 10 GENERATIONS
-   * ----------------------------------------------------------
-   */
+  // ------------------------------------------------------------
+  // 2. First 10 generations
+  // ------------------------------------------------------------
 
   if (activity.generations === 10) {
-    const { data, error } =
-      await supabase.rpc(
-        "create_notification_for_user",
-        {
-          p_user_id: activity.creatorId,
+    const notification = await createNotification(supabase, {
+      userId: activity.creatorId,
+      type: "campaign_milestone",
+      category: "campaign_milestones",
+      title: "10 people generated your campaign",
+      message: `"${activity.campaignName}" has reached 10 generations.`,
+      actionUrl: `/campaign/${activity.campaignId}`,
+      actionLabel: "View campaign",
+      eventId: activity.eventId ?? null,
+      campaignId: activity.campaignId,
+      metadata: {
+        milestone: 10,
+        metric: "generations",
+        campaign_name: activity.campaignName,
+      },
+      dedupeKey: `campaign-${activity.campaignId}-generations-10`,
+      priority: "normal",
+    });
 
-          p_type:
-            "campaign_generation",
-
-          p_category:
-            "campaigns",
-
-          p_title:
-            "Your campaign is getting started",
-
-          p_message:
-            `${activity.campaignName} has generated its first 10 personalized graphics.`,
-
-          p_action_url:
-            `/events/${activity.eventId}/campaigns/${activity.campaignId}`,
-
-          p_action_label:
-            "View campaign",
-
-          p_event_id:
-            activity.eventId ?? undefined,
-
-          p_campaign_id:
-            activity.campaignId,
-
-          p_metadata: {
-            generations:
-              activity.generations,
-          },
-
-          p_dedupe_key:
-            `campaign-first-10:${activity.campaignId}`,
-
-          p_priority:
-            "normal",
-        }
-      );
-
-    if (!error && data) {
-      results.push(data);
+    if (notification) {
+      results.push(notification);
     }
   }
 
+  // ------------------------------------------------------------
+  // 3. Traffic milestones
+  // ------------------------------------------------------------
 
-  /*
-   * ----------------------------------------------------------
-   * 3. CAMPAIGN TRAFFIC SPIKE
-   * ----------------------------------------------------------
-   *
-   * We use meaningful view thresholds for V1.
-   */
+  if (MILESTONES.includes(activity.views)) {
+    const notification = await createNotification(supabase, {
+      userId: activity.creatorId,
+      type: "campaign_milestone",
+      category: "campaign_milestones",
+      title: `${activity.views} people viewed your campaign`,
+      message: `"${activity.campaignName}" has reached ${activity.views} views.`,
+      actionUrl: `/campaign/${activity.campaignId}`,
+      actionLabel: "View analytics",
+      eventId: activity.eventId ?? null,
+      campaignId: activity.campaignId,
+      metadata: {
+        milestone: activity.views,
+        metric: "views",
+        campaign_name: activity.campaignName,
+      },
+      dedupeKey: `campaign-${activity.campaignId}-views-${activity.views}`,
+      priority: "normal",
+    });
 
-  const trafficMilestones = [
-    25,
-    50,
-    100,
-    250,
-    500,
-    1000,
-  ];
-
-  const trafficMilestone =
-    trafficMilestones.find(
-      (milestone) =>
-        activity.views >= milestone
-    );
-
-  if (trafficMilestone) {
-    const { data, error } =
-      await supabase.rpc(
-        "create_notification_for_user",
-        {
-          p_user_id:
-            activity.creatorId,
-
-          p_type:
-            "campaign_traffic_spike",
-
-          p_category:
-            "campaigns",
-
-          p_title:
-            "Your campaign is getting attention",
-
-          p_message:
-            `${activity.campaignName} has received ${trafficMilestone}+ views.`,
-
-          p_action_url:
-            `/events/${activity.eventId}/campaigns/${activity.campaignId}`,
-
-          p_action_label:
-            "View insights",
-
-          p_event_id:
-            activity.eventId ?? undefined,
-
-          p_campaign_id:
-            activity.campaignId,
-
-          p_metadata: {
-            views:
-              activity.views,
-          },
-
-          p_dedupe_key:
-            `campaign-views:${activity.campaignId}:${trafficMilestone}`,
-
-          p_priority:
-            trafficMilestone >= 500
-              ? "high"
-              : "normal",
-        }
-      );
-
-    if (!error && data) {
-      results.push(data);
+    if (notification) {
+      results.push(notification);
     }
   }
 
+  // ------------------------------------------------------------
+  // 4. Share milestones
+  // ------------------------------------------------------------
 
-  /*
-   * ----------------------------------------------------------
-   * 4. SHARE MILESTONES
-   * ----------------------------------------------------------
-   */
+  const shareMilestones = [5, 10, 25, 50, 100];
 
-  const shareMilestones = [
-    5,
-    10,
-    25,
-    50,
-    100,
-  ];
+  if (shareMilestones.includes(activity.shares)) {
+    const notification = await createNotification(supabase, {
+      userId: activity.creatorId,
+      type: "campaign_milestone",
+      category: "campaign_milestones",
+      title: `${activity.shares} people shared your campaign`,
+      message: `"${activity.campaignName}" has been shared ${activity.shares} times.`,
+      actionUrl: `/campaign/${activity.campaignId}`,
+      actionLabel: "View analytics",
+      eventId: activity.eventId ?? null,
+      campaignId: activity.campaignId,
+      metadata: {
+        milestone: activity.shares,
+        metric: "shares",
+        campaign_name: activity.campaignName,
+      },
+      dedupeKey: `campaign-${activity.campaignId}-shares-${activity.shares}`,
+      priority: "normal",
+    });
 
-  const shareMilestone =
-    shareMilestones.find(
-      (milestone) =>
-        activity.shares >= milestone
-    );
-
-  if (shareMilestone) {
-    const { data, error } =
-      await supabase.rpc(
-        "create_notification_for_user",
-        {
-          p_user_id:
-            activity.creatorId,
-
-          p_type:
-            "campaign_share_milestone",
-
-          p_category:
-            "campaigns",
-
-          p_title:
-            "Your campaign is being shared",
-
-          p_message:
-            `${activity.campaignName} has been shared ${shareMilestone} times.`,
-
-          p_action_url:
-            `/events/${activity.eventId}/campaigns/${activity.campaignId}`,
-
-          p_action_label:
-            "View campaign",
-
-          p_event_id:
-            activity.eventId ?? undefined,
-
-          p_campaign_id:
-            activity.campaignId,
-
-          p_metadata: {
-            shares:
-              activity.shares,
-          },
-
-          p_dedupe_key:
-            `campaign-shares:${activity.campaignId}:${shareMilestone}`,
-
-          p_priority:
-            "normal",
-        }
-      );
-
-    if (!error && data) {
-      results.push(data);
+    if (notification) {
+      results.push(notification);
     }
   }
 
+  // ------------------------------------------------------------
+  // 5. Download milestones
+  // ------------------------------------------------------------
 
-  /*
-   * ----------------------------------------------------------
-   * 5. DOWNLOAD MILESTONES
-   * ----------------------------------------------------------
-   */
+  const downloadMilestones = [10, 25, 50, 100];
 
-  const downloadMilestones = [
-    10,
-    25,
-    50,
-    100,
-  ];
+  if (downloadMilestones.includes(activity.downloads)) {
+    const notification = await createNotification(supabase, {
+      userId: activity.creatorId,
+      type: "campaign_milestone",
+      category: "campaign_milestones",
+      title: `${activity.downloads} people downloaded your campaign`,
+      message: `"${activity.campaignName}" has been downloaded ${activity.downloads} times.`,
+      actionUrl: `/campaign/${activity.campaignId}`,
+      actionLabel: "View analytics",
+      eventId: activity.eventId ?? null,
+      campaignId: activity.campaignId,
+      metadata: {
+        milestone: activity.downloads,
+        metric: "downloads",
+        campaign_name: activity.campaignName,
+      },
+      dedupeKey: `campaign-${activity.campaignId}-downloads-${activity.downloads}`,
+      priority: "normal",
+    });
 
-  const downloadMilestone =
-    downloadMilestones.find(
-      (milestone) =>
-        activity.downloads >= milestone
-    );
-
-  if (downloadMilestone) {
-    const { data, error } =
-      await supabase.rpc(
-        "create_notification_for_user",
-        {
-          p_user_id:
-            activity.creatorId,
-
-          p_type:
-            "campaign_download_milestone",
-
-          p_category:
-            "campaigns",
-
-          p_title:
-            "People are saving your campaign",
-
-          p_message:
-            `${activity.campaignName} has been downloaded ${downloadMilestone} times.`,
-
-          p_action_url:
-            `/events/${activity.eventId}/campaigns/${activity.campaignId}`,
-
-          p_action_label:
-            "View insights",
-
-          p_event_id:
-            activity.eventId ?? undefined,
-
-          p_campaign_id:
-            activity.campaignId,
-
-          p_metadata: {
-            downloads:
-              activity.downloads,
-          },
-
-          p_dedupe_key:
-            `campaign-downloads:${activity.campaignId}:${downloadMilestone}`,
-
-          p_priority:
-            "normal",
-        }
-      );
-
-    if (!error && data) {
-      results.push(data);
+    if (notification) {
+      results.push(notification);
     }
   }
 

@@ -14,6 +14,7 @@ export async function getEventAttendees(
   limit = 10
 ): Promise<EventParticipantWithProfile[]> {
   const supabase = await createClient();
+
   const { data, error } = await supabase
     .from("public_event_attendees")
     .select(`
@@ -36,24 +37,42 @@ export async function getEventAttendees(
     throw error;
   }
 
-  return (data || []).map((row) => ({
-    id: row.id || "",
-    event_id: row.event_id || "",
-    user_id: row.user_id,
-    name: row.name,
-    participation_type: (row.participation_type || "attendee") as EventParticipationType,
-    status: (row.status || "attending") as any,
-    created_at: row.created_at || new Date().toISOString(),
-    registration_data: {},
-    profile: row.user_id
-      ? {
-          id: row.user_id,
-          display_name: row.profile_display_name,
-          avatar_url: row.profile_avatar_url,
-          username: row.profile_username,
-        }
-      : null,
-  })) as EventParticipantWithProfile[];
+  return (data || []).flatMap((row) => {
+    if (
+      !row.id ||
+      !row.event_id ||
+      !row.status ||
+      !row.participation_type ||
+      !row.created_at
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: row.id,
+        event_id: row.event_id,
+        user_id: row.user_id,
+        name: row.name,
+        participation_type: row.participation_type,
+        status: row.status,
+        created_at: row.created_at,
+        registration_data: {},
+        profile:
+          row.user_id ||
+          row.profile_display_name ||
+          row.profile_avatar_url ||
+          row.profile_username
+            ? {
+                id: row.user_id,
+                display_name: row.profile_display_name,
+                avatar_url: row.profile_avatar_url,
+                username: row.profile_username,
+              }
+            : null,
+      } as EventParticipantWithProfile,
+    ];
+  });
 }
 
 export async function getOrganizerEventRegistrations(
@@ -95,10 +114,39 @@ export async function getEventAttendanceCounts(
   eventId: string
 ): Promise<AttendanceCounts> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("public_event_attendees")
+
+  let { data, error } = await supabase
+    .from("event_participants")
     .select("participation_type, status")
-    .eq("event_id", eventId);
+    .eq("event_id", eventId)
+    .in("status", ["attending", "registered", "ticketed", "attended"]);
+
+  if (error && ["PGRST301", "PGRST303"].includes(error.code)) {
+    const publicClient = createPublicClient();
+
+    const fallback = await publicClient
+      .from("public_event_attendees")
+      .select("participation_type, status")
+      .eq("event_id", eventId)
+      .in("status", ["attending", "registered", "ticketed", "attended"]);
+
+    if (fallback.error) {
+      throw fallback.error;
+    }
+
+    data = (fallback.data || []).flatMap((row) => {
+      if (!row.participation_type || !row.status) {
+        return [];
+      }
+
+      return [{
+        participation_type: row.participation_type,
+        status: row.status,
+      }];
+    });
+
+    error = null;
+  }
 
   if (error) {
     throw error;
