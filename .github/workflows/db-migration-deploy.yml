@@ -72,7 +72,7 @@ jobs:
             echo "Linking project $SUPABASE_PROJECT_ID..."
             supabase link --project-ref "$SUPABASE_PROJECT_ID"
             echo "Pushing migrations via project link..."
-            supabase db push --password "$SUPABASE_DB_PASSWORD" $DRY_RUN_FLAG --include-all
+            supabase db push --linked --password "$SUPABASE_DB_PASSWORD" $DRY_RUN_FLAG --include-all
           fi
 
           echo "Database migrations step completed successfully."

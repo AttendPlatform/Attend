@@ -60,7 +60,7 @@ jobs:
             echo "Linking to Supabase project $SUPABASE_PROJECT_ID..."
             supabase link --project-ref "$SUPABASE_PROJECT_ID"
             echo "Executing dry-run migration check via project credentials..."
-            supabase db push --password "$SUPABASE_DB_PASSWORD" --dry-run --include-all
+            supabase db push --linked --password "$SUPABASE_DB_PASSWORD" --dry-run --include-all
           else
             echo "Supabase credentials not available in this environment. Skipping remote dry run."
           fi
