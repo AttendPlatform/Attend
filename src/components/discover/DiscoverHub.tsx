@@ -98,7 +98,7 @@ export default function DiscoverHub() {
       </section>
 
       {/* MAIN CONTENT WRAPPER */}
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
+      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-5">
         <DiscoverFilterBar
           filters={filters}
           onFiltersChange={handleFiltersChange}
@@ -113,8 +113,8 @@ export default function DiscoverHub() {
         )}
 
         {/* SECTION 1: EVENTS NEAR YOU (2-COLUMN GRID) */}
-        <section className="mt-8" aria-busy={loading}>
-          <div className="mb-4">
+        <section className="mt-6 sm:mt-7" aria-busy={loading}>
+          <div className="mb-2.5 sm:mb-3">
             <h2 className="font-serif text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
               Events near you
             </h2>
@@ -138,8 +138,8 @@ export default function DiscoverHub() {
         </section>
 
         {/* SECTION 2: JOIN CAMPAIGNS (HORIZONTAL CARDS) */}
-        <section className="mt-10" aria-busy={loading}>
-          <div className="mb-4">
+        <section className="mt-7 sm:mt-9" aria-busy={loading}>
+          <div className="mb-2.5 sm:mb-3">
             <h2 className="font-serif text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
               Join Campaigns
             </h2>
@@ -148,7 +148,7 @@ export default function DiscoverHub() {
           {loading ? (
             <DiscoverCardSkeletons kind="campaign" />
           ) : results.campaigns.length ? (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4">
               {results.campaigns.map((campaign) => (
                 <CampaignCard
                   key={campaign.id}

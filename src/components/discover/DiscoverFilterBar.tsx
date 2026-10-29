@@ -141,7 +141,7 @@ export function DiscoverFilterBar({
   const dateDisplayLabel = activeDateOption ? activeDateOption.label : "Today";
 
   return (
-    <div className="space-y-4" aria-busy={isPending}>
+    <div className="space-y-2.5 sm:space-y-3" aria-busy={isPending}>
       {/* 1. PILL SEARCH BAR (Figma Discover / Default) */}
       <div className="relative">
         <label className="relative block w-full">
@@ -152,19 +152,19 @@ export function DiscoverFilterBar({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search events, campaigns, hosts"
-            className="h-12 w-full rounded-full border border-neutral-200 bg-white pl-11 pr-5 text-sm shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+            className="h-11 sm:h-12 w-full rounded-full border border-neutral-200 bg-white pl-11 pr-5 text-sm shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
           />
         </label>
       </div>
 
       {/* 2. COMPACT FILTER BUTTONS ROW (City ⌵, Date ⌵, Free Toggle) */}
       <div className="flex items-center justify-between gap-2 text-xs">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {/* LOCATION DROPDOWN PILL */}
           <div className="relative inline-block">
             <button
               type="button"
-              className="pointer-events-none flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3.5 text-xs font-medium text-neutral-700 shadow-sm"
+              className="pointer-events-none flex h-8 sm:h-8.5 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-xs font-medium text-neutral-700 shadow-sm"
             >
               {locating ? (
                 <LoaderCircle className="h-3.5 w-3.5 animate-spin text-violet-600" />
@@ -197,7 +197,7 @@ export function DiscoverFilterBar({
           <div className="relative inline-block">
             <button
               type="button"
-              className="pointer-events-none flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3.5 text-xs font-medium text-neutral-700 shadow-sm"
+              className="pointer-events-none flex h-8 sm:h-8.5 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-xs font-medium text-neutral-700 shadow-sm"
             >
               <Calendar className="h-3.5 w-3.5 text-neutral-500" />
               <span>{dateDisplayLabel}</span>
@@ -247,7 +247,7 @@ export function DiscoverFilterBar({
 
       {/* 3. CATEGORY ICONS ROW (Circular icon buttons with labels below) */}
       <div
-        className="flex items-center justify-between gap-3 overflow-x-auto py-2 no-scrollbar sm:justify-start sm:gap-6"
+        className="flex items-center justify-between gap-2.5 overflow-x-auto py-1 sm:py-1.5 no-scrollbar sm:justify-start sm:gap-6"
         aria-label="Filter by category"
       >
         {FIGMA_CATEGORIES.map((cat) => {
@@ -272,10 +272,10 @@ export function DiscoverFilterBar({
                   onFiltersChange({ ...filters, categoryId: matchedCategory.id });
                 }
               }}
-              className="group flex flex-col items-center gap-1.5 focus:outline-none"
+              className="group flex flex-col items-center gap-1 focus:outline-none"
             >
               <div
-                className={`flex h-12 w-12 items-center justify-center rounded-full border transition-all duration-200 ${
+                className={`flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border transition-all duration-200 ${
                   isSelected
                     ? "border-violet-600 bg-violet-600 text-white shadow-md shadow-violet-200 scale-105"
                     : "border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
