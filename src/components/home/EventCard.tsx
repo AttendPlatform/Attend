@@ -72,14 +72,21 @@ export function EventCard({ event }: { event: Event | DiscoverEvent }) {
         </div>
       </div>
 
+      {/* DESCRIPTION */}
+      {event.description && (
+        <p className="mt-0.5 line-clamp-2 text-[10px] sm:text-xs leading-4 text-neutral-500">
+          {event.description}
+        </p>
+      )}
+
       {/* DATE + TIME */}
-      <div className="mt-1.5 flex min-w-0 items-center gap-1 text-[10px] sm:text-xs text-neutral-500">
+      <div className="mt-1 flex min-w-0 items-center gap-1 text-[10px] sm:text-xs text-neutral-500">
         <CalendarDays className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-neutral-400" />
         <span className="truncate">{formattedDate}</span>
       </div>
 
       {/* LOCATION */}
-      <div className="mt-1 flex min-w-0 items-center gap-1 text-[10px] sm:text-xs text-neutral-500">
+      <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] sm:text-xs text-neutral-500">
         <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-neutral-400" />
         <span className="truncate">
           {event.is_online
@@ -89,12 +96,13 @@ export function EventCard({ event }: { event: Event | DiscoverEvent }) {
       </div>
 
       {/* ATTENDEES + ATTEND ACTION */}
-      <div className="mt-2.5 flex items-center justify-between gap-1.5 border-t border-neutral-100 pt-2">
+      <div className="mt-2 flex items-center justify-between gap-1 border-t border-neutral-100 pt-1.5">
         <div className="min-w-0 flex-1">
           <AvatarStack
             eventId={event.id}
             fallbackCount={event.participant_count ?? 0}
             label="attending"
+            compact
           />
         </div>
 
