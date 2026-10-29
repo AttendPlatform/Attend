@@ -9,7 +9,7 @@ export function NotificationProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const user = useAuthStore((s) => s.user);
+  const userId = useAuthStore((s) => s.user?.id);
   const fetchUnreadCount = useNotificationsStore((s) => s.fetchUnreadCount);
   const setupRealtime = useNotificationsStore((s) => s.setupRealtime);
   const cleanupRealtime = useNotificationsStore((s) => s.cleanupRealtime);
@@ -17,14 +17,14 @@ export function NotificationProvider({
   const lastVisibilityFetch = useRef<number>(0);
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       cleanupRealtime();
       reset();
       return;
     }
 
     fetchUnreadCount();
-    setupRealtime(user.id);
+    setupRealtime(userId);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -42,7 +42,7 @@ export function NotificationProvider({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       cleanupRealtime();
     };
-  }, [user, fetchUnreadCount, setupRealtime, cleanupRealtime, reset]);
+  }, [userId, fetchUnreadCount, setupRealtime, cleanupRealtime, reset]);
 
   return <>{children}</>;
 }
