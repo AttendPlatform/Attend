@@ -263,7 +263,7 @@ export async function getUserCampaigns(userId: string, limit = 6) {
 }
 
 export async function getCampaignBySlug(slug: string) {
-  let supabase = await createClient();
+  const supabase = await createClient();
   let { data: campaign, error: campaignError } = await supabase
     .from("campaigns")
     .select(`

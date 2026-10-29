@@ -62,7 +62,8 @@ Attend/
 │   ├── verify-milestone2.ts
 │   ├── verify-w4-d1.ts
 │   ├── verify-w4-d2.ts
-│   └── verify-w4-d3.ts
+│   ├── verify-w4-d3.ts
+│   └── verify-milestone3.ts
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
 │   │   ├── campaign/       # Public campaign view and share route
@@ -171,7 +172,8 @@ npm test
 
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
-| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2) |
+| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3) |
+| `npm run verify:m3` | Milestone 3 (Phase 3) | Discover query engine, Nigerian city presets, modular dual-grid layout, connected campaigns layer, conversion funnel, and domain isolation |
 | `npm run verify:w4-d3` | Week 4 Day 3 (Phase 3) | Conversion funnel routing, campaign share tracking, discover query index optimizations, and Map-based lookups |
 | `npm run verify:w4-d2` | Week 4 Day 2 (Phase 3) | Location query efficiency, PostGIS-free bounding box calculations, Nigerian city matching, Fabric.js canvas builder integrity guards |
 | `npm run verify:w4-d1` | Week 4 Day 1 (Phase 3) | Data contracts (CampaignCardProps, DiscoverFilters), date quick-chips range engine, domain isolation between campaign participation and event attendance |

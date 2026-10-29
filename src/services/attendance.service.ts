@@ -1,5 +1,5 @@
-import { createClient, createPublicClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/database.types";
+import { createClient } from "@/lib/supabase/server";
+import type { Database, Json } from "@/lib/supabase/database.types";
 import type {
   EventParticipationType,
   EventParticipantWithProfile,
@@ -58,18 +58,14 @@ export async function getEventAttendees(
         status: row.status,
         created_at: row.created_at,
         registration_data: {},
-        profile:
-          row.user_id ||
-          row.profile_display_name ||
-          row.profile_avatar_url ||
-          row.profile_username
-            ? {
-                id: row.user_id,
-                display_name: row.profile_display_name,
-                avatar_url: row.profile_avatar_url,
-                username: row.profile_username,
-              }
-            : null,
+        profile: row.user_id
+          ? {
+              id: row.user_id,
+              display_name: row.profile_display_name,
+              avatar_url: row.profile_avatar_url,
+              username: row.profile_username,
+            }
+          : null,
       } as EventParticipantWithProfile,
     ];
   });
@@ -104,10 +100,15 @@ export async function getOrganizerEventRegistrations(
     throw error;
   }
 
-  return (data || []).map((row: any) => ({
-    ...row,
-    profile: Array.isArray(row.profiles) ? row.profiles[0] : row.profiles,
-  })) as EventParticipantWithProfile[];
+  return (data || []).map((row) => {
+    const record = row as unknown as EventParticipantWithProfile & {
+      profiles?: EventParticipantWithProfile["profile"] | EventParticipantWithProfile["profile"][];
+    };
+    return {
+      ...record,
+      profile: Array.isArray(record.profiles) ? record.profiles[0] : record.profiles,
+    };
+  }) as EventParticipantWithProfile[];
 }
 
 export async function getEventAttendanceCounts(
@@ -115,38 +116,10 @@ export async function getEventAttendanceCounts(
 ): Promise<AttendanceCounts> {
   const supabase = await createClient();
 
-  let { data, error } = await supabase
-    .from("event_participants")
+  const { data, error } = await supabase
+    .from("public_event_attendees")
     .select("participation_type, status")
-    .eq("event_id", eventId)
-    .in("status", ["attending", "registered", "ticketed", "attended"]);
-
-  if (error && ["PGRST301", "PGRST303"].includes(error.code)) {
-    const publicClient = createPublicClient();
-
-    const fallback = await publicClient
-      .from("public_event_attendees")
-      .select("participation_type, status")
-      .eq("event_id", eventId)
-      .in("status", ["attending", "registered", "ticketed", "attended"]);
-
-    if (fallback.error) {
-      throw fallback.error;
-    }
-
-    data = (fallback.data || []).flatMap((row) => {
-      if (!row.participation_type || !row.status) {
-        return [];
-      }
-
-      return [{
-        participation_type: row.participation_type,
-        status: row.status,
-      }];
-    });
-
-    error = null;
-  }
+    .eq("event_id", eventId);
 
   if (error) {
     throw error;
@@ -212,7 +185,7 @@ export async function rsvpEvent(params: {
         name: name || null,
         participation_type: participationType,
         status: participationType === "registrant" ? "registered" : "attending",
-        registration_data: registrationData as any,
+        registration_data: (registrationData as unknown as Json) ?? {},
       },
       { onConflict: "event_id,user_id" }
     )

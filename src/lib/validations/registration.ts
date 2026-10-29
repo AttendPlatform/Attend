@@ -119,7 +119,7 @@ export function buildRegistrationSchema(
 ) {
   const normalized = normalizeRegistrationConfig(config);
 
-  let schema = baseRegistrationSchema;
+  const schema = baseRegistrationSchema;
 
   return schema.superRefine((data, ctx) => {
     // Phone validation
