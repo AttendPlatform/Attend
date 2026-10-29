@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CalendarDays, ExternalLink, MapPin, Sparkles, Users } from "lucide-react";
 import SaveButton from "@/components/ui/SaveButton";
+import AvatarStack from "@/components/ui/AvatarStack";
 import type { Campaign } from "@/types/home";
 import {
   type CampaignCardData,
@@ -20,6 +21,7 @@ type UnifiedCampaignCardProps = Partial<CampaignCardProps> & {
 export function CampaignCard({
   campaign,
   className = "",
+  layout = "vertical",
   ctaVariant = "default",
   showParentEvent = true,
   showSaveButton = true,
@@ -37,6 +39,116 @@ export function CampaignCard({
   const categoryName = parentEvent?.category?.name || "Campaign";
   const ctaLabel = getCampaignCtaLabel(ctaVariant);
 
+  if (layout === "horizontal") {
+    return (
+      <article
+        onClick={onClick}
+        className={`group relative flex flex-col sm:flex-row overflow-hidden rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition-all duration-300 hover:border-violet-300 hover:shadow-md ${className}`}
+      >
+        {/* LEFT COLUMN: ARTWORK PREVIEW */}
+        <div className="relative aspect-[4/3] sm:aspect-square w-full sm:w-44 md:w-52 shrink-0 overflow-hidden rounded-xl bg-violet-800">
+          <Link
+            href={`/campaign/${campaign.slug}`}
+            className="block h-full w-full"
+            tabIndex={-1}
+            aria-label={`View campaign ${campaign.title}`}
+          >
+            {previewImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={previewImage}
+                alt={campaign.title}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-violet-800 text-white font-medium text-xs">
+                <Sparkles className="h-8 w-8 text-violet-300" />
+              </div>
+            )}
+          </Link>
+
+          {/* TOP-LEFT CATEGORY BADGE */}
+          <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-violet-200/90 px-2.5 py-1 text-[10px] font-semibold uppercase text-violet-900 shadow-sm backdrop-blur">
+            {categoryName}
+          </span>
+
+          {/* TOP-RIGHT BOOKMARK */}
+          {showSaveButton && (
+            <div className="absolute right-2.5 top-2.5 z-10">
+              <SaveButton
+                targetId={campaign.id}
+                targetType="campaign"
+                initialSaved={isSaved}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN: DETAILS & ACTIONS */}
+        <div className="mt-3 flex min-w-0 flex-1 flex-col justify-between sm:ml-4 sm:mt-0">
+          <div>
+            <h3 className="line-clamp-1 font-serif text-base font-bold text-neutral-900 group-hover:text-violet-700">
+              <Link href={`/campaign/${campaign.slug}`} className="hover:underline">
+                {campaign.title}
+              </Link>
+            </h3>
+
+            {campaign.description && (
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-neutral-500">
+                {campaign.description}
+              </p>
+            )}
+
+            {/* DATE & TIME */}
+            {parentEvent?.start_at && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-neutral-500">
+                <CalendarDays className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                <span className="truncate">{formatDate(parentEvent.start_at)}</span>
+              </div>
+            )}
+
+            {/* LOCATION */}
+            {(parentEvent?.city || parentEvent?.venue_name || parentEvent?.is_online) && (
+              <div className="mt-1 flex items-center gap-1.5 text-xs text-neutral-500">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                <span className="truncate">
+                  {parentEvent.is_online
+                    ? "Online"
+                    : [parentEvent.venue_name, parentEvent.city].filter(Boolean).join(", ")}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* FOOTER: ATTENDEES/PARTICIPANTS + PARTICIPATE CTA */}
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-neutral-100 pt-3">
+            <div className="min-w-0 flex-1">
+              {parentEvent?.id ? (
+                <AvatarStack
+                  eventId={parentEvent.id}
+                  fallbackCount={participantCount}
+                  label="attending"
+                />
+              ) : (
+                <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                  <Users className="h-3.5 w-3.5 text-neutral-400" />
+                  <span>{formatCampaignParticipants(participantCount)}</span>
+                </div>
+              )}
+            </div>
+
+            <Link
+              href={`/campaign/${campaign.slug}`}
+              className="shrink-0 rounded-full bg-violet-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700"
+            >
+              {ctaLabel}
+            </Link>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article
       onClick={onClick}
@@ -51,6 +163,7 @@ export function CampaignCard({
           aria-hidden="true"
         >
           {previewImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={previewImage}
               alt={campaign.title}
