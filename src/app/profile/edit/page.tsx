@@ -36,11 +36,14 @@ export default function EditProfilePage() {
   const [uploadingCover, setUploadingCover] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     async function loadProfile() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
+      if (!active) return;
       if (!user) {
         router.push("/login");
         return;
@@ -54,6 +57,7 @@ export default function EditProfilePage() {
         .eq("id", user.id)
         .maybeSingle();
 
+      if (!active) return;
       if (profile) {
         setFullName(profile.full_name || profile.name || "");
         setBio(profile.bio || "");
@@ -68,6 +72,10 @@ export default function EditProfilePage() {
     }
 
     loadProfile();
+
+    return () => {
+      active = false;
+    };
   }, [supabase, router]);
 
   const handleImageUpload = async (

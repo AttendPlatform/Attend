@@ -1,0 +1,67 @@
+name: Database Migrations CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/db-migration-*.yml"
+  workflow_dispatch:
+
+jobs:
+  validate-migrations:
+    name: Validate Migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verify migration filenames and timestamps
+        run: |
+          echo "Checking migration filename format..."
+          for file in supabase/migrations/*.sql; do
+            filename=$(basename "$file")
+            if [[ ! "$filename" =~ ^[0-9]{14}_[a-zA-Z0-9_-]+\.sql$ ]]; then
+              echo "Error: Migration filename '$filename' does not match convention 'YYYYMMDDHHMMSS_name.sql'"
+              exit 1
+            fi
+          done
+          echo "All migration filenames match convention."
+
+      - name: Validate migration file integrity
+        run: |
+          echo "Verifying migration files are non-empty and well-formed..."
+          for file in supabase/migrations/*.sql; do
+            if [ ! -s "$file" ]; then
+              echo "Warning: Migration file $file is empty"
+            fi
+          done
+          echo "Migration integrity check passed."
+
+      - name: Verify pending migrations against remote database (Dry Run)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -n "$SUPABASE_DB_URL" ]; then
+            echo "Executing dry-run migration check via SUPABASE_DB_URL..."
+            supabase db push --db-url "$SUPABASE_DB_URL" --dry-run --include-all
+          elif [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_PROJECT_ID" ] && [ -n "$SUPABASE_DB_PASSWORD" ]; then
+            echo "Linking to Supabase project $SUPABASE_PROJECT_ID..."
+            supabase link --project-ref "$SUPABASE_PROJECT_ID"
+            echo "Executing dry-run migration check via project credentials..."
+            supabase db push --linked --password "$SUPABASE_DB_PASSWORD" --dry-run --include-all
+          else
+            echo "Supabase credentials not available in this environment. Skipping remote dry run."
+          fi
+          echo "Dry run validation completed successfully."

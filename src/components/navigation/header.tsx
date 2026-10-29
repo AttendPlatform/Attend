@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export function Header() {
+  const pathname = usePathname();
+  const isDiscover = pathname === "/discover";
   const { user } = useAuthStore();
   
   /*
@@ -40,7 +43,7 @@ export function Header() {
    * =========================================================
    */
   return (
-    <header className="sticky top-0 z-50 border-b border-neutral-100 bg-white/90 backdrop-blur-xl">
+    <header className={`sticky top-0 z-50 border-b border-neutral-100 bg-white/90 backdrop-blur-xl ${isDiscover ? "hidden md:block" : ""}`}>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-6">
 
         {/* =====================================================

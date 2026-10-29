@@ -1,0 +1,2 @@
+-- Migration record for remote schema version 20261028162857
+-- This migration was applied directly on the remote Supabase database.

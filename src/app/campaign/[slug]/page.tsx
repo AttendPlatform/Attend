@@ -180,6 +180,8 @@ export default function PublicCampaignPage() {
    */
 
   useEffect(() => {
+    let active = true;
+
     async function loadCampaign() {
       setLoading(true);
       setError("");
@@ -318,7 +320,9 @@ export default function PublicCampaignPage() {
             }
           );
         }
+        if (!active) return;
       } catch (err: any) {
+        if (!active) return;
         console.error(
           "Campaign loading error:",
           err
@@ -329,13 +333,19 @@ export default function PublicCampaignPage() {
             "Unable to load this campaign."
         );
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
     if (slug) {
       loadCampaign();
     }
+
+    return () => {
+      active = false;
+    };
   }, [
     slug,
     supabase,

@@ -98,12 +98,15 @@ export default function NotificationSettingsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     const loadPreferences = async () => {
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
 
+        if (!active) return;
         if (!user) {
           setLoading(false);
           return;
@@ -131,6 +134,7 @@ export default function NotificationSettingsPage() {
           .eq("user_id", user.id)
           .maybeSingle();
 
+        if (!active) return;
         if (error) {
           throw error;
         }
@@ -153,16 +157,23 @@ export default function NotificationSettingsPage() {
           });
         }
       } catch (error) {
+        if (!active) return;
         console.error(
           "[Attend Notifications] Failed to load preferences:",
           error
         );
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
     loadPreferences();
+
+    return () => {
+      active = false;
+    };
   }, [supabase]);
 
   const persistPreferences = async (
