@@ -243,13 +243,9 @@ export default function CreateEventPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    if (step !== 3) {
-      handleContinue();
-      return;
-    }
+  async function handleCreateEvent() {
+    // Event creation is only triggered by the explicit final action button.
+    if (step !== 3 || loading) return;
 
     if (!validateCurrentStep()) return;
 
@@ -445,10 +441,7 @@ export default function CreateEventPage() {
           </div>
         </div>
 
-        <form
-          onSubmit={handleFormSubmit}
-          className="overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-sm"
-        >
+        <div className="overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-sm">
           <div className="p-5 sm:p-8">
             {/* STEP 1: EVENT DETAILS */}
             {step === 1 && (
@@ -964,7 +957,8 @@ export default function CreateEventPage() {
               </button>
             ) : (
               <button
-                type="submit"
+                type="button"
+                onClick={handleCreateEvent}
                 disabled={loading || loadingCategories}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white shadow-sm shadow-violet-600/20 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -984,7 +978,7 @@ export default function CreateEventPage() {
               </button>
             )}
           </div>
-        </form>
+        </div>
 
         <p className="mt-5 text-center text-[11px] text-neutral-400">
           You can review your event details before sharing it with your
