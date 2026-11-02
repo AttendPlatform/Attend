@@ -63,7 +63,7 @@ async function runMilestone1Verification() {
   }
 
   const pickerContent = readFileSync(resolve(process.cwd(), 'src/components/location/LocationPicker.tsx'), 'utf8')
-  check('LocationPicker provides in-person vs online toggle', pickerContent.includes('In-Person Venue') && pickerContent.includes('Online Event'))
+  check('LocationPicker provides in-person vs online toggle', pickerContent.includes('In person') && pickerContent.includes('Online'))
   check('LocationPicker renders Nigerian hubs presets', pickerContent.includes('NIGERIAN_HUBS'))
 
   const selectorContent = readFileSync(resolve(process.cwd(), 'src/components/events/ParticipationModelSelector.tsx'), 'utf8')
