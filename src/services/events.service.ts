@@ -2,6 +2,7 @@
 
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   OrganizerRole,
   OrganizerAccessResult,
@@ -452,7 +453,7 @@ export async function createEvent(
 export async function getOrganizerAccess(
   eventId: string,
   userId: string,
-  client?: any
+  client?: SupabaseClient<Database> | null
 ): Promise<OrganizerAccessResult> {
   if (!eventId || !userId) {
     return { isOrganizer: false, role: null, isCreator: false };
@@ -489,7 +490,7 @@ export async function getOrganizerAccess(
 export async function isEventOrganizer(
   eventId: string,
   userId: string,
-  client?: any
+  client?: SupabaseClient<Database> | null
 ): Promise<boolean> {
   if (!eventId || !userId) return false;
   const access = await getOrganizerAccess(eventId, userId, client);
@@ -499,7 +500,7 @@ export async function isEventOrganizer(
 export async function getEventForOrganizer(
   eventId: string,
   userId: string,
-  client?: any
+  client?: SupabaseClient<Database> | null
 ): Promise<EventRow> {
   if (!eventId || !userId) {
     throw new Error("Event ID and User ID are required.");
@@ -528,7 +529,7 @@ export async function getEventForOrganizer(
 export async function getOrganizerEventStats(
   eventId: string,
   userId: string,
-  client?: any
+  client?: SupabaseClient<Database> | null
 ): Promise<DashboardOverviewStats> {
   if (!eventId || !userId) {
     throw new Error("Event ID and User ID are required.");
