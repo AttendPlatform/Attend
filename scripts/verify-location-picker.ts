@@ -41,12 +41,15 @@ async function runVerification() {
     resolve(process.cwd(), 'src/components/location/LocationPicker.tsx'),
     'utf8'
   )
-  check('LocationPicker provides in-person vs online toggle', pickerContent.includes('In-Person Venue') && pickerContent.includes('Online Event'))
+  check('LocationPicker provides in-person vs online toggle', pickerContent.includes('In person') && pickerContent.includes('Online'))
   check('LocationPicker integrates searchPlaces with debouncing', pickerContent.includes('searchPlaces(q'))
   check('LocationPicker renders NIGERIAN_HUBS presets', pickerContent.includes('NIGERIAN_HUBS.map'))
   check('LocationPicker supports popular venues selection', pickerContent.includes('selectedHub.popularVenues'))
   check('LocationPicker includes manual coordinate inputs', pickerContent.includes('Latitude') && pickerContent.includes('Longitude'))
   check('LocationPicker embeds MapPreview', pickerContent.includes('<MapPreview'))
+  check('LocationPicker clears venue and address when selecting a city hub', pickerContent.includes("setVenueName('')") && pickerContent.includes("setAddress('')") && pickerContent.includes('venue_name: null') && pickerContent.includes('address: null'))
+  check('LocationPicker updates country through manual field handler', pickerContent.includes("case 'country':") && pickerContent.includes("updateManualField('country', e.target.value)"))
+  check('LocationPicker exposes an accessible combobox search', pickerContent.includes('role="combobox"') && pickerContent.includes('aria-expanded={isOpenDropdown}'))
 
   const indexContent = readFileSync(
     resolve(process.cwd(), 'src/components/location/index.ts'),
