@@ -48,7 +48,9 @@ export function LocationPicker({
 }: LocationPickerProps) {
   const [isOnline, setIsOnline] = useState(Boolean(value?.is_online))
 
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(
+    [value?.venue_name, value?.address].filter(Boolean).join(', ')
+  )
   const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isOpenDropdown, setIsOpenDropdown] = useState(false)
@@ -58,7 +60,11 @@ export function LocationPicker({
   const [showManualFields, setShowManualFields] = useState(false)
   const [showMap, setShowMap] = useState(false)
 
-  const [selectedHub, setSelectedHub] = useState<NigerianHub | null>(null)
+  const [selectedHub, setSelectedHub] = useState<NigerianHub | null>(() =>
+    NIGERIAN_HUBS.find(
+      hub => hub.name.toLowerCase() === (value?.city || '').toLowerCase()
+    ) || null
+  )
 
   const [venueName, setVenueName] = useState(value?.venue_name || '')
   const [address, setAddress] = useState(value?.address || '')
@@ -83,36 +89,6 @@ export function LocationPicker({
   const searchContainerRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchRequestRef = useRef(0)
-
-  // Keep the component synchronized with its parent value.
-  useEffect(() => {
-    if (!value) return
-
-    setIsOnline(Boolean(value.is_online))
-    setVenueName(value.venue_name || '')
-    setAddress(value.address || '')
-    setCity(value.city || '')
-    setState(value.state || '')
-    setCountry(value.country || 'Nigeria')
-    setLatitude(value.latitude ?? null)
-    setLongitude(value.longitude ?? null)
-    setPlaceId(value.place_id ?? null)
-    setOnlineUrl(value.online_url || '')
-
-    const matchingHub = NIGERIAN_HUBS.find(
-      hub => hub.name.toLowerCase() === (value.city || '').toLowerCase()
-    )
-
-    setSelectedHub(matchingHub || null)
-
-    if (value.venue_name || value.address) {
-      setSearchQuery(
-        [value.venue_name, value.address]
-          .filter(Boolean)
-          .join(', ')
-      )
-    }
-  }, [value])
 
   // Clean up pending searches when the component unmounts.
   useEffect(() => {
@@ -336,6 +312,9 @@ export function LocationPicker({
   const handleSelectHub = (hub: NigerianHub) => {
     setSelectedHub(hub)
 
+    // A city preset is not a venue selection; discard any previously selected venue.
+    setVenueName('')
+    setAddress('')
     setCity(hub.name)
     setState(hub.state)
     setCountry('Nigeria')
@@ -351,6 +330,8 @@ export function LocationPicker({
     setIsOpenDropdown(false)
 
     notifyChange({
+      venue_name: null,
+      address: null,
       city: hub.name,
       state: hub.state,
       country: 'Nigeria',
@@ -412,6 +393,10 @@ export function LocationPicker({
 
       case 'state':
         setState(value as string)
+        break
+
+      case 'country':
+        setCountry(value as string)
         break
 
       case 'latitude':
@@ -550,6 +535,7 @@ export function LocationPicker({
 
               <input
                 id="venue-search"
+                role="combobox"
                 type="text"
                 autoComplete="off"
                 placeholder="Search venue, building, or address..."
@@ -562,7 +548,7 @@ export function LocationPicker({
                 }}
                 aria-expanded={isOpenDropdown}
                 aria-controls="venue-search-results"
-                className="h-13 w-full rounded-xl border border-neutral-200 bg-white pl-11 pr-11 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 hover:border-neutral-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
+                className="h-12 w-full rounded-xl border border-neutral-200 bg-white pl-11 pr-11 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 hover:border-neutral-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
               />
 
               {isSearching ? (
@@ -858,10 +844,9 @@ export function LocationPicker({
                         <input
                           type="text"
                           value={country}
-                          onChange={(e) => {
-                            setCountry(e.target.value)
-                            notifyChange({ country: e.target.value })
-                          }}
+                          onChange={(e) =>
+                            updateManualField('country', e.target.value)
+                          }
                           placeholder="Country"
                           className="h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-xs outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
                         />
