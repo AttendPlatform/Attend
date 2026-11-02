@@ -367,8 +367,9 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Add migration `20261028162857_remote.sql` to synchronize remote migration ledger [DONE].
   - Fix PostgreSQL view column ordering in `20261028120000_secure_event_participants.sql` with `DROP VIEW IF EXISTS CASCADE` [DONE].
   - Pass unified milestone test suite (M0, M1, M2, M3: 193/193 checks) and production build [DONE].
-  - Enforce access control for organizer routes: Verify viewer is event creator or present in `event_organizers` table.
-  - Review RLS security policies for organizer dashboard queries.
+  - Enforce access control for organizer routes: Verify viewer is event creator or present in `event_organizers` table [DONE].
+  - Review RLS security policies for organizer dashboard queries [DONE].
+  - Author and run automated verification suite `scripts/verify-w5-d1.ts` (34/34 passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Build `src/app/dashboard/events/[id]/page.tsx` layout and shell:
     - Event Header: Title, status badge (`Draft`, `Published`, `Cancelled`), and quick-link to public `/events/[id]`.
