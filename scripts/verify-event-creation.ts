@@ -63,7 +63,10 @@ async function runVerification() {
   check('Create page renders LocationPicker component', createPageContent.includes("<LocationPicker"))
   check('Create page renders ParticipationModelSelector component', createPageContent.includes("<ParticipationModelSelector"))
   check('Create page provides campaign permissions toggle', createPageContent.includes("allowParticipantCampaigns") && createPageContent.includes("Allow participant campaigns"))
-  check('Create page provides draft vs publish selector', createPageContent.includes("Publish Immediately") && createPageContent.includes("Save as Draft"))
+  check('Create page provides draft vs publish selector', createPageContent.includes("Publish immediately") && createPageContent.includes("Save as draft"))
+  check('Create page validates in-person event locations', createPageContent.includes('hasPhysicalLocation') && createPageContent.includes('Please select or enter a location'))
+  check('Create page redirects saved drafts to the profile', createPageContent.includes('eventStatus === "draft" ? "/profile"'))
+  check('Create page does not show success when cover upload fails', createPageContent.includes('coverUploadFailed') && createPageContent.includes('Your draft was saved, but its cover image could not be saved'))
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gmkdagcxnxrfaxetqjpc.supabase.co'
   const apiKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_oPOor09JB9tmG_LdlpItaw_JFJ4pCdn'
