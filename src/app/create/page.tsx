@@ -81,7 +81,7 @@ export default function CreateEventPage() {
     useState<ParticipationModelType>("free");
 
   const [participationConfig, setParticipationConfig] = useState<
-    Record<string, any>
+    Record<string, unknown>
   >({});
 
   const [allowParticipantCampaigns, setAllowParticipantCampaigns] =
@@ -224,6 +224,21 @@ export default function CreateEventPage() {
         return false;
       }
 
+      if (!location.is_online) {
+        const hasPhysicalLocation = Boolean(
+          location.venue_name?.trim() ||
+          location.address?.trim() ||
+          location.city?.trim() ||
+          (typeof location.latitude === "number" &&
+            typeof location.longitude === "number")
+        );
+
+        if (!hasPhysicalLocation) {
+          showError("Please select or enter a location for your in-person event.");
+          return false;
+        }
+      }
+
       return true;
     }
 
@@ -304,6 +319,8 @@ export default function CreateEventPage() {
         cover_image: null,
       });
 
+      let coverUploadFailed = false;
+
       if (cover) {
         const extension = cover.name.split(".").pop() || "jpg";
         const filePath = `${user.id}/${created.id}/cover.${extension}`;
@@ -318,9 +335,7 @@ export default function CreateEventPage() {
 
         if (uploadError) {
           console.error("Cover upload warning:", uploadError);
-          toast.error(
-            "Your event was created, but the cover image could not be uploaded."
-          );
+          coverUploadFailed = true;
         } else {
           const {
             data: { publicUrl },
@@ -335,17 +350,28 @@ export default function CreateEventPage() {
 
           if (coverUpdateError) {
             console.error("Cover update warning:", coverUpdateError);
+            coverUploadFailed = true;
           }
         }
       }
 
-      toast.success(
-        eventStatus === "published"
-          ? "Event published successfully!"
-          : "Event draft saved successfully!"
-      );
+      if (coverUploadFailed) {
+        toast.error(
+          eventStatus === "published"
+            ? "Your event was published, but its cover image could not be saved. You can add it later from your profile."
+            : "Your draft was saved, but its cover image could not be saved. You can add it later from your profile."
+        );
+      } else {
+        toast.success(
+          eventStatus === "published"
+            ? "Event published successfully!"
+            : "Event draft saved successfully!"
+        );
+      }
 
-      router.push(`/events/${created.id}`);
+      router.push(
+        eventStatus === "draft" ? "/profile" : `/events/${created.id}`
+      );
     } catch (err: unknown) {
       const message = getErrorMessage(
         err,
@@ -682,7 +708,7 @@ export default function CreateEventPage() {
                   </div>
 
                   <p className="mt-2 text-[11px] text-neutral-400">
-                    Times are entered in your device's local timezone:{" "}
+                    Times are entered in your device&apos;s local timezone:{" "}
                     <span className="font-medium text-neutral-600">
                       {timezone}
                     </span>
