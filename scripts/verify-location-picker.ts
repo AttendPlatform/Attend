@@ -42,7 +42,7 @@ async function runVerification() {
     'utf8'
   )
   check('LocationPicker provides in-person vs online toggle', pickerContent.includes('In person') && pickerContent.includes('Online'))
-  check('LocationPicker integrates searchPlaces with debouncing', pickerContent.includes('searchPlaces(q'))
+  check('LocationPicker integrates searchPlaces with debouncing', pickerContent.includes('searchPlaces(query.trim()'))
   check('LocationPicker renders NIGERIAN_HUBS presets', pickerContent.includes('NIGERIAN_HUBS.map'))
   check('LocationPicker supports popular venues selection', pickerContent.includes('selectedHub.popularVenues'))
   check('LocationPicker includes manual coordinate inputs', pickerContent.includes('Latitude') && pickerContent.includes('Longitude'))
