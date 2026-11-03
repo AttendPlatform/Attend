@@ -367,8 +367,9 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Add migration `20261028162857_remote.sql` to synchronize remote migration ledger [DONE].
   - Fix PostgreSQL view column ordering in `20261028120000_secure_event_participants.sql` with `DROP VIEW IF EXISTS CASCADE` [DONE].
   - Pass unified milestone test suite (M0, M1, M2, M3: 193/193 checks) and production build [DONE].
-  - Enforce access control for organizer routes: Verify viewer is event creator or present in `event_organizers` table.
-  - Review RLS security policies for organizer dashboard queries.
+  - Enforce access control for organizer routes: Verify viewer is event creator or present in `event_organizers` table [DONE].
+  - Review RLS security policies for organizer dashboard queries [DONE].
+  - Author and run automated verification suite `scripts/verify-w5-d1.ts` (34/34 passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Build `src/app/dashboard/events/[id]/page.tsx` layout and shell:
     - Event Header: Title, status badge (`Draft`, `Published`, `Cancelled`), and quick-link to public `/events/[id]`.
@@ -381,20 +382,21 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Renders grids of standard `EventCard` and `CampaignCard` with active bookmark state.
     - Helpful empty state with CTA to `/discover`.
 
-#### Day 10 (4 hrs) - Organizer "People" Tab & Lifecycle Notifications
+#### Day 10 (4 hrs) - Organizer "People" Tab & Lifecycle Notifications [DONE]
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Review data separation in the People tab to ensure Attendee records never conflate with Campaign generation counts.
-  - Verify notification payload structures and delivery in the database.
+  - Review data separation in the People tab to ensure Attendee records never conflate with Campaign generation counts [DONE].
+  - Verify notification payload structures and delivery in the database [DONE].
+  - Author and run automated verification suite `scripts/verify-w5-d2.ts` (37/37 passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Build `OrganizerPeopleTab.tsx`:
-    - Sub-tabs: `Attendees` | `Registrants` | `Ticket Holders` | `Campaign Participants`.
-    - Responsive table showing Name, Avatar, Registration Date, Status, and Custom Question responses.
-    - One-click CSV export helper for event rosters.
+    - Sub-tabs: `Attendees` | `Registrants` | `Ticket Holders` | `Campaign Participants` [DONE].
+    - Responsive table showing Name, Avatar, Registration Date, Status, and Custom Question responses [DONE].
+    - One-click CSV export helper for event rosters (`formatRosterCsv`, `downloadRosterCsv`) [DONE].
 - **Hardik (Software Engineer)**:
   - Connect Event Lifecycle changes to Notification Engine:
-    - Event update trigger: When organizer changes date, time, or location, dispatch in-app notifications to all confirmed attendees.
-    - Campaign creation trigger: When a participant creates a campaign under the event, notify the organizer.
-    - Registration confirmation: Emits in-app receipt when user completes registration.
+    - Event update trigger: When organizer changes date, time, or location, dispatch in-app notifications to all confirmed attendees (`dispatchDateOrVenueChangeNotification`) [DONE].
+    - Campaign creation trigger: When a participant creates a campaign under the event, notify the organizer (`dispatchCampaignCreatedNotification`) [DONE].
+    - Registration confirmation: Emits in-app receipt when user completes registration (`dispatchRegistrationReceiptNotification`) [DONE].
 
 #### Day 11 (4 hrs) - Organizer "Campaigns", "Settings" & Safe Cancellation
 - **Sanaullah (Tech Lead / Supervisor)**:
@@ -468,10 +470,10 @@ Every item in Section 58 of the specification is mapped to its implementing mile
 | | Configure participation | Completed (W2) [DONE] | Hardik & Sanaullah | Sets Free, Registration, Paid, or External. |
 | | Configure campaign toggle | Completed (W2) [DONE] | Uzair & Sanaullah | Sets `allow_participant_campaigns` ON/OFF. |
 | | Create campaign | Week 5 (Day 11) | Uzair | Launches campaign builder attached to event. |
-| | View people distinction | Week 5 (Day 10) | Uzair & Hardik | Separates Attendees vs Registrants vs DP users. |
+| | View people distinction | Week 5 (Day 10) [DONE] | Uzair & Hardik | Separates Attendees vs Registrants vs DP users. |
 | | View analytics | Week 5 (Day 11) | Uzair | Direct deep-link to campaign analytics dashboard. |
-| **Notifications** | Event updates | Week 5 (Day 10) | Hardik | Venue/time updates notify confirmed attendees. |
-| | Campaign updates | Week 5 (Day 10) | Hardik | New campaign creation alerts organizer. |
+| **Notifications** | Event updates | Week 5 (Day 10) [DONE] | Hardik | Venue/time updates notify confirmed attendees. |
+| | Campaign updates | Week 5 (Day 10) [DONE] | Hardik | New campaign creation alerts organizer. |
 | | Registration receipt | Completed (W3) [DONE] | Hardik | Confirmation appears in notification bell feed. |
 
 ---
