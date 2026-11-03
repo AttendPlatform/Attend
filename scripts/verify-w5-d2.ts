@@ -121,7 +121,7 @@ async function runWeek5Day2Verification() {
   check(
     "getOrganizerPeopleStats queries confirmed attendees from event_participants",
     attendanceContent.includes('from("event_participants")') &&
-      attendanceContent.includes('"attending", "confirmed"')
+      attendanceContent.includes('"attending", "attended"')
   );
 
   check(

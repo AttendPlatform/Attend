@@ -292,7 +292,7 @@ export function OrganizerPeopleTab({
                     <td className="whitespace-nowrap px-4 py-3.5">
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${
-                          item.status === "confirmed" || item.status === "attending"
+                          item.status === "attended" || item.status === "attending"
                             ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50"
                             : item.status === "registered"
                               ? "bg-violet-50 text-violet-700 ring-1 ring-violet-200/50"

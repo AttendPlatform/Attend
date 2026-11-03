@@ -231,7 +231,7 @@ export async function getOrganizerPeopleStats(
         .select("id", { count: "exact", head: true })
         .eq("event_id", eventId)
         .eq("participation_type", "attendee")
-        .in("status", ["attending", "confirmed"]),
+        .in("status", ["attending", "attended"]),
       supabase
         .from("event_participants")
         .select("id", { count: "exact", head: true })
