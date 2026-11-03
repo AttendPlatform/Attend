@@ -39,3 +39,67 @@ export interface OrganizerMemberSummary {
   role: OrganizerRole;
   createdAt: string;
 }
+
+export type PeopleSubTab =
+  | "attendees"
+  | "registrants"
+  | "ticket_holders"
+  | "campaign_participants";
+
+export interface OrganizerPeopleRosterItem {
+  id: string;
+  userId: string | null;
+  name: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  username: string | null;
+  participationType: string;
+  status: string;
+  createdAt: string;
+  registrationData: Record<string, unknown>;
+  campaignTitle?: string | null;
+  campaignSlug?: string | null;
+}
+
+export interface OrganizerPeopleStats {
+  totalAttendees: number;
+  totalRegistrants: number;
+  totalTicketHolders: number;
+  totalCampaignParticipants: number;
+  grandTotal: number;
+}
+
+export interface OrganizerPeopleFilter {
+  subTab?: PeopleSubTab;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface EventUpdatedNotificationPayload {
+  eventId: string;
+  eventTitle: string;
+  previousStartAt?: string | null;
+  newStartAt?: string | null;
+  previousVenue?: string | null;
+  newVenue?: string | null;
+  changes: string[];
+}
+
+export interface CampaignCreatedNotificationPayload {
+  campaignId: string;
+  campaignTitle: string;
+  eventId: string;
+  eventTitle: string;
+  creatorId: string;
+  creatorName?: string | null;
+}
+
+export interface RegistrationReceiptPayload {
+  eventId: string;
+  eventTitle: string;
+  userId: string;
+  registrationId: string;
+  status: string;
+}
+
