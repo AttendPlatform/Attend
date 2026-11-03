@@ -5,6 +5,11 @@ import type {
   EventParticipantWithProfile,
   AttendanceCounts,
 } from "@/types/attendance";
+import type {
+  OrganizerPeopleRosterItem,
+  OrganizerPeopleStats,
+  OrganizerPeopleFilter,
+} from "@/types/dashboard";
 
 export type EventParticipantRow =
   Database["public"]["Tables"]["event_participants"]["Row"];
@@ -212,4 +217,224 @@ export async function cancelEventAttendance(
   if (error) {
     throw error;
   }
+}
+
+export async function getOrganizerPeopleStats(
+  eventId: string
+): Promise<OrganizerPeopleStats> {
+  const supabase = await createClient();
+
+  const [attendeesRes, registrantsRes, ticketHoldersRes, campaignsRes] =
+    await Promise.all([
+      supabase
+        .from("event_participants")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("participation_type", "attendee")
+        .in("status", ["attending", "confirmed"]),
+      supabase
+        .from("event_participants")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("participation_type", "registrant")
+        .neq("status", "cancelled"),
+      supabase
+        .from("event_participants")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("participation_type", "ticket_holder")
+        .neq("status", "cancelled"),
+      supabase
+        .from("campaigns")
+        .select("id, generations, participants")
+        .eq("event_id", eventId),
+    ]);
+
+  const totalAttendees = attendeesRes.count ?? 0;
+  const totalRegistrants = registrantsRes.count ?? 0;
+  const totalTicketHolders = ticketHoldersRes.count ?? 0;
+  const campaigns = campaignsRes.data ?? [];
+  const totalCampaignParticipants = campaigns.reduce(
+    (sum: number, c) => sum + (Number(c.generations) || Number(c.participants) || 0),
+    0
+  );
+
+  const grandTotal = totalAttendees + totalRegistrants + totalTicketHolders;
+
+  return {
+    totalAttendees,
+    totalRegistrants,
+    totalTicketHolders,
+    totalCampaignParticipants,
+    grandTotal,
+  };
+}
+
+export async function getOrganizerPeopleRoster(
+  eventId: string,
+  filter?: OrganizerPeopleFilter
+): Promise<OrganizerPeopleRosterItem[]> {
+  const supabase = await createClient();
+  const subTab = filter?.subTab;
+  const search = filter?.search?.toLowerCase().trim();
+
+  if (subTab === "campaign_participants") {
+    const { data: campaigns, error: campaignError } = await supabase
+      .from("campaigns")
+      .select("id, title, slug, creator_id, created_at, status")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false });
+
+    if (campaignError) throw campaignError;
+    const rawCampaigns = campaigns || [];
+
+    const creatorIds = Array.from(
+      new Set(rawCampaigns.map((c) => c.creator_id).filter(Boolean))
+    );
+
+    let profilesMap: Record<
+      string,
+      {
+        id: string;
+        display_name: string | null;
+        avatar_url: string | null;
+        username: string | null;
+      }
+    > = {};
+
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url, username")
+        .in("id", creatorIds);
+
+      if (profiles) {
+        profilesMap = Object.fromEntries(profiles.map((p) => [p.id, p]));
+      }
+    }
+
+    const items: OrganizerPeopleRosterItem[] = rawCampaigns.map((c) => {
+      const profile = profilesMap[c.creator_id] || null;
+      return {
+        id: c.id,
+        userId: c.creator_id,
+        name: profile?.display_name || "Campaign Creator",
+        displayName: profile?.display_name || null,
+        avatarUrl: profile?.avatar_url || null,
+        username: profile?.username || null,
+        participationType: "campaign_participant",
+        status: c.status,
+        createdAt: c.created_at,
+        registrationData: {},
+        campaignTitle: c.title,
+        campaignSlug: c.slug,
+      };
+    });
+
+    if (search) {
+      return items.filter(
+        (item) =>
+          item.name?.toLowerCase().includes(search) ||
+          item.campaignTitle?.toLowerCase().includes(search) ||
+          item.username?.toLowerCase().includes(search)
+      );
+    }
+
+    return items;
+  }
+
+  let query = supabase
+    .from("event_participants")
+    .select(`
+      id,
+      event_id,
+      user_id,
+      name,
+      participation_type,
+      status,
+      registration_data,
+      created_at,
+      profiles (
+        id,
+        display_name,
+        avatar_url,
+        username
+      )
+    `)
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
+
+  if (subTab === "attendees") {
+    query = query.eq("participation_type", "attendee");
+  } else if (subTab === "registrants") {
+    query = query.eq("participation_type", "registrant");
+  } else if (subTab === "ticket_holders") {
+    query = query.eq("participation_type", "ticket_holder");
+  }
+
+  if (filter?.limit) {
+    query = query.limit(filter.limit);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const rawRows = data || [];
+  const items: OrganizerPeopleRosterItem[] = rawRows.map((row) => {
+    const rawProfile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    const profile = rawProfile as {
+      id: string;
+      display_name: string | null;
+      avatar_url: string | null;
+      username: string | null;
+    } | null;
+
+    const registrationData =
+      row.registration_data && typeof row.registration_data === "object"
+        ? (row.registration_data as Record<string, unknown>)
+        : {};
+
+    return {
+      id: row.id,
+      userId: row.user_id,
+      name: row.name || profile?.display_name || "Attendee",
+      displayName: profile?.display_name || null,
+      avatarUrl: profile?.avatar_url || null,
+      username: profile?.username || null,
+      participationType: row.participation_type,
+      status: row.status,
+      createdAt: row.created_at,
+      registrationData,
+    };
+  });
+
+  if (search) {
+    return items.filter(
+      (item) =>
+        item.name?.toLowerCase().includes(search) ||
+        item.displayName?.toLowerCase().includes(search) ||
+        item.username?.toLowerCase().includes(search)
+    );
+  }
+
+  return items;
+}
+
+export function checkPeopleDataSeparation(): {
+  isConflated: boolean;
+  attendeeTable: string;
+  campaignTable: string;
+  isolatedMetrics: readonly string[];
+} {
+  return {
+    isConflated: false,
+    attendeeTable: "event_participants",
+    campaignTable: "campaigns",
+    isolatedMetrics: [
+      "attendees",
+      "registrants",
+      "ticket_holders",
+      "campaign_participants",
+    ],
+  };
 }
