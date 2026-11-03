@@ -1,3 +1,5 @@
+"use server";
+
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 import type {
@@ -246,3 +248,4 @@ export async function dispatchRegistrationReceiptNotification(
     dedupeKey: `receipt-${payload.eventId}-${payload.userId}`,
   });
 }
+

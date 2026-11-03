@@ -28,9 +28,11 @@ export function formatRosterCsv(items: OrganizerPeopleRosterItem[]): string {
   ];
 
   const rows = items.map((item) => {
-    const formattedDate = item.createdAt
-      ? new Date(item.createdAt).toISOString()
-      : "";
+    let formattedDate = "";
+    if (item.createdAt) {
+      const d = new Date(item.createdAt);
+      formattedDate = isNaN(d.getTime()) ? item.createdAt : d.toISOString();
+    }
 
     const registrationDataStr =
       item.registrationData && Object.keys(item.registrationData).length > 0
@@ -70,3 +72,4 @@ export function downloadRosterCsv(filename: string, csvContent: string): void {
 
   URL.revokeObjectURL(url);
 }
+

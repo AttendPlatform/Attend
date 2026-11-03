@@ -372,7 +372,10 @@ export async function getOrganizerPeopleRoster(
     query = query.eq("participation_type", "ticket_holder");
   }
 
-  if (filter?.limit) {
+  if (typeof filter?.offset === "number" && filter.offset >= 0) {
+    const limit = filter.limit || 50;
+    query = query.range(filter.offset, filter.offset + limit - 1);
+  } else if (filter?.limit) {
     query = query.limit(filter.limit);
   }
 

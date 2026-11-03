@@ -307,13 +307,17 @@ export function OrganizerPeopleTab({
                     <td className="whitespace-nowrap px-4 py-3.5 text-neutral-500">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="h-3 w-3 text-neutral-400" />
-                        {item.createdAt
-                          ? new Date(item.createdAt).toLocaleDateString(undefined, {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : "N/A"}
+                        {(() => {
+                          if (!item.createdAt) return "N/A";
+                          const d = new Date(item.createdAt);
+                          return isNaN(d.getTime())
+                            ? "N/A"
+                            : d.toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              });
+                        })()}
                       </div>
                     </td>
 
