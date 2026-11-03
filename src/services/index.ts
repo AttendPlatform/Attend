@@ -4,6 +4,13 @@ export * from "./attendance.service";
 export * from "./saved.service";
 export * from "./profile.service";
 export * from "./notifications.service";
-export * from "./organizer.service";
+export {
+  isUserEventOrganizer,
+  getOrganizerEvent,
+  getOrganizerEventCampaigns,
+  type OrganizerEventStats,
+  type OrganizerEventDetails,
+} from "./organizer.service";
+
 
 
