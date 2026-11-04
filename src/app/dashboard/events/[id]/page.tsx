@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { Users, Megaphone, Settings as SettingsIcon } from "lucide-react";
+import { Megaphone, Settings as SettingsIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getOrganizerEvent,
@@ -8,9 +8,14 @@ import {
   isUserEventOrganizer,
 } from "@/services/organizer.service";
 import {
+  getOrganizerPeopleStats,
+  getOrganizerPeopleRoster,
+} from "@/services/attendance.service";
+import {
   OrganizerHeader,
   OrganizerTabs,
   OrganizerOverviewTab,
+  OrganizerPeopleTab,
   OrganizerTabPlaceholder,
   type OrganizerTabKey,
 } from "@/components/dashboard";
@@ -65,6 +70,17 @@ export default async function OrganizerEventDashboardPage({ params, searchParams
     notFound();
   }
 
+  const [peopleStats, attendeeRoster, campaignRoster] =
+    activeTab === "people"
+      ? await Promise.all([
+          getOrganizerPeopleStats(id),
+          getOrganizerPeopleRoster(id, { limit: 100 }),
+          getOrganizerPeopleRoster(id, { subTab: "campaign_participants", limit: 100 }),
+        ])
+      : [null, [], []];
+
+  const peopleRoster = [...attendeeRoster, ...campaignRoster];
+
   return (
     <main className="min-h-screen bg-neutral-50/50 pb-20">
       <OrganizerHeader event={event} />
@@ -73,14 +89,12 @@ export default async function OrganizerEventDashboardPage({ params, searchParams
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
         {activeTab === "overview" && <OrganizerOverviewTab event={event} stats={stats} />}
 
-        {activeTab === "people" && (
-          <OrganizerTabPlaceholder
-            title="People and Attendees Roster"
-            description="View confirmed attendees, registrants, ticket holders, and custom registration question responses."
-            icon={Users}
-            badge="Week 5 Day 10"
-            actionLabel="View Public Attendees"
-            actionHref={`/events/${event.id}`}
+        {activeTab === "people" && peopleStats && (
+          <OrganizerPeopleTab
+            eventId={event.id}
+            eventTitle={event.title}
+            stats={peopleStats}
+            items={peopleRoster}
           />
         )}
 
