@@ -3,3 +3,5 @@ export * from "./OrganizerTabs";
 export * from "./OrganizerOverviewTab";
 export * from "./OrganizerTabPlaceholder";
 export * from "./OrganizerPeopleTab";
+export * from "./OrganizerCampaignsTab";
+export * from "./OrganizerSettingsTab";
