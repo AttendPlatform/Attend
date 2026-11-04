@@ -131,3 +131,4 @@ export async function cancelEventAction(
   revalidatePath(`/events/${eventId}`);
   return { success: true };
 }
+

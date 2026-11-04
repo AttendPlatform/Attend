@@ -392,3 +392,4 @@ export function OrganizerSettingsTab({ event }: OrganizerSettingsTabProps) {
     </div>
   );
 }
+
