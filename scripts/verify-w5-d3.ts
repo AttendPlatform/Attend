@@ -17,34 +17,38 @@ function check(name: string, condition: boolean, details?: string) {
 
 async function runWeek5Day3Verification() {
   console.log("\n=============================================================");
-  console.log("Starting Week 5 Day 3 Verification: Cancellation Safeguards & Lifecycle Notifications");
+  console.log("Starting Week 5 Day 3 Verification: Campaigns, Settings & Safe Cancellation");
   console.log("=============================================================\n");
 
   const cwd = process.cwd();
 
-  // 1. Target files and barrel exports
+  // 1. Target Files and Barrel Exports
   console.log("--- 1. Target Files & Barrel Exports ---");
-  const dashboardTypePath = resolve(cwd, "src/types/dashboard.ts");
-  const indexTypePath = resolve(cwd, "src/types/index.ts");
-  const notificationsServicePath = resolve(cwd, "src/services/notifications.service.ts");
-  const eventsServicePath = resolve(cwd, "src/services/events.service.ts");
-  const servicesIndexPath = resolve(cwd, "src/services/index.ts");
-  const campaignHeaderPath = resolve(cwd, "src/components/campaigns/CampaignHeader.tsx");
-  const campaignResultActionsPath = resolve(cwd, "src/components/campaigns/CampaignResultActions.tsx");
+  const targetFiles = [
+    "src/types/dashboard.ts",
+    "src/services/notifications.service.ts",
+    "src/services/events.service.ts",
+    "src/components/campaigns/CampaignHeader.tsx",
+    "src/components/campaigns/CampaignResultActions.tsx",
+    "src/components/dashboard/OrganizerCampaignsTab.tsx",
+    "src/components/dashboard/OrganizerSettingsTab.tsx",
+    "src/components/dashboard/index.ts",
+    "src/app/actions/organizer.ts",
+    "src/app/dashboard/events/[id]/page.tsx",
+  ];
 
-  check("File exists: src/types/dashboard.ts", existsSync(dashboardTypePath));
-  check("File exists: src/services/notifications.service.ts", existsSync(notificationsServicePath));
-  check("File exists: src/services/events.service.ts", existsSync(eventsServicePath));
-  check("File exists: src/components/campaigns/CampaignHeader.tsx", existsSync(campaignHeaderPath));
-  check("File exists: src/components/campaigns/CampaignResultActions.tsx", existsSync(campaignResultActionsPath));
+  for (const relPath of targetFiles) {
+    const fullPath = resolve(cwd, relPath);
+    check(`Target file exists: ${relPath}`, existsSync(fullPath));
+  }
 
-  const indexTypeContent = readFileSync(indexTypePath, "utf8");
+  const indexTypeContent = readFileSync(resolve(cwd, "src/types/index.ts"), "utf8");
   check(
     "src/types/index.ts re-exports dashboard contracts",
     indexTypeContent.includes('"./dashboard"') || indexTypeContent.includes("'./dashboard'")
   );
 
-  const servicesIndexContent = readFileSync(servicesIndexPath, "utf8");
+  const servicesIndexContent = readFileSync(resolve(cwd, "src/services/index.ts"), "utf8");
   check(
     "src/services/index.ts re-exports notifications service",
     servicesIndexContent.includes('"./notifications.service"') || servicesIndexContent.includes("'./notifications.service'")
@@ -54,9 +58,22 @@ async function runWeek5Day3Verification() {
     servicesIndexContent.includes('"./events.service"') || servicesIndexContent.includes("'./events.service'")
   );
 
+  const dashboardIndexContent = readFileSync(
+    resolve(cwd, "src/components/dashboard/index.ts"),
+    "utf8"
+  );
+  check(
+    "dashboard barrel exports OrganizerCampaignsTab",
+    dashboardIndexContent.includes("./OrganizerCampaignsTab")
+  );
+  check(
+    "dashboard barrel exports OrganizerSettingsTab",
+    dashboardIndexContent.includes("./OrganizerSettingsTab")
+  );
+
   // 2. Cancellation Payload Contracts
   console.log("\n--- 2. Cancellation Notification Contracts ---");
-  const dashboardTypeContent = readFileSync(dashboardTypePath, "utf8");
+  const dashboardTypeContent = readFileSync(resolve(cwd, "src/types/dashboard.ts"), "utf8");
   check(
     "dashboard.ts defines EventCancelledNotificationPayload interface",
     dashboardTypeContent.includes("export interface EventCancelledNotificationPayload")
@@ -72,9 +89,9 @@ async function runWeek5Day3Verification() {
       dashboardTypeContent.includes("actorId?: string")
   );
 
-  // 3. Urgent Lifecycle Notification Dispatch
+  // 3. Urgent Lifecycle Notification Engine
   console.log("\n--- 3. Urgent Lifecycle Notification Engine ---");
-  const notifServiceContent = readFileSync(notificationsServicePath, "utf8");
+  const notifServiceContent = readFileSync(resolve(cwd, "src/services/notifications.service.ts"), "utf8");
   check(
     "notifications.service exports dispatchEventCancelledNotification",
     notifServiceContent.includes("export async function dispatchEventCancelledNotification")
@@ -106,7 +123,7 @@ async function runWeek5Day3Verification() {
 
   // 4. Safe Event Cancellation Domain Safeguards
   console.log("\n--- 4. Safe Event Cancellation Domain Safeguards ---");
-  const eventsServiceContent = readFileSync(eventsServicePath, "utf8");
+  const eventsServiceContent = readFileSync(resolve(cwd, "src/services/events.service.ts"), "utf8");
   check(
     "events.service exports cancelEvent",
     eventsServiceContent.includes("export async function cancelEvent")
@@ -127,7 +144,7 @@ async function runWeek5Day3Verification() {
 
   // 5. Campaign Parent-Cancelled Banner & Asset Preservation
   console.log("\n--- 5. Connected Campaign Parent-Cancelled Banner & Asset Preservation ---");
-  const campaignHeaderContent = readFileSync(campaignHeaderPath, "utf8");
+  const campaignHeaderContent = readFileSync(resolve(cwd, "src/components/campaigns/CampaignHeader.tsx"), "utf8");
   check(
     "CampaignHeader checks for cancelled parent event status",
     campaignHeaderContent.includes('parentEvent?.status === "cancelled"') ||
@@ -146,7 +163,7 @@ async function runWeek5Day3Verification() {
     campaignHeaderContent.includes("View Event Notice")
   );
 
-  const campaignResultActionsContent = readFileSync(campaignResultActionsPath, "utf8");
+  const campaignResultActionsContent = readFileSync(resolve(cwd, "src/components/campaigns/CampaignResultActions.tsx"), "utf8");
   check(
     "CampaignResultActions checks for cancelled parent event status",
     campaignResultActionsContent.includes('parentEvent?.status === "cancelled"') ||
@@ -167,14 +184,169 @@ async function runWeek5Day3Verification() {
       campaignResultActionsContent.includes("Shared")
   );
 
-  // 6. Zero Em Dashes Policy
-  console.log("\n--- 6. Zero Em Dashes Policy ---");
+  // 6. Organizer Campaigns Tab Architecture
+  console.log("\n--- 6. Organizer Campaigns Tab Architecture ---");
+  const campaignsTabContent = readFileSync(
+    resolve(cwd, "src/components/dashboard/OrganizerCampaignsTab.tsx"),
+    "utf8"
+  );
+  check(
+    "OrganizerCampaignsTab uses client directive",
+    campaignsTabContent.includes('"use client"') || campaignsTabContent.includes("'use client'")
+  );
+  check(
+    "OrganizerCampaignsTab exports OrganizerCampaignsTab component",
+    campaignsTabContent.includes("export function OrganizerCampaignsTab")
+  );
+  check(
+    "OrganizerCampaignsTab provides Create New Campaign action",
+    campaignsTabContent.includes("/campaigns/create") &&
+      campaignsTabContent.includes("Create New Campaign")
+  );
+  check(
+    "OrganizerCampaignsTab provides Edit template link",
+    campaignsTabContent.includes("/edit")
+  );
+  check(
+    "OrganizerCampaignsTab provides public preview link",
+    campaignsTabContent.includes("/campaign/")
+  );
+  check(
+    "OrganizerCampaignsTab provides View Analytics link",
+    campaignsTabContent.includes("/analytics")
+  );
+  check(
+    "OrganizerCampaignsTab supports Pause/Publish toggle action",
+    campaignsTabContent.includes("toggleCampaignStatusAction") &&
+      campaignsTabContent.includes("Pause") &&
+      campaignsTabContent.includes("Publish")
+  );
+  check(
+    "OrganizerCampaignsTab displays generations count",
+    campaignsTabContent.includes("generations")
+  );
+  check(
+    "OrganizerCampaignsTab provides clean empty state",
+    campaignsTabContent.includes("No campaigns created yet")
+  );
+
+  // 7. Organizer Settings Tab Architecture & Safe Cancellation Modal
+  console.log("\n--- 7. Organizer Settings Tab & Safe Cancellation ---");
+  const settingsTabContent = readFileSync(
+    resolve(cwd, "src/components/dashboard/OrganizerSettingsTab.tsx"),
+    "utf8"
+  );
+  check(
+    "OrganizerSettingsTab uses client directive",
+    settingsTabContent.includes('"use client"') || settingsTabContent.includes("'use client'")
+  );
+  check(
+    "OrganizerSettingsTab exports OrganizerSettingsTab component",
+    settingsTabContent.includes("export function OrganizerSettingsTab")
+  );
+  check(
+    "OrganizerSettingsTab allows editing title and description",
+    settingsTabContent.includes("Event Title") &&
+      settingsTabContent.includes("Event Description")
+  );
+  check(
+    "OrganizerSettingsTab allows editing dates and times",
+    settingsTabContent.includes("Start Date and Time") &&
+      settingsTabContent.includes("End Date and Time")
+  );
+  check(
+    "OrganizerSettingsTab supports online format and venue fields",
+    settingsTabContent.includes("virtual / online") &&
+      settingsTabContent.includes("Venue Name")
+  );
+  check(
+    "OrganizerSettingsTab provides participant campaign permissions toggle",
+    settingsTabContent.includes("allow_participant_campaigns") ||
+      settingsTabContent.includes("Allow participants to create campaigns")
+  );
+  check(
+    "OrganizerSettingsTab provides safe cancellation trigger",
+    settingsTabContent.includes("cancelEventAction") &&
+      settingsTabContent.includes("Cancel Event")
+  );
+  check(
+    "OrganizerSettingsTab provides cancellation confirmation modal",
+    settingsTabContent.includes('role="dialog"') &&
+      settingsTabContent.includes("Cancel Event Confirmation")
+  );
+  check(
+    "OrganizerSettingsTab warns user that action cannot be undone and graphics remain preserved",
+    settingsTabContent.includes("cannot be undone") &&
+      settingsTabContent.includes("not be deleted")
+  );
+
+  // 8. Server Actions Architecture
+  console.log("\n--- 8. Server Actions Architecture ---");
+  const actionsContent = readFileSync(
+    resolve(cwd, "src/app/actions/organizer.ts"),
+    "utf8"
+  );
+  check(
+    "organizer.ts uses server directive",
+    actionsContent.includes('"use server"') || actionsContent.includes("'use server'")
+  );
+  check(
+    "organizer.ts exports updateEventDetailsAction",
+    actionsContent.includes("export async function updateEventDetailsAction")
+  );
+  check(
+    "organizer.ts exports toggleCampaignStatusAction",
+    actionsContent.includes("export async function toggleCampaignStatusAction")
+  );
+  check(
+    "organizer.ts exports cancelEventAction",
+    actionsContent.includes("export async function cancelEventAction")
+  );
+  check(
+    "server actions verify user authentication and organizer authorization",
+    actionsContent.includes("auth.getUser") &&
+      actionsContent.includes("getOrganizerAccess")
+  );
+
+  // 9. Event Dashboard Page Integration
+  console.log("\n--- 9. Event Dashboard Page Integration ---");
+  const pageContent = readFileSync(
+    resolve(cwd, "src/app/dashboard/events/[id]/page.tsx"),
+    "utf8"
+  );
+  check(
+    "dashboard page imports OrganizerCampaignsTab",
+    pageContent.includes("OrganizerCampaignsTab")
+  );
+  check(
+    "dashboard page imports OrganizerSettingsTab",
+    pageContent.includes("OrganizerSettingsTab")
+  );
+  check(
+    "dashboard page renders OrganizerCampaignsTab under campaigns tab",
+    pageContent.includes('<OrganizerCampaignsTab')
+  );
+  check(
+    "dashboard page renders OrganizerSettingsTab under settings tab",
+    pageContent.includes('<OrganizerSettingsTab')
+  );
+  check(
+    "dashboard page fetches campaigns for activeTab === 'campaigns'",
+    pageContent.includes("getOrganizerEventCampaigns")
+  );
+
+  // 10. Zero Em Dashes Policy
+  console.log("\n--- 10. Zero Em Dashes Policy ---");
   const filesToCheck = [
     "src/types/dashboard.ts",
     "src/services/notifications.service.ts",
     "src/services/events.service.ts",
     "src/components/campaigns/CampaignHeader.tsx",
     "src/components/campaigns/CampaignResultActions.tsx",
+    "src/components/dashboard/OrganizerCampaignsTab.tsx",
+    "src/components/dashboard/OrganizerSettingsTab.tsx",
+    "src/app/actions/organizer.ts",
+    "src/app/dashboard/events/[id]/page.tsx",
     "scripts/verify-w5-d3.ts",
   ];
 
@@ -220,4 +392,3 @@ runWeek5Day3Verification().catch((error) => {
   console.error("Verification execution error:", error);
   process.exit(1);
 });
-
