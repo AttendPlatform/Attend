@@ -103,3 +103,10 @@ export interface RegistrationReceiptPayload {
   status: string;
 }
 
+export interface EventCancelledNotificationPayload {
+  eventId: string;
+  eventTitle: string;
+  reason?: string | null;
+  actorId?: string;
+}
+
