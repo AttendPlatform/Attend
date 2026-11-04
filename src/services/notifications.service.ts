@@ -6,6 +6,7 @@ import type {
   EventUpdatedNotificationPayload,
   CampaignCreatedNotificationPayload,
   RegistrationReceiptPayload,
+  EventCancelledNotificationPayload,
 } from "@/types/dashboard";
 
 export interface LifecycleNotificationResult {
@@ -248,4 +249,66 @@ export async function dispatchRegistrationReceiptNotification(
     dedupeKey: `receipt-${payload.eventId}-${payload.userId}`,
   });
 }
+
+export async function dispatchEventCancelledNotification(
+  payload: EventCancelledNotificationPayload
+): Promise<LifecycleNotificationResult> {
+  const supabase = await createClient();
+
+  const { data: attendees, error } = await supabase
+    .from("event_participants")
+    .select("user_id")
+    .eq("event_id", payload.eventId)
+    .in("status", ["attending", "registered", "ticketed"]);
+
+  if (error) {
+    console.error("Failed to fetch attendees for event cancellation notification:", error);
+    return { success: false, dispatchedCount: 0, recipientIds: [] };
+  }
+
+  const rawUserIds = (attendees || [])
+    .map((a) => a.user_id)
+    .filter((id): id is string => Boolean(id) && id !== payload.actorId);
+
+  const recipientIds = Array.from(new Set(rawUserIds));
+
+  if (recipientIds.length === 0) {
+    return { success: true, dispatchedCount: 0, recipientIds: [] };
+  }
+
+  const reasonSuffix = payload.reason ? ` Reason: ${payload.reason}` : "";
+  const message = `The event "${payload.eventTitle}" has been cancelled by the organizer. Confirmed registrations are closed. Any campaign graphics created remain preserved.${reasonSuffix}`;
+
+  let dispatchedCount = 0;
+
+  for (const userId of recipientIds) {
+    const success = await createNotificationRecord({
+      userId,
+      type: "event_cancelled",
+      category: "event_lifecycle",
+      title: `Cancelled: ${payload.eventTitle}`,
+      message,
+      actionUrl: `/events/${payload.eventId}`,
+      actionLabel: "View event notice",
+      eventId: payload.eventId,
+      priority: "urgent",
+      metadata: {
+        event_id: payload.eventId,
+        reason: payload.reason || null,
+      },
+      dedupeKey: `event-${payload.eventId}-cancelled-${userId}`,
+    });
+
+    if (success) {
+      dispatchedCount += 1;
+    }
+  }
+
+  return {
+    success: true,
+    dispatchedCount,
+    recipientIds,
+  };
+}
+
 

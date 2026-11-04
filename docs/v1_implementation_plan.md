@@ -55,8 +55,8 @@ Attend is an event discovery and participation platform where **the Event is the
 | **Discover Experience** | Redesigned `/discover` with parallel query engine, search, Nigerian tech hubs, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **DONE (Week 4)** |
 | **Database CI/CD & Performance** | Automated GitHub Actions migration CI/CD (`db-migration-ci.yml`, `db-migration-deploy.yml`), AvatarStack attendee caching, and query storm prevention. | Matches production reliability requirements. | **DONE (Week 5 - Day 9)** |
 | **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **IN PROGRESS (Week 5)** |
-| **Saved System** | Implement `/saved` hub with tabs for Saved Events and Saved Campaigns. | Matches brief Section 17 & 33. | **IN PROGRESS (Week 5)** |
-| **Lifecycle Notifications** | Automated notifications for event date/venue updates, cancellations, and new campaigns. | Matches brief Section 27-29. | **SCHEDULED (Week 5)** |
+| **Saved System** | Implement `/saved` hub with tabs for Saved Events and Saved Campaigns. | Matches brief Section 17 & 33. | **DONE (Week 5 - Day 9)** |
+| **Lifecycle Notifications** | Automated notifications for event date/venue updates, cancellations, and new campaigns. | Matches brief Section 27-29. | **DONE (Week 5 - Day 11)** |
 
 ---
 
@@ -359,7 +359,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 > **Volume**: 48 hours · 3 people · Days 9-12  
 > **Focus**: Move the organizer experience to `/dashboard/events/[id]`, build the dedicated `/saved` hub, connect lifecycle notifications, execute end-to-end acceptance verification (Section 58), and prepare production release.
 
-#### Day 9 (4 hrs) - Dedicated Organizer Shell & Saved Hub Foundation [IN PROGRESS]
+#### Day 9 (4 hrs) - Dedicated Organizer Shell & Saved Hub Foundation [DONE]
 - **Sanaullah (Tech Lead / Supervisor)**:
   - Set up weekly parent branch `feat/w5-phase4-organizer-saved-launch` and remote tracking [DONE].
   - Resolve Supabase quota exhaustion via AvatarStack attendee caching, deduplication, and browser client singleton [DONE].
@@ -371,16 +371,16 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Review RLS security policies for organizer dashboard queries [DONE].
   - Author and run automated verification suite `scripts/verify-w5-d1.ts` (34/34 passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Build `src/app/dashboard/events/[id]/page.tsx` layout and shell:
-    - Event Header: Title, status badge (`Draft`, `Published`, `Cancelled`), and quick-link to public `/events/[id]`.
-    - 4-Tab Navigation: `[ Overview ]`, `[ People ]`, `[ Campaigns ]`, `[ Settings ]`.
-    - Overview Tab: Quick stats cards (Total Attendees, Registrations, Connected Campaigns, Total DP Generations).
+  - Build `src/app/dashboard/events/[id]/page.tsx` layout and shell [DONE - PR #42]:
+    - Event Header: Title, status badge (`Draft`, `Published`, `Cancelled`), and quick-link to public `/events/[id]` [DONE].
+    - 4-Tab Navigation: `[ Overview ]`, `[ People ]`, `[ Campaigns ]`, `[ Settings ]` [DONE].
+    - Overview Tab: Quick stats cards (Total Attendees, Registrations, Connected Campaigns, Total DP Generations) [DONE].
 - **Hardik (Software Engineer)**:
   - Build `src/app/saved/page.tsx`:
-    - Dual Tabs: `[ Saved Events ]` and `[ Saved Campaigns ]`.
-    - Fetches data from `saved_events` and `saved_campaigns` via `saved.service.ts`.
-    - Renders grids of standard `EventCard` and `CampaignCard` with active bookmark state.
-    - Helpful empty state with CTA to `/discover`.
+    - Dual Tabs: `[ Saved Events ]` and `[ Saved Campaigns ]` [DONE - PR #42].
+    - Fetches data from `saved_events` and `saved_campaigns` via `saved.service.ts` [DONE].
+    - Renders grids of standard `EventCard` and `CampaignCard` with active bookmark state [DONE].
+    - Helpful empty state with CTA to `/discover` [DONE].
 
 #### Day 10 (4 hrs) - Organizer "People" Tab & Lifecycle Notifications [DONE]
 - **Sanaullah (Tech Lead / Supervisor)**:
@@ -388,7 +388,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Verify notification payload structures and delivery in the database [DONE].
   - Author and run automated verification suite `scripts/verify-w5-d2.ts` (37/37 passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Build `OrganizerPeopleTab.tsx`:
+  - Wire `OrganizerPeopleTab.tsx` into organizer event dashboard page [DONE - PR #43]:
     - Sub-tabs: `Attendees` | `Registrants` | `Ticket Holders` | `Campaign Participants` [DONE].
     - Responsive table showing Name, Avatar, Registration Date, Status, and Custom Question responses [DONE].
     - One-click CSV export helper for event rosters (`formatRosterCsv`, `downloadRosterCsv`) [DONE].
@@ -398,17 +398,18 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Campaign creation trigger: When a participant creates a campaign under the event, notify the organizer (`dispatchCampaignCreatedNotification`) [DONE].
     - Registration confirmation: Emits in-app receipt when user completes registration (`dispatchRegistrationReceiptNotification`) [DONE].
 
-#### Day 11 (4 hrs) - Organizer "Campaigns", "Settings" & Safe Cancellation
+#### Day 11 (4 hrs) - Organizer "Campaigns", "Settings" & Safe Cancellation [IN PROGRESS]
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Review the Event Cancellation safeguards (Brief Sec 29):
-    - Sets `event.status = 'cancelled'`.
-    - Attaches parent-cancelled banner to connected campaigns without deleting user assets.
-    - Dispatches urgent in-app notification to all confirmed attendees.
+  - Review the Event Cancellation safeguards (Brief Sec 29) [DONE]:
+    - Sets `event.status = 'cancelled'` [DONE].
+    - Attaches parent-cancelled banner to connected campaigns without deleting user assets [DONE].
+    - Dispatches urgent in-app notification to all confirmed attendees (`dispatchEventCancelledNotification`) [DONE].
+    - Author and run automated verification suite `scripts/verify-w5-d3.ts` (30/30 passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Build `OrganizerCampaignsTab.tsx`:
+  - Build `OrganizerCampaignsTab.tsx` [IN PROGRESS - PR #44]:
     - List all campaigns attached to this event.
     - Actions: *Create New Campaign*, *Edit Template*, *Pause/Publish*, and *View Analytics* deep link.
-  - Build `OrganizerSettingsTab.tsx`:
+  - Build `OrganizerSettingsTab.tsx` [IN PROGRESS - PR #44]:
     - Edit event details (title, dates, location).
     - Toggle participant campaign permissions (`allow_participant_campaigns`).
     - Cancel Event flow with confirmation modal and attendee warning.

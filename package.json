@@ -32,11 +32,15 @@
     "verify:w4-d4": "node --experimental-strip-types scripts/verify-milestone3.ts",
     "verify:d8": "node --experimental-strip-types scripts/verify-milestone3.ts",
     "verify:w5-d1": "node --experimental-strip-types scripts/verify-w5-d1.ts",
+    "verify:w5-d9": "node --experimental-strip-types scripts/verify-w5-d9.ts",
     "verify:d9": "node --experimental-strip-types scripts/verify-w5-d1.ts",
     "verify:day9": "node --experimental-strip-types scripts/verify-w5-d1.ts",
     "verify:w5-d2": "node --experimental-strip-types scripts/verify-w5-d2.ts",
     "verify:d10": "node --experimental-strip-types scripts/verify-w5-d2.ts",
-    "verify:day10": "node --experimental-strip-types scripts/verify-w5-d2.ts"
+    "verify:day10": "node --experimental-strip-types scripts/verify-w5-d2.ts",
+    "verify:w5-d3": "node --experimental-strip-types scripts/verify-w5-d3.ts",
+    "verify:d11": "node --experimental-strip-types scripts/verify-w5-d3.ts",
+    "verify:day11": "node --experimental-strip-types scripts/verify-w5-d3.ts"
 
   },
   "dependencies": {

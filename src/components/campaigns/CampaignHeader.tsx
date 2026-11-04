@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, CheckCircle2, ExternalLink, MapPin, Sparkles, UserCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  CheckCircle2,
+  ExternalLink,
+  MapPin,
+  Sparkles,
+  UserCheck,
+  AlertTriangle,
+} from "lucide-react";
 import type { CampaignParentEventSummary } from "@/types/campaigns";
 
 type CreatorProfile = {
@@ -20,10 +29,38 @@ export default function CampaignHeader({
   parentEvent,
   creator,
 }: CampaignHeaderProps) {
+  const isParentCancelled = parentEvent?.status === "cancelled";
+
   return (
     <header className="border-b border-neutral-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-30">
+      {/* PARENT EVENT CANCELLED BANNER */}
+      {parentEvent && isParentCancelled && (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-950">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 sm:flex-nowrap">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-100 border border-red-200 px-2 py-0.5 font-semibold text-red-700">
+                <AlertTriangle className="h-3 w-3" />
+                Event Cancelled
+              </span>
+              <span className="text-amber-900 font-medium truncate">
+                {parentEvent.title} has been cancelled by the organizer. User graphics remain preserved.
+              </span>
+            </div>
+
+            <Link
+              href={`/events/${parentEvent.id}`}
+              className="inline-flex items-center gap-1.5 font-semibold text-amber-800 hover:text-amber-950 hover:underline flex-shrink-0 ml-auto sm:ml-0"
+              title={`View cancelled event: ${parentEvent.title}`}
+            >
+              <span>View Event Notice</span>
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* PARENT EVENT CONVERSION BANNER */}
-      {parentEvent && (
+      {parentEvent && !isParentCancelled && (
         <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 px-4 py-2.5 text-xs text-violet-950">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 sm:flex-nowrap">
             <div className="flex items-center gap-2 min-w-0">

@@ -8,6 +8,7 @@ import type {
   OrganizerAccessResult,
   DashboardOverviewStats,
 } from "@/types/dashboard";
+import { dispatchEventCancelledNotification } from "./notifications.service";
 
 export type EventRow = Database["public"]["Tables"]["events"]["Row"];
 export type EventCategoryRow = Database["public"]["Tables"]["event_categories"]["Row"];
@@ -270,18 +271,50 @@ export async function getRelatedEvents(
 
 export async function cancelEvent(
   eventId: string,
-  userId: string
-): Promise<void> {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("events")
-    .update({ status: "cancelled" })
-    .eq("id", eventId)
-    .eq("creator_id", userId);
-
-  if (error) {
-    throw error;
+  userId: string,
+  reason?: string | null
+): Promise<{ success: boolean; dispatchedNotifications: number }> {
+  if (!eventId || !userId) {
+    throw new Error("Event ID and User ID are required.");
   }
+
+  const supabase = await createClient();
+
+  const access = await getOrganizerAccess(eventId, userId, supabase);
+  if (!access.isOrganizer) {
+    throw new Error("Unauthorized: viewer is not an organizer of this event.");
+  }
+
+  const { data: event, error: fetchError } = await supabase
+    .from("events")
+    .select("id, title, status")
+    .eq("id", eventId)
+    .single();
+
+  if (fetchError || !event) {
+    throw fetchError || new Error("Event not found.");
+  }
+
+  const { error: updateError } = await supabase
+    .from("events")
+    .update({ status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("id", eventId);
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  const notifResult = await dispatchEventCancelledNotification({
+    eventId,
+    eventTitle: event.title,
+    reason: reason || null,
+    actorId: userId,
+  });
+
+  return {
+    success: true,
+    dispatchedNotifications: notifResult.dispatchedCount,
+  };
 }
 
 export async function getPublicProfileEvents(creatorId: string) {
