@@ -1,10 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { Megaphone, Settings as SettingsIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getOrganizerEvent,
   getOrganizerEventStats,
+  getOrganizerEventCampaigns,
   isUserEventOrganizer,
 } from "@/services/organizer.service";
 import {
@@ -16,7 +16,8 @@ import {
   OrganizerTabs,
   OrganizerOverviewTab,
   OrganizerPeopleTab,
-  OrganizerTabPlaceholder,
+  OrganizerCampaignsTab,
+  OrganizerSettingsTab,
   type OrganizerTabKey,
 } from "@/components/dashboard";
 
@@ -81,6 +82,11 @@ export default async function OrganizerEventDashboardPage({ params, searchParams
 
   const peopleRoster = [...attendeeRoster, ...campaignRoster];
 
+  const campaigns =
+    activeTab === "campaigns"
+      ? await getOrganizerEventCampaigns(supabase, id)
+      : [];
+
   return (
     <main className="min-h-screen bg-neutral-50/50 pb-20">
       <OrganizerHeader event={event} />
@@ -99,26 +105,14 @@ export default async function OrganizerEventDashboardPage({ params, searchParams
         )}
 
         {activeTab === "campaigns" && (
-          <OrganizerTabPlaceholder
-            title="Connected Campaign Templates"
-            description="Manage attached campaign artwork, flyer templates, generation analytics, and publishing states."
-            icon={Megaphone}
-            badge="Week 5 Day 11"
-            actionLabel="Create New Campaign"
-            actionHref={`/events/${event.id}/campaigns/create`}
+          <OrganizerCampaignsTab
+            eventId={event.id}
+            eventTitle={event.title}
+            campaigns={campaigns}
           />
         )}
 
-        {activeTab === "settings" && (
-          <OrganizerTabPlaceholder
-            title="Event Settings and Safe Cancellation"
-            description="Update event metadata, venue coordinates, campaign permissions, or safely cancel this event."
-            icon={SettingsIcon}
-            badge="Week 5 Day 11"
-            actionLabel="Back to Event Overview"
-            actionHref={`/dashboard/events/${event.id}?tab=overview`}
-          />
-        )}
+        {activeTab === "settings" && <OrganizerSettingsTab event={event} />}
       </div>
     </main>
   );
