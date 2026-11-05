@@ -11,6 +11,7 @@ export interface OrganizerEventDetails {
   id: string;
   title: string;
   slug: string;
+  description?: string | null;
   status: string;
   creator_id: string;
   cover_image: string | null;
@@ -61,6 +62,7 @@ export async function getOrganizerEvent(
       id,
       title,
       slug,
+      description,
       status,
       creator_id,
       cover_image,
@@ -90,6 +92,7 @@ export async function getOrganizerEvent(
     id: event.id,
     title: event.title,
     slug: event.slug,
+    description: event.description ?? null,
     status: event.status || "draft",
     creator_id: event.creator_id,
     cover_image: event.cover_image,
