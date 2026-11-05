@@ -8,7 +8,7 @@
     "build": "next build  --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "npm run verify:m0 && npm run verify:m1 && npm run verify:m2 && npm run verify:m3",
+    "test": "npm run verify:m0 && npm run verify:m1 && npm run verify:m2 && npm run verify:m3 && npm run verify:m4",
     "verify": "npm test",
     "verify:m0": "node --experimental-strip-types scripts/verify-milestone0.ts",
     "verify:location": "node --experimental-strip-types scripts/verify-location-layer.ts",
@@ -31,6 +31,8 @@
     "verify:d7": "node --experimental-strip-types scripts/verify-w4-d3.ts",
     "verify:w4-d4": "node --experimental-strip-types scripts/verify-milestone3.ts",
     "verify:d8": "node --experimental-strip-types scripts/verify-milestone3.ts",
+    "verify:m4": "node --experimental-strip-types scripts/verify-milestone4.ts",
+    "verify:milestone4": "node --experimental-strip-types scripts/verify-milestone4.ts",
     "verify:w5-d1": "node --experimental-strip-types scripts/verify-w5-d1.ts",
     "verify:w5-d9": "node --experimental-strip-types scripts/verify-w5-d9.ts",
     "verify:d9": "node --experimental-strip-types scripts/verify-w5-d1.ts",
@@ -40,7 +42,10 @@
     "verify:day10": "node --experimental-strip-types scripts/verify-w5-d2.ts",
     "verify:w5-d3": "node --experimental-strip-types scripts/verify-w5-d3.ts",
     "verify:d11": "node --experimental-strip-types scripts/verify-w5-d3.ts",
-    "verify:day11": "node --experimental-strip-types scripts/verify-w5-d3.ts"
+    "verify:day11": "node --experimental-strip-types scripts/verify-w5-d3.ts",
+    "verify:w5-d4": "node --experimental-strip-types scripts/verify-milestone4.ts",
+    "verify:d12": "node --experimental-strip-types scripts/verify-milestone4.ts",
+    "verify:day12": "node --experimental-strip-types scripts/verify-milestone4.ts"
 
   },
   "dependencies": {
