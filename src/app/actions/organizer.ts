@@ -33,6 +33,25 @@ export async function updateEventDetailsAction(
     return { success: false, error: "Unauthorized." };
   }
 
+  if (input.start_at !== undefined || input.end_at !== undefined) {
+    const { data: existingEvent } = await supabase
+      .from("events")
+      .select("start_at, end_at")
+      .eq("id", eventId)
+      .maybeSingle();
+
+    const effectiveStart = input.start_at !== undefined ? input.start_at : existingEvent?.start_at;
+    const effectiveEnd = input.end_at !== undefined ? input.end_at : existingEvent?.end_at;
+
+    if (effectiveStart && effectiveEnd) {
+      const startTime = new Date(effectiveStart).getTime();
+      const endTime = new Date(effectiveEnd).getTime();
+      if (!isNaN(startTime) && !isNaN(endTime) && endTime < startTime) {
+        return { success: false, error: "End date cannot be earlier than start date." };
+      }
+    }
+  }
+
   const { error } = await supabase
     .from("events")
     .update({

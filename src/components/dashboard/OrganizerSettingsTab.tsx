@@ -56,6 +56,18 @@ export function OrganizerSettingsTab({ event }: OrganizerSettingsTabProps) {
     e.preventDefault();
     setStatusMessage(null);
 
+    if (startAt && endAt) {
+      const startTime = new Date(startAt).getTime();
+      const endTime = new Date(endAt).getTime();
+      if (!isNaN(startTime) && !isNaN(endTime) && endTime < startTime) {
+        setStatusMessage({
+          type: "error",
+          text: "End date and time cannot be earlier than start date and time.",
+        });
+        return;
+      }
+    }
+
     startSaveTransition(async () => {
       let formattedStartAt: string | undefined;
       if (startAt) {
@@ -206,6 +218,7 @@ export function OrganizerSettingsTab({ event }: OrganizerSettingsTabProps) {
               <input
                 type="datetime-local"
                 value={endAt}
+                min={startAt || undefined}
                 onChange={(e) => setEndAt(e.target.value)}
                 className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs text-neutral-900 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
               />
