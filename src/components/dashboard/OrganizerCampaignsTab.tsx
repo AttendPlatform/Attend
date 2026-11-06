@@ -12,6 +12,7 @@ import {
   Play,
   Search,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { toggleCampaignStatusAction } from "@/app/actions/organizer";
 
@@ -36,6 +37,7 @@ export function OrganizerCampaignsTab({
 }: OrganizerCampaignsTabProps) {
   const [campaigns, setCampaigns] = useState<OrganizerCampaignItem[]>(initialCampaigns);
   const [searchQuery, setSearchQuery] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -46,6 +48,7 @@ export function OrganizerCampaignsTab({
   const handleToggleStatus = (campaignId: string, currentStatus: string) => {
     const nextStatus = currentStatus === "published" ? "paused" : "published";
     setUpdatingId(campaignId);
+    setErrorMessage(null);
 
     startTransition(async () => {
       const res = await toggleCampaignStatusAction(eventId, campaignId, nextStatus);
@@ -53,6 +56,8 @@ export function OrganizerCampaignsTab({
         setCampaigns((prev) =>
           prev.map((c) => (c.id === campaignId ? { ...c, status: nextStatus } : c))
         );
+      } else {
+        setErrorMessage(res.error || "Failed to update campaign status.");
       }
       setUpdatingId(null);
     });
@@ -90,6 +95,14 @@ export function OrganizerCampaignsTab({
           <span>Create New Campaign</span>
         </Link>
       </div>
+
+      {/* ERROR BANNER */}
+      {errorMessage && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-medium text-red-800">
+          <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {/* SEARCH FILTER */}
       {campaigns.length > 0 && (

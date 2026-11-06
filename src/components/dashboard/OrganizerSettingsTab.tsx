@@ -49,8 +49,7 @@ export function OrganizerSettingsTab({ event }: OrganizerSettingsTabProps) {
 
   const [isSaving, startSaveTransition] = useTransition();
   const [isCancelling, startCancelTransition] = useTransition();
-
-  const isCancelled = event.status.toLowerCase() === "cancelled";
+  const [isCancelled, setIsCancelled] = useState(event.status.toLowerCase() === "cancelled");
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,6 +113,7 @@ export function OrganizerSettingsTab({ event }: OrganizerSettingsTabProps) {
     startCancelTransition(async () => {
       const res = await cancelEventAction(event.id);
       if (res.success) {
+        setIsCancelled(true);
         setIsCancelModalOpen(false);
         setStatusMessage({
           type: "success",
