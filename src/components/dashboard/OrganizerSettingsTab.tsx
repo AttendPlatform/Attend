@@ -21,15 +21,19 @@ interface OrganizerSettingsTabProps {
   event: OrganizerEventDetails;
 }
 
+function toLocalInputString(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+}
+
 export function OrganizerSettingsTab({ event }: OrganizerSettingsTabProps) {
   const [title, setTitle] = useState(event.title || "");
   const [description, setDescription] = useState(event.description || "");
-  const [startAt, setStartAt] = useState(
-    event.start_at ? new Date(event.start_at).toISOString().slice(0, 16) : ""
-  );
-  const [endAt, setEndAt] = useState(
-    event.end_at ? new Date(event.end_at).toISOString().slice(0, 16) : ""
-  );
+  const [startAt, setStartAt] = useState(toLocalInputString(event.start_at));
+  const [endAt, setEndAt] = useState(toLocalInputString(event.end_at));
   const [venueName, setVenueName] = useState(event.venue_name || "");
   const [city, setCity] = useState(event.city || "");
   const [isOnline, setIsOnline] = useState(Boolean(event.is_online));
@@ -53,11 +57,27 @@ export function OrganizerSettingsTab({ event }: OrganizerSettingsTabProps) {
     setStatusMessage(null);
 
     startSaveTransition(async () => {
+      let formattedStartAt: string | undefined;
+      if (startAt) {
+        const startDate = new Date(startAt);
+        if (!isNaN(startDate.getTime())) {
+          formattedStartAt = startDate.toISOString();
+        }
+      }
+
+      let formattedEndAt: string | null = null;
+      if (endAt) {
+        const endDate = new Date(endAt);
+        if (!isNaN(endDate.getTime())) {
+          formattedEndAt = endDate.toISOString();
+        }
+      }
+
       const res = await updateEventDetailsAction(event.id, {
         title,
         description,
-        start_at: startAt ? new Date(startAt).toISOString() : undefined,
-        end_at: endAt ? new Date(endAt).toISOString() : null,
+        start_at: formattedStartAt,
+        end_at: formattedEndAt,
         venue_name: venueName,
         city,
         is_online: isOnline,
