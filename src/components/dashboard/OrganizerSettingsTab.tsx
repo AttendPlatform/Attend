@@ -23,7 +23,7 @@ interface OrganizerSettingsTabProps {
 
 export function OrganizerSettingsTab({ event }: OrganizerSettingsTabProps) {
   const [title, setTitle] = useState(event.title || "");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(event.description || "");
   const [startAt, setStartAt] = useState(
     event.start_at ? new Date(event.start_at).toISOString().slice(0, 16) : ""
   );
