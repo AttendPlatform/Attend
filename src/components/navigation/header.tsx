@@ -2,16 +2,42 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { createClient } from "@/lib/supabase/client";
 
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const isDiscover = pathname === "/discover";
-  const { user } = useAuthStore();
+  const { user, clearAuth } = useAuthStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    const supabase = createClient();
+
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Failed to sign out:", error);
+      setIsLoggingOut(false);
+      return;
+    }
+
+    clearAuth();
+
+    window.setTimeout(() => {
+      router.push("/");
+      router.refresh();
+    }, 500);
+  }
   
   /*
    * =========================================================
@@ -131,6 +157,26 @@ export function Header() {
                   Profile
                 </span>
               </Link>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className={`rounded-full border px-3 py-2 text-sm font-medium transition-all duration-300 ${
+                  isLoggingOut
+                    ? "cursor-wait border-violet-200 bg-violet-50 text-violet-700 shadow-sm"
+                    : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900"
+                }`}
+              >
+                <span
+                  className={`inline-flex items-center gap-2 ${isLoggingOut ? "animate-pulse" : ""}`}
+                >
+                  {isLoggingOut && (
+                    <span className="h-2 w-2 rounded-full bg-violet-600" />
+                  )}
+                  {isLoggingOut ? "Logging out..." : "Logout"}
+                </span>
+              </button>
             </>
           ) : (
             <>
