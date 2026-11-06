@@ -48,7 +48,7 @@ function VerifyEmailForm() {
     <p className="mt-2 text-sm leading-6 text-neutral-500">Enter the verification code sent to <strong>{email}</strong>. You can also use the verification link in that email.</p>
     <form onSubmit={verify} className="mt-8 space-y-4">
       <label className="block text-sm font-medium" htmlFor="code">Six-digit code</label>
-      <input id="code" required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={token} onChange={e=>setToken(e.target.value.replace(/\\s/g,""))} placeholder="Enter code" className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-center text-lg tracking-[0.3em] outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"/>
+      <input id="code" required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={token} onChange={e=>setToken(e.target.value.replace(/\s/g,""))} placeholder="Enter code" className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-center text-lg tracking-[0.3em] outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"/>
       {message && <p role="status" className="text-sm text-rose-600">{message}</p>}
       <button disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-600 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin"/> : null}Verify email</button>
     </form>
