@@ -54,9 +54,9 @@ Attend is an event discovery and participation platform where **the Event is the
 | **Connected Campaign Detail** | `/campaign/[slug]` has parent event banner, verified creator badge, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **DONE (Week 4)** |
 | **Discover Experience** | Redesigned `/discover` with parallel query engine, search, Nigerian tech hubs, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **DONE (Week 4)** |
 | **Database CI/CD & Performance** | Automated GitHub Actions migration CI/CD (`db-migration-ci.yml`, `db-migration-deploy.yml`), AvatarStack attendee caching, and query storm prevention. | Matches production reliability requirements. | **DONE (Week 5 - Day 9)** |
-| **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **IN PROGRESS (Week 5)** |
+| **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **DONE (Week 5 - Days 9-11)** |
 | **Saved System** | Implement `/saved` hub with tabs for Saved Events and Saved Campaigns. | Matches brief Section 17 & 33. | **DONE (Week 5 - Day 9)** |
-| **Lifecycle Notifications** | Automated notifications for event date/venue updates, cancellations, and new campaigns. | Matches brief Section 27-29. | **DONE (Week 5 - Day 11)** |
+| **Lifecycle Notifications** | Automated notifications for event date/venue updates, cancellations, and new campaigns. | Matches brief Section 27-29. | **DONE (Week 5 - Days 10-11)** |
 
 ---
 
@@ -398,26 +398,28 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Campaign creation trigger: When a participant creates a campaign under the event, notify the organizer (`dispatchCampaignCreatedNotification`) [DONE].
     - Registration confirmation: Emits in-app receipt when user completes registration (`dispatchRegistrationReceiptNotification`) [DONE].
 
-#### Day 11 (4 hrs) - Organizer "Campaigns", "Settings" & Safe Cancellation [IN PROGRESS]
+#### Day 11 (4 hrs) - Organizer "Campaigns", "Settings" & Safe Cancellation [DONE]
 - **Sanaullah (Tech Lead / Supervisor)**:
   - Review the Event Cancellation safeguards (Brief Sec 29) [DONE]:
     - Sets `event.status = 'cancelled'` [DONE].
     - Attaches parent-cancelled banner to connected campaigns without deleting user assets [DONE].
     - Dispatches urgent in-app notification to all confirmed attendees (`dispatchEventCancelledNotification`) [DONE].
-    - Author and run automated verification suite `scripts/verify-w5-d3.ts` (30/30 passing) [DONE].
+    - Author and run automated verification suite `scripts/verify-w5-d3.ts` (73/73 passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Build `OrganizerCampaignsTab.tsx` [IN PROGRESS - PR #44]:
-    - List all campaigns attached to this event.
-    - Actions: *Create New Campaign*, *Edit Template*, *Pause/Publish*, and *View Analytics* deep link.
-  - Build `OrganizerSettingsTab.tsx` [IN PROGRESS - PR #44]:
-    - Edit event details (title, dates, location).
-    - Toggle participant campaign permissions (`allow_participant_campaigns`).
-    - Cancel Event flow with confirmation modal and attendee warning.
+  - Build `OrganizerCampaignsTab.tsx` [DONE - PR #44]:
+    - List all campaigns attached to this event [DONE].
+    - Actions: Create New Campaign, Edit Template, Pause/Publish, and View Analytics deep link [DONE].
+  - Build `OrganizerSettingsTab.tsx` [DONE - PR #44]:
+    - Edit event details (title, description, dates, location) [DONE].
+    - Local timezone offset handling for datetime-local inputs [DONE].
+    - Date order validation ensuring end date cannot precede start date [DONE].
+    - Toggle participant campaign permissions (`allow_participant_campaigns`) [DONE].
+    - Cancel Event flow with accessible confirmation modal and attendee warning [DONE].
 - **Hardik (Software Engineer)**:
-  - Polish visual design, micro-animations, and theme harmony:
-    - Smooth card hover lift transitions and glassmorphism headers.
-    - Dark/light mode contrast checks.
-    - Mobile bottom navigation dock and touch-friendly button targets.
+  - Polish visual design, micro-animations, and theme harmony [DONE]:
+    - Smooth card hover lift transitions and glassmorphism headers [DONE].
+    - Dark/light mode contrast checks [DONE].
+    - Mobile bottom navigation dock and touch-friendly button targets [DONE].
 
 #### Day 12 (4 hrs) - End-to-End Acceptance Verification & V1 Sign-Off
 - **Sanaullah (Tech Lead / Supervisor)**:
@@ -471,9 +473,9 @@ Every item in Section 58 of the specification is mapped to its implementing mile
 | **Organizer** | Create event & location | Completed (W2) [DONE] | Uzair & Sanaullah | Structured coordinates and Nigerian hub presets saved. |
 | | Configure participation | Completed (W2) [DONE] | Hardik & Sanaullah | Sets Free, Registration, Paid, or External. |
 | | Configure campaign toggle | Completed (W2) [DONE] | Uzair & Sanaullah | Sets `allow_participant_campaigns` ON/OFF. |
-| | Create campaign | Week 5 (Day 11) | Uzair | Launches campaign builder attached to event. |
+| | Create campaign | Completed (W5 - Day 11) [DONE] | Uzair | Launches campaign builder attached to event. |
 | | View people distinction | Week 5 (Day 10) [DONE] | Uzair & Hardik | Separates Attendees vs Registrants vs DP users. |
-| | View analytics | Week 5 (Day 11) | Uzair | Direct deep-link to campaign analytics dashboard. |
+| | View analytics | Completed (W5 - Day 11) [DONE] | Uzair | Direct deep-link to campaign analytics dashboard. |
 | **Notifications** | Event updates | Week 5 (Day 10) [DONE] | Hardik | Venue/time updates notify confirmed attendees. |
 | | Campaign updates | Week 5 (Day 10) [DONE] | Hardik | New campaign creation alerts organizer. |
 | | Registration receipt | Completed (W3) [DONE] | Hardik | Confirmation appears in notification bell feed. |
