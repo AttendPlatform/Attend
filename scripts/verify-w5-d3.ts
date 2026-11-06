@@ -229,6 +229,10 @@ async function runWeek5Day3Verification() {
     "OrganizerCampaignsTab provides clean empty state",
     campaignsTabContent.includes("No campaigns created yet")
   );
+  check(
+    "OrganizerCampaignsTab provides error banner feedback when status toggle fails",
+    campaignsTabContent.includes("errorMessage")
+  );
 
   // 7. Organizer Settings Tab Architecture & Safe Cancellation Modal
   console.log("\n--- 7. Organizer Settings Tab & Safe Cancellation ---");
@@ -279,6 +283,22 @@ async function runWeek5Day3Verification() {
     settingsTabContent.includes("cannot be undone") &&
       settingsTabContent.includes("not be deleted")
   );
+  check(
+    "OrganizerSettingsTab preserves event description on initialization",
+    settingsTabContent.includes("event.description")
+  );
+  check(
+    "OrganizerSettingsTab converts datetime inputs to local timezone values",
+    settingsTabContent.includes("toLocalInputString")
+  );
+  check(
+    "OrganizerSettingsTab validates date order before saving",
+    settingsTabContent.includes("End date and time cannot be earlier than start date and time")
+  );
+  check(
+    "OrganizerSettingsTab immediately reflects cancelled state on confirmation",
+    settingsTabContent.includes("setIsCancelled(true)")
+  );
 
   // 8. Server Actions Architecture
   console.log("\n--- 8. Server Actions Architecture ---");
@@ -306,6 +326,18 @@ async function runWeek5Day3Verification() {
     "server actions verify user authentication and organizer authorization",
     actionsContent.includes("auth.getUser") &&
       actionsContent.includes("getOrganizerAccess")
+  );
+  check(
+    "updateEventDetailsAction validates end date cannot be earlier than start date",
+    actionsContent.includes("End date cannot be earlier than start date")
+  );
+  check(
+    "updateEventDetailsAction dispatches lifecycle notifications on date or venue change",
+    actionsContent.includes("dispatchDateOrVenueChangeNotification")
+  );
+  check(
+    "cancelEventAction delegates to events service cancelEvent with attendee notifications",
+    actionsContent.includes("cancelEvent(eventId")
   );
 
   // 9. Event Dashboard Page Integration
