@@ -3,9 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { LogOut } from "lucide-react";
 
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { toast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -16,6 +18,23 @@ export function Header() {
   const isDiscover = pathname === "/discover";
   const { user, clearAuth } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const logoutTimeoutRef = useRef<number | null>(null);
+  const logoutDestinationRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (logoutDestinationRef.current !== pathname) return;
+
+    logoutDestinationRef.current = null;
+    setIsLoggingOut(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    return () => {
+      if (logoutTimeoutRef.current !== null) {
+        window.clearTimeout(logoutTimeoutRef.current);
+      }
+    };
+  }, []);
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -24,18 +43,27 @@ export function Header() {
     const supabase = createClient();
 
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     } catch (error) {
       console.error("Failed to sign out:", error);
       setIsLoggingOut(false);
+      toast.error("Failed to sign out. Please try again.");
       return;
     }
 
-    clearAuth();
+    logoutTimeoutRef.current = window.setTimeout(() => {
+      logoutTimeoutRef.current = null;
+      if (pathname === "/") {
+        clearAuth();
+        router.refresh();
+        setIsLoggingOut(false);
+        return;
+      }
 
-    window.setTimeout(() => {
+      logoutDestinationRef.current = "/";
       router.push("/");
-      router.refresh();
+      clearAuth();
     }, 500);
   }
   
@@ -116,7 +144,7 @@ export function Header() {
             RIGHT SIDE
         ===================================================== */}
         <div className="flex items-center gap-2">
-          {user ? (
+          {user || isLoggingOut ? (
             <>
               {/* ===================================================
                   NOTIFICATIONS
@@ -162,19 +190,22 @@ export function Header() {
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className={`rounded-full border px-3 py-2 text-sm font-medium transition-all duration-300 ${
+                aria-label={isLoggingOut ? "Logging out" : "Log out"}
+                className={`rounded-full border p-2 text-sm font-medium transition-all duration-300 md:px-3 md:py-2 ${
                   isLoggingOut
                     ? "cursor-wait border-violet-200 bg-violet-50 text-violet-700 shadow-sm"
                     : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900"
                 }`}
               >
-                <span
-                  className={`inline-flex items-center gap-2 ${isLoggingOut ? "animate-pulse" : ""}`}
-                >
-                  {isLoggingOut && (
-                    <span className="h-2 w-2 rounded-full bg-violet-600" />
+                <span className="inline-flex items-center gap-2">
+                  {isLoggingOut ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" aria-hidden="true" />
+                  ) : (
+                    <LogOut className="h-4 w-4" aria-hidden="true" />
                   )}
-                  {isLoggingOut ? "Logging out..." : "Logout"}
+                  <span className="hidden md:inline">
+                    {isLoggingOut ? "Logging out..." : "Logout"}
+                  </span>
                 </span>
               </button>
             </>
