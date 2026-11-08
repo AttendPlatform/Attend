@@ -1,5 +1,6 @@
 import { Header } from "./header";
 import { MobileNav } from "./mobile-nav";
+import { Footer } from "./footer";
 
 export function AppShell({
   children,
@@ -14,6 +15,7 @@ export function AppShell({
         {children}
       </main>
 
+      <Footer />
       <MobileNav />
     </div>
   );
