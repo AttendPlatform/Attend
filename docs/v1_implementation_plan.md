@@ -430,8 +430,9 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Production build (`npm run build`): All routes prerender cleanly [DONE].
   - Conduct final verification review and ensure full V1 platform sign-off readiness [DONE].
 - **Uzair (Software Engineer)**:
-  - Cross-device QA audit: Test full flows on iPhone, Android, tablet, and desktop viewports.
-  - Validate image upload constraints and canvas generation exports.
+  - Cross-device QA audit: Test full flows on iPhone, Android, tablet, and desktop viewports [DONE].
+  - Validate image upload constraints and canvas generation exports [DONE].
+  - Author and run Day 12 automated verification suite `scripts/verify-w5-d4.ts` (18/18 passing) [DONE].
 - **Hardik (Software Engineer)**:
   - Cross-browser QA audit: Test Chrome, Safari, Firefox, and Edge [DONE].
   - SEO validation: Verify dynamic OpenGraph meta tags, Twitter cards, and structured JSON-LD data for events [DONE].
