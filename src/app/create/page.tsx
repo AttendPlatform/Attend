@@ -1,38 +1,58 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   ArrowRight,
-  Calendar,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  FileEdit,
   ImagePlus,
-  Layers,
   Loader2,
   MapPin,
   Sparkles,
+  Send,
   Type,
   X,
-  FileEdit,
-  Send
 } from "lucide-react";
+
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils/errorHandler";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import {
   ParticipationModelSelector,
-  ParticipationModelType
+  ParticipationModelType,
 } from "@/components/events/ParticipationModelSelector";
 import { StructuredLocation } from "@/lib/location";
 import {
   createEvent,
   validateParticipationConfig,
-  EventCategoryRow
+  EventCategoryRow,
 } from "@/services/events.service";
+
+type CreateStep = 1 | 2 | 3;
+
+const STEPS = [
+  { number: 1, title: "Event details", description: "The essentials" },
+  { number: 2, title: "Date & location", description: "When and where" },
+  { number: 3, title: "Participation", description: "Set up your event" },
+] as const;
+
+const inputClass =
+  "h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 hover:border-neutral-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-50";
+
+const labelClass =
+  "mb-2 block text-sm font-semibold text-neutral-800";
 
 export default function CreateEventPage() {
   const router = useRouter();
   const supabase = createClient();
+
+  const [step, setStep] = useState<CreateStep>(1);
 
   const [categories, setCategories] = useState<EventCategoryRow[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -54,17 +74,19 @@ export default function CreateEventPage() {
     longitude: null,
     place_id: null,
     is_online: false,
-    online_url: null
+    online_url: null,
   });
 
   const [participationModel, setParticipationModel] =
     useState<ParticipationModelType>("free");
+
   const [participationConfig, setParticipationConfig] = useState<
-    Record<string, any>
+    Record<string, unknown>
   >({});
 
   const [allowParticipantCampaigns, setAllowParticipantCampaigns] =
-    useState<boolean>(true);
+    useState(true);
+
   const [eventStatus, setEventStatus] = useState<"published" | "draft">(
     "published"
   );
@@ -75,40 +97,49 @@ export default function CreateEventPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const timezone =
+    Intl.DateTimeFormat().resolvedOptions().timeZone || "Local time";
+
   useEffect(() => {
     let active = true;
 
     async function initPage() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      if (!active) return;
-      if (!user) {
-        router.push("/login");
-        return;
+        if (!active) return;
+
+        if (!user) {
+          router.push("/login");
+          return;
+        }
+
+        const { data, error: categoryError } = await supabase
+          .from("event_categories")
+          .select("*")
+          .order("name");
+
+        if (!active) return;
+
+        if (categoryError) {
+          console.error(categoryError);
+          setError("Could not load event categories.");
+          return;
+        }
+
+        setCategories(data ?? []);
+
+        if (data?.length) {
+          setCategoryId(data[0].id);
+        }
+      } catch (err) {
+        console.error("Create event initialization failed:", err);
+        setError("Something went wrong while preparing the event form.");
+      } finally {
+        if (active) setLoadingCategories(false);
       }
-
-      const { data, error } = await supabase
-        .from("event_categories")
-        .select("*")
-        .order("name");
-
-      if (!active) return;
-      if (error) {
-        console.error(error);
-        setError("Could not load event categories.");
-        setLoadingCategories(false);
-        return;
-      }
-
-      setCategories(data ?? []);
-
-      if (data && data.length > 0) {
-        setCategoryId(data[0].id);
-      }
-
-      setLoadingCategories(false);
     }
 
     initPage();
@@ -116,7 +147,18 @@ export default function CreateEventPage() {
     return () => {
       active = false;
     };
-  }, [supabase, router]);
+  }, [router, supabase]);
+
+  useEffect(() => {
+    return () => {
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+    };
+  }, [coverPreview]);
+
+  function showError(message: string) {
+    setError(message);
+    toast.error(message);
+  }
 
   function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -124,20 +166,20 @@ export default function CreateEventPage() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Please select an image file.");
+      showError("Please select a valid image file.");
+      e.target.value = "";
       return;
     }
 
     if (file.size > 8 * 1024 * 1024) {
-      setError("Cover image must be smaller than 8MB.");
+      showError("Cover image must be smaller than 8MB.");
+      e.target.value = "";
       return;
     }
 
     setError("");
     setCover(file);
-
-    const preview = URL.createObjectURL(file);
-    setCoverPreview(preview);
+    setCoverPreview(URL.createObjectURL(file));
   }
 
   function removeCover() {
@@ -145,8 +187,82 @@ export default function CreateEventPage() {
     setCoverPreview("");
   }
 
-  async function handleFormSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function validateCurrentStep(): boolean {
+    setError("");
+
+    if (step === 1) {
+      if (!title.trim()) {
+        showError("Please provide an event title.");
+        return false;
+      }
+
+      if (!categoryId) {
+        showError("Please select an event category.");
+        return false;
+      }
+
+      return true;
+    }
+
+    if (step === 2) {
+      if (!startAt) {
+        showError("Please provide an event start date and time.");
+        return false;
+      }
+
+      if (endAt && new Date(endAt) <= new Date(startAt)) {
+        showError(
+          "Event end date and time must be after the start date and time."
+        );
+        return false;
+      }
+
+      if (location.is_online && !location.online_url?.trim()) {
+        showError(
+          "Please provide a virtual meeting or stream link for this online event."
+        );
+        return false;
+      }
+
+      if (!location.is_online) {
+        const hasPhysicalLocation = Boolean(
+          location.venue_name?.trim() ||
+          location.address?.trim() ||
+          location.city?.trim() ||
+          (typeof location.latitude === "number" &&
+            typeof location.longitude === "number")
+        );
+
+        if (!hasPhysicalLocation) {
+          showError("Please select or enter a location for your in-person event.");
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    return true;
+  }
+
+  function handleContinue() {
+    if (!validateCurrentStep()) return;
+
+    setStep((current) => Math.min(current + 1, 3) as CreateStep);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleBack() {
+    setError("");
+    setStep((current) => Math.max(current - 1, 1) as CreateStep);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleCreateEvent() {
+    // Event creation is only triggered by the explicit final action button.
+    if (step !== 3 || loading) return;
+
+    if (!validateCurrentStep()) return;
 
     setLoading(true);
     setError("");
@@ -161,56 +277,15 @@ export default function CreateEventPage() {
         return;
       }
 
-      if (!title.trim()) {
-        const msg = "Please provide an event title.";
-        setError(msg);
-        toast.error(msg);
-        setLoading(false);
-        return;
-      }
-
-      if (!categoryId) {
-        const msg = "Please select an event category.";
-        setError(msg);
-        toast.error(msg);
-        setLoading(false);
-        return;
-      }
-
-      if (!startAt) {
-        const msg = "Please provide an event start date and time.";
-        setError(msg);
-        toast.error(msg);
-        setLoading(false);
-        return;
-      }
-
-      if (endAt && new Date(endAt) <= new Date(startAt)) {
-        const msg = "Event end date and time must be after the start date and time.";
-        setError(msg);
-        toast.error(msg);
-        setLoading(false);
-        return;
-      }
-
-      if (location.is_online && !location.online_url) {
-        const msg = "Please provide a virtual meeting or stream link for this online event.";
-        setError(msg);
-        toast.error(msg);
-        setLoading(false);
-        return;
-      }
-
       const validation = await validateParticipationConfig(
         participationModel,
         participationConfig
       );
 
       if (!validation.valid) {
-        const msg = validation.errors[0] || "Invalid participation configuration.";
-        setError(msg);
-        toast.error(msg);
-        setLoading(false);
+        showError(
+          validation.errors[0] || "Invalid participation configuration."
+        );
         return;
       }
 
@@ -221,22 +296,30 @@ export default function CreateEventPage() {
         description: description.trim() || null,
         start_at: startAt,
         end_at: endAt || null,
+
         venue_name: location.is_online ? null : location.venue_name,
         address: location.is_online ? null : location.address,
         city: location.is_online ? null : location.city,
         state: location.is_online ? null : location.state,
-        country: location.is_online ? null : location.country || "Nigeria",
+        country: location.is_online
+          ? null
+          : location.country || "Nigeria",
+
         latitude: location.is_online ? null : location.latitude,
         longitude: location.is_online ? null : location.longitude,
         location_place_id: location.is_online ? null : location.place_id,
+
         is_online: location.is_online,
         online_url: location.is_online ? location.online_url : null,
+
         participation_model: participationModel,
         participation_config: participationConfig,
         allow_participant_campaigns: allowParticipantCampaigns,
         status: eventStatus,
         cover_image: null,
       });
+
+      let coverUploadFailed = false;
 
       if (cover) {
         const extension = cover.name.split(".").pop() || "jpg";
@@ -252,348 +335,681 @@ export default function CreateEventPage() {
 
         if (uploadError) {
           console.error("Cover upload warning:", uploadError);
+          coverUploadFailed = true;
         } else {
           const {
             data: { publicUrl },
-          } = supabase.storage.from("event-covers").getPublicUrl(filePath);
+          } = supabase.storage
+            .from("event-covers")
+            .getPublicUrl(filePath);
 
-          await supabase
+          const { error: coverUpdateError } = await supabase
             .from("events")
             .update({ cover_image: publicUrl })
             .eq("id", created.id);
+
+          if (coverUpdateError) {
+            console.error("Cover update warning:", coverUpdateError);
+            coverUploadFailed = true;
+          }
         }
       }
 
-      toast.success(
-        eventStatus === "published"
-          ? "Event published successfully!"
-          : "Event draft saved successfully!"
+      if (coverUploadFailed) {
+        toast.error(
+          eventStatus === "published"
+            ? "Your event was published, but its cover image could not be saved. You can add it later from your profile."
+            : "Your draft was saved, but its cover image could not be saved. You can add it later from your profile."
+        );
+      } else {
+        toast.success(
+          eventStatus === "published"
+            ? "Event published successfully!"
+            : "Event draft saved successfully!"
+        );
+      }
+
+      router.push(
+        eventStatus === "draft" ? "/profile" : `/events/${created.id}`
       );
-      router.push(`/events/${created.id}`);
     } catch (err: unknown) {
-      const msg = getErrorMessage(err, "Failed to create event. Please try again.");
-      setError(msg);
-      toast.error(msg);
+      const message = getErrorMessage(
+        err,
+        "Failed to create event. Please try again."
+      );
+
+      showError(message);
     } finally {
       setLoading(false);
     }
   }
 
-  return (
-    <main className="min-h-[calc(100vh-4rem)] bg-neutral-50 px-5 py-10 sm:px-6">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8">
-          <p className="text-xs font-bold uppercase tracking-wider text-violet-600">
-            EVENT BUILDER
-          </p>
+  const selectedCategory = categories.find(
+    (category) => category.id === categoryId
+  );
 
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl">
-            Create your event
+  return (
+    <main className="min-h-[calc(100vh-4rem)] bg-[#faf9fc] px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto max-w-3xl">
+        {/* Page heading */}
+        <header className="mb-8 sm:mb-10">
+          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">
+            <span className="h-1.5 w-1.5 rounded-full bg-violet-600" />
+            Attend event builder
+          </div>
+
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+            Bring your event to life.
           </h1>
 
-          <p className="mt-2 text-sm text-neutral-500">
-            Configure your event details, location coordinates, participation model, and community permissions.
+          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-500">
+            A few details are all it takes to create an event people can
+            discover and attend.
           </p>
+        </header>
+
+        {/* Step progress */}
+        <div className="mb-7 rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-neutral-900">
+              Step {step} of 3
+            </p>
+            <p className="text-xs text-neutral-400">
+              {STEPS[step - 1].title}
+            </p>
+          </div>
+
+          <div className="mb-4 flex gap-1.5">
+            {STEPS.map((item) => (
+              <div
+                key={item.number}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${
+                  step >= item.number ? "bg-violet-600" : "bg-neutral-100"
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {STEPS.map((item) => {
+              const isComplete = step > item.number;
+              const isCurrent = step === item.number;
+
+              return (
+                <div key={item.number} className="flex min-w-0 items-center gap-2">
+                  <div
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                      isComplete
+                        ? "bg-violet-600 text-white"
+                        : isCurrent
+                          ? "bg-violet-100 text-violet-700"
+                          : "bg-neutral-100 text-neutral-400"
+                    }`}
+                  >
+                    {isComplete ? <Check className="h-3.5 w-3.5" /> : item.number}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p
+                      className={`truncate text-[11px] font-semibold sm:text-xs ${
+                        isCurrent ? "text-neutral-900" : "text-neutral-500"
+                      }`}
+                    >
+                      {item.title}
+                    </p>
+                    <p className="hidden text-[10px] text-neutral-400 sm:block">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <form
-          onSubmit={handleFormSubmit}
-          className="space-y-8 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
-        >
-          {/* 1. COVER IMAGE */}
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-neutral-900">
-              Event Cover Image
-            </label>
-
-            {coverPreview ? (
-              <div className="relative overflow-hidden rounded-2xl border border-neutral-200 shadow-sm">
-                <img
-                  src={coverPreview}
-                  alt="Event cover preview"
-                  className="aspect-[16/7] w-full object-cover"
-                />
-
-                <button
-                  type="button"
-                  onClick={removeCover}
-                  aria-label="Remove cover image"
-                  className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/75 text-white backdrop-blur transition hover:bg-black"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <label className="flex aspect-[16/7] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50/70 transition hover:border-violet-400 hover:bg-violet-50/30">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
-                  <ImagePlus className="h-5 w-5 text-violet-600" />
+        <div className="overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-sm">
+          <div className="p-5 sm:p-8">
+            {/* STEP 1: EVENT DETAILS */}
+            {step === 1 && (
+              <section className="space-y-7">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
+                    01 - The essentials
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">
+                    Tell us about your event
+                  </h2>
+                  <p className="mt-1.5 text-sm text-neutral-500">
+                    Start with the information people will see when they
+                    discover your event.
+                  </p>
                 </div>
 
-                <p className="mt-3 text-sm font-semibold text-neutral-800">
-                  Upload event cover
-                </p>
-
-                <p className="mt-1 text-xs text-neutral-500">
-                  PNG, JPG or WebP (Max 8MB)
-                </p>
-
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={handleCoverChange}
-                  className="hidden"
-                />
-              </label>
-            )}
-          </div>
-
-          {/* 2. BASIC EVENT INFO */}
-          <div className="space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-neutral-900">
-                Event Title
-              </label>
-
-              <div className="relative">
-                <Type className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                <input
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Lagos Tech Meetup 2026"
-                  className="h-12 w-full rounded-xl border border-neutral-200 bg-white pl-11 pr-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-neutral-900">
-                Description
-              </label>
-
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Give attendees context on what to expect, speakers, schedule, and activities..."
-                rows={4}
-                className="w-full resize-none rounded-xl border border-neutral-200 p-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-neutral-900">
-                Category
-              </label>
-
-              <select
-                required
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                disabled={loadingCategories}
-                className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50 disabled:bg-neutral-50"
-              >
-                {loadingCategories ? (
-                  <option>Loading categories...</option>
-                ) : (
-                  categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-neutral-900">
-                Date & Schedule
-              </label>
-
-              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Cover artwork */}
                 <div>
-                  <div className="flex items-center gap-1.5 mb-1.5 text-xs font-medium text-neutral-600">
-                    <Calendar className="h-3.5 w-3.5 text-violet-600" />
-                    <span>Starts</span>
+                  <div className="mb-3 flex items-end justify-between gap-3">
+                    <div>
+                      <label className="text-sm font-semibold text-neutral-900">
+                        Event cover
+                      </label>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Give your event a recognizable visual identity.
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-neutral-400">
+                      Optional
+                    </span>
                   </div>
 
-                  <input
-                    type="datetime-local"
+                  {coverPreview ? (
+                    <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 p-3">
+                      <div className="flex min-h-56 items-center justify-center overflow-hidden rounded-xl bg-[linear-gradient(45deg,#f0eef4_25%,transparent_25%),linear-gradient(-45deg,#f0eef4_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f0eef4_75%),linear-gradient(-45deg,transparent_75%,#f0eef4_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px]">
+                        <img
+                          src={coverPreview}
+                          alt="Event cover preview"
+                          className="max-h-[420px] max-w-full object-contain"
+                        />
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium text-neutral-800">
+                            {cover?.name}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-neutral-400">
+                            {cover
+                              ? `${(cover.size / (1024 * 1024)).toFixed(2)} MB`
+                              : ""}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={removeCover}
+                          className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="group flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/70 px-5 py-8 text-center transition hover:border-violet-400 hover:bg-violet-50/30">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm ring-1 ring-neutral-100 transition group-hover:scale-105">
+                        <ImagePlus className="h-5 w-5" />
+                      </div>
+
+                      <p className="mt-4 text-sm font-semibold text-neutral-800">
+                        Add your event artwork
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Choose an image from your device
+                      </p>
+
+                      <span className="mt-4 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 shadow-sm">
+                        Choose image
+                      </span>
+
+                      <p className="mt-3 text-[11px] text-neutral-400">
+                        PNG, JPG or WebP · Maximum 8MB
+                      </p>
+
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={handleCoverChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+
+                  <div className="mt-3 flex items-start gap-2 rounded-xl bg-violet-50/70 p-3">
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
+                    <p className="text-xs leading-5 text-violet-800">
+                      <strong>A little design tip:</strong> Square artwork
+                      often works well as an event thumbnail. Landscape and
+                      portrait images are welcome too. Your original image
+                      proportions will be preserved.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div>
+                  <label htmlFor="event-title" className={labelClass}>
+                    Event title <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Type className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                    <input
+                      id="event-title"
+                      required
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g. Lagos Creative Summit 2026"
+                      className={`${inputClass} pl-11`}
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <label htmlFor="event-description" className={labelClass.replace("mb-2", "")}>
+                      Description
+                    </label>
+                    <span className="text-[11px] text-neutral-400">
+                      Optional
+                    </span>
+                  </div>
+
+                  <textarea
+                    id="event-description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="What is this event about? Share what attendees can expect, the activities, speakers, or anything they should know..."
+                    rows={5}
+                    className="w-full resize-y rounded-xl border border-neutral-200 bg-white p-4 text-sm leading-6 text-neutral-900 outline-none transition placeholder:text-neutral-400 hover:border-neutral-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label htmlFor="event-category" className={labelClass}>
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="event-category"
                     required
-                    value={startAt}
-                    onChange={(e) => setStartAt(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-                  />
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    disabled={loadingCategories}
+                    className={inputClass}
+                  >
+                    {loadingCategories ? (
+                      <option value="">Loading categories...</option>
+                    ) : categories.length === 0 ? (
+                      <option value="">No categories available</option>
+                    ) : (
+                      categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
                 </div>
-
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1.5 text-xs font-medium text-neutral-600">
-                    <Calendar className="h-3.5 w-3.5 text-neutral-400" />
-                    <span>Ends (Optional)</span>
-                  </div>
-
-                  <input
-                    type="datetime-local"
-                    value={endAt}
-                    onChange={(e) => setEndAt(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. STRUCTURED LOCATION PICKER */}
-          <div className="pt-2">
-            <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5 text-white shadow-md">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-                  <MapPin className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-white">Event Location</h3>
-                  <p className="text-xs text-neutral-400">
-                    Auto-suggest venues, select Nigerian hubs, or set virtual online link
-                  </p>
-                </div>
-              </div>
-
-              <LocationPicker
-                value={location}
-                onChange={(newLoc) => setLocation(newLoc)}
-              />
-            </div>
-          </div>
-
-          {/* 4. PARTICIPATION MODEL SELECTOR */}
-          <div className="pt-2">
-            <ParticipationModelSelector
-              model={participationModel}
-              config={participationConfig}
-              onChangeModel={setParticipationModel}
-              onChangeConfig={setParticipationConfig}
-            />
-          </div>
-
-          {/* 5. CAMPAIGN PERMISSIONS & PUBLISH STATUS */}
-          <div className="space-y-4 pt-2">
-            <label className="block text-sm font-semibold text-neutral-900">
-              Community & Publishing Controls
-            </label>
-
-            <div className="rounded-2xl border border-neutral-200 bg-neutral-50/70 p-4 transition-all">
-              <label className="flex cursor-pointer items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-900">
-                      Allow participant campaigns
-                    </p>
-                    <p className="text-xs text-neutral-500 mt-0.5 leading-relaxed">
-                      Enable attendees and creators to generate personalized promotional graphics and cards under this event.
-                    </p>
-                  </div>
-                </div>
-
-                <input
-                  type="checkbox"
-                  checked={allowParticipantCampaigns}
-                  onChange={(e) => setAllowParticipantCampaigns(e.target.checked)}
-                  className="mt-1 h-5 w-5 rounded border-neutral-300 text-violet-600 focus:ring-violet-500 accent-violet-600"
-                />
-              </label>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setEventStatus("published")}
-                className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-                  eventStatus === "published"
-                    ? "border-violet-600 bg-violet-50/50 ring-2 ring-violet-600/20 shadow-sm"
-                    : "border-neutral-200 bg-white hover:border-neutral-300"
-                }`}
-              >
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                    eventStatus === "published"
-                      ? "bg-violet-600 text-white"
-                      : "bg-neutral-100 text-neutral-600"
-                  }`}
-                >
-                  <Send className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    Publish Immediately
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    Live immediately in discovery feeds and public event pages.
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setEventStatus("draft")}
-                className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-                  eventStatus === "draft"
-                    ? "border-violet-600 bg-violet-50/50 ring-2 ring-violet-600/20 shadow-sm"
-                    : "border-neutral-200 bg-white hover:border-neutral-300"
-                }`}
-              >
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                    eventStatus === "draft"
-                      ? "bg-violet-600 text-white"
-                      : "bg-neutral-100 text-neutral-600"
-                  }`}
-                >
-                  <FileEdit className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    Save as Draft
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    Hidden from discovery. Edit and publish later from your organizer dashboard.
-                  </p>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* 6. ERROR DISPLAY */}
-          {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
-              {error}
-            </div>
-          )}
-
-          {/* 7. SUBMIT BUTTON */}
-          <button
-            type="submit"
-            disabled={loading || loadingCategories}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-md shadow-violet-600/20 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Processing event creation...</span>
-              </>
-            ) : (
-              <>
-                <span>
-                  {eventStatus === "published"
-                    ? "Publish Event"
-                    : "Save Event as Draft"}
-                </span>
-                <ArrowRight className="h-4 w-4" />
-              </>
+              </section>
             )}
-          </button>
-        </form>
+
+            {/* STEP 2: DATE AND LOCATION */}
+            {step === 2 && (
+              <section className="space-y-8">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
+                    02 - The details
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">
+                    When and where?
+                  </h2>
+                  <p className="mt-1.5 text-sm text-neutral-500">
+                    Set your event schedule, then tell people where to find
+                    you.
+                  </p>
+                </div>
+
+                {/* Schedule */}
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                      <CalendarDays className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-neutral-900">
+                        Event schedule
+                      </h3>
+                      <p className="text-xs text-neutral-500">
+                        Set the start and end time.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="start-at" className={labelClass}>
+                        Starts <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="start-at"
+                        type="datetime-local"
+                        required
+                        value={startAt}
+                        onChange={(e) => setStartAt(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="end-at" className={labelClass}>
+                        Ends{" "}
+                        <span className="font-normal text-neutral-400">
+                          (Optional)
+                        </span>
+                      </label>
+                      <input
+                        id="end-at"
+                        type="datetime-local"
+                        value={endAt}
+                        min={startAt || undefined}
+                        onChange={(e) => setEndAt(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="mt-2 text-[11px] text-neutral-400">
+                    Times are entered in your device&apos;s local timezone:{" "}
+                    <span className="font-medium text-neutral-600">
+                      {timezone}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="border-t border-neutral-100" />
+
+                {/* Location */}
+                <div>
+                  <div className="mb-4 flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-neutral-900">
+                        Event location
+                      </h3>
+                      <p className="text-xs text-neutral-500">
+                        Choose a venue or host your event online.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-neutral-200 bg-neutral-50/50 p-3 sm:p-4">
+                    <LocationPicker
+                      value={location}
+                      onChange={(newLocation) => setLocation(newLocation)}
+                    />
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* STEP 3: PARTICIPATION AND PUBLISH */}
+            {step === 3 && (
+              <section className="space-y-8">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
+                    03 - Make it happen
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">
+                    How will people attend?
+                  </h2>
+                  <p className="mt-1.5 text-sm text-neutral-500">
+                    Choose how people can participate. You can configure the
+                    details below.
+                  </p>
+                </div>
+
+                {/* Participation model */}
+                <ParticipationModelSelector
+                  model={participationModel}
+                  config={participationConfig}
+                  onChangeModel={setParticipationModel}
+                  onChangeConfig={setParticipationConfig}
+                />
+
+                <div className="border-t border-neutral-100" />
+
+                {/* Campaign permissions */}
+                <div>
+                  <h3 className="text-sm font-semibold text-neutral-900">
+                    Community permissions
+                  </h3>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Decide whether participants can create campaign graphics
+                    for this event.
+                  </p>
+
+                  <label className="mt-4 flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-neutral-200 p-4 transition hover:border-violet-200 hover:bg-violet-50/30">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-neutral-900">
+                          Allow participant campaigns
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-neutral-500">
+                          Let attendees and creators generate personalized
+                          promotional graphics and cards under this event.
+                        </p>
+                      </div>
+                    </div>
+
+                    <input
+                      type="checkbox"
+                      checked={allowParticipantCampaigns}
+                      onChange={(e) =>
+                        setAllowParticipantCampaigns(e.target.checked)
+                      }
+                      className="mt-1 h-5 w-5 shrink-0 rounded border-neutral-300 accent-violet-600 focus:ring-violet-500"
+                    />
+                  </label>
+                </div>
+
+                <div className="border-t border-neutral-100" />
+
+                {/* Publishing status */}
+                <div>
+                  <h3 className="text-sm font-semibold text-neutral-900">
+                    Ready to publish?
+                  </h3>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Choose whether to publish now or save this event as a
+                    draft.
+                  </p>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setEventStatus("published")}
+                      className={`rounded-2xl border p-4 text-left transition ${
+                        eventStatus === "published"
+                          ? "border-violet-500 bg-violet-50/60 ring-2 ring-violet-500/10"
+                          : "border-neutral-200 hover:border-neutral-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                            eventStatus === "published"
+                              ? "bg-violet-600 text-white"
+                              : "bg-neutral-100 text-neutral-600"
+                          }`}
+                        >
+                          <Send className="h-4 w-4" />
+                        </div>
+                        {eventStatus === "published" && (
+                          <CheckCircle2 className="h-5 w-5 text-violet-600" />
+                        )}
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-neutral-900">
+                        Publish immediately
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-neutral-500">
+                        Make your event available on Attend.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEventStatus("draft")}
+                      className={`rounded-2xl border p-4 text-left transition ${
+                        eventStatus === "draft"
+                          ? "border-violet-500 bg-violet-50/60 ring-2 ring-violet-500/10"
+                          : "border-neutral-200 hover:border-neutral-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                            eventStatus === "draft"
+                              ? "bg-violet-600 text-white"
+                              : "bg-neutral-100 text-neutral-600"
+                          }`}
+                        >
+                          <FileEdit className="h-4 w-4" />
+                        </div>
+                        {eventStatus === "draft" && (
+                          <CheckCircle2 className="h-5 w-5 text-violet-600" />
+                        )}
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-neutral-900">
+                        Save as draft
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-neutral-500">
+                        Keep it hidden while you make further changes.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Review summary */}
+                <div className="rounded-2xl border border-neutral-200 bg-neutral-50/70 p-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-violet-600" />
+                    <h3 className="text-sm font-semibold text-neutral-900">
+                      Event overview
+                    </h3>
+                  </div>
+
+                  <div className="mt-3 space-y-2 text-xs">
+                    <div className="flex justify-between gap-3">
+                      <span className="text-neutral-500">Event</span>
+                      <span className="max-w-[65%] text-right font-medium text-neutral-800">
+                        {title.trim() || "Untitled event"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-neutral-500">Category</span>
+                      <span className="font-medium text-neutral-800">
+                        {selectedCategory?.name || "Not selected"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-neutral-500">Format</span>
+                      <span className="font-medium text-neutral-800">
+                        {location.is_online ? "Online" : "In person"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-neutral-500">Participation</span>
+                      <span className="font-medium capitalize text-neutral-800">
+                        {participationModel === "free"
+                          ? "Free attendance"
+                          : participationModel === "registration"
+                            ? "Free registration"
+                            : participationModel === "paid"
+                              ? "Paid tickets"
+                              : "External ticketing"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-neutral-500">Publishing</span>
+                      <span className="font-medium capitalize text-neutral-800">
+                        {eventStatus}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div
+                role="alert"
+                className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+              >
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Footer navigation */}
+          <div className="flex items-center justify-between gap-3 border-t border-neutral-100 bg-neutral-50/70 px-5 py-4 sm:px-8">
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={loading}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="h-11 rounded-xl px-3 text-sm font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800"
+              >
+                Cancel
+              </button>
+            )}
+
+            {step < 3 ? (
+              <button
+                type="button"
+                onClick={handleContinue}
+                disabled={loadingCategories || (step === 1 && categories.length === 0)}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white shadow-sm shadow-violet-600/20 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Continue
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCreateEvent}
+                disabled={loading || loadingCategories}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white shadow-sm shadow-violet-600/20 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating event...
+                  </>
+                ) : (
+                  <>
+                    {eventStatus === "published"
+                      ? "Publish event"
+                      : "Save draft"}
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <p className="mt-5 text-center text-[11px] text-neutral-400">
+          You can review your event details before sharing it with your
+          community.
+        </p>
       </div>
     </main>
   );

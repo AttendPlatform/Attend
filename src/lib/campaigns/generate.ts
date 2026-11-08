@@ -254,10 +254,7 @@ export async function generateCampaignImage({
   ctx.restore();
 
   try {
-    return canvas.toDataURL(
-      "image/png",
-      1
-    );
+    return canvas.toDataURL("image/png", 1);
   } catch (error) {
     console.error(
       "Canvas export failed:",

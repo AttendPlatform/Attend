@@ -2,6 +2,13 @@
 
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type {
+  OrganizerRole,
+  OrganizerAccessResult,
+  DashboardOverviewStats,
+} from "@/types/dashboard";
+import { dispatchEventCancelledNotification } from "./notifications.service";
 
 export type EventRow = Database["public"]["Tables"]["events"]["Row"];
 export type EventCategoryRow = Database["public"]["Tables"]["event_categories"]["Row"];
@@ -264,18 +271,50 @@ export async function getRelatedEvents(
 
 export async function cancelEvent(
   eventId: string,
-  userId: string
-): Promise<void> {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("events")
-    .update({ status: "cancelled" })
-    .eq("id", eventId)
-    .eq("creator_id", userId);
-
-  if (error) {
-    throw error;
+  userId: string,
+  reason?: string | null
+): Promise<{ success: boolean; dispatchedNotifications: number }> {
+  if (!eventId || !userId) {
+    throw new Error("Event ID and User ID are required.");
   }
+
+  const supabase = await createClient();
+
+  const access = await getOrganizerAccess(eventId, userId, supabase);
+  if (!access.isOrganizer) {
+    throw new Error("Unauthorized: viewer is not an organizer of this event.");
+  }
+
+  const { data: event, error: fetchError } = await supabase
+    .from("events")
+    .select("id, title, status")
+    .eq("id", eventId)
+    .single();
+
+  if (fetchError || !event) {
+    throw fetchError || new Error("Event not found.");
+  }
+
+  const { error: updateError } = await supabase
+    .from("events")
+    .update({ status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("id", eventId);
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  const notifResult = await dispatchEventCancelledNotification({
+    eventId,
+    eventTitle: event.title,
+    reason: reason || null,
+    actorId: userId,
+  });
+
+  return {
+    success: true,
+    dispatchedNotifications: notifResult.dispatchedCount,
+  };
 }
 
 export async function getPublicProfileEvents(creatorId: string) {
@@ -442,6 +481,161 @@ export async function createEvent(
   });
 
   return event;
+}
+
+export async function getOrganizerAccess(
+  eventId: string,
+  userId: string,
+  client?: SupabaseClient<Database> | null
+): Promise<OrganizerAccessResult> {
+  if (!eventId || !userId) {
+    return { isOrganizer: false, role: null, isCreator: false };
+  }
+
+  const supabase = client || (await createClient());
+
+  const [eventRes, organizerRes] = await Promise.all([
+    supabase
+      .from("events")
+      .select("creator_id")
+      .eq("id", eventId)
+      .maybeSingle(),
+    supabase
+      .from("event_organizers")
+      .select("role")
+      .eq("event_id", eventId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+
+  const isCreator = eventRes.data?.creator_id === userId;
+  const organizerRole = (organizerRes.data?.role as OrganizerRole) || null;
+  const isOrganizer = isCreator || Boolean(organizerRole);
+  const role: OrganizerRole | null = organizerRole || (isCreator ? "owner" : null);
+
+  return {
+    isOrganizer,
+    role,
+    isCreator,
+  };
+}
+
+export async function isEventOrganizer(
+  eventId: string,
+  userId: string,
+  client?: SupabaseClient<Database> | null
+): Promise<boolean> {
+  if (!eventId || !userId) return false;
+  const access = await getOrganizerAccess(eventId, userId, client);
+  return access.isOrganizer;
+}
+
+export async function getEventForOrganizer(
+  eventId: string,
+  userId: string,
+  client?: SupabaseClient<Database> | null
+): Promise<EventRow> {
+  if (!eventId || !userId) {
+    throw new Error("Event ID and User ID are required.");
+  }
+
+  const supabase = client || (await createClient());
+
+  const access = await getOrganizerAccess(eventId, userId, supabase);
+  if (!access.isOrganizer) {
+    throw new Error("Unauthorized: viewer is not an organizer of this event.");
+  }
+
+  const { data: event, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", eventId)
+    .single();
+
+  if (error || !event) {
+    throw error || new Error("Event not found.");
+  }
+
+  return event;
+}
+
+export async function getOrganizerEventStats(
+  eventId: string,
+  userId: string,
+  client?: SupabaseClient<Database> | null
+): Promise<DashboardOverviewStats> {
+  if (!eventId || !userId) {
+    throw new Error("Event ID and User ID are required.");
+  }
+
+  const supabase = client || (await createClient());
+
+  const access = await getOrganizerAccess(eventId, userId, supabase);
+  if (!access.isOrganizer) {
+    throw new Error("Unauthorized: viewer is not an organizer of this event.");
+  }
+
+  const [attendeesRes, registrationsRes, campaignsRes] = await Promise.all([
+    supabase
+      .from("event_participants")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", eventId)
+      .in("status", ["attending", "registered", "ticketed"]),
+    supabase
+      .from("event_participants")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", eventId)
+      .eq("status", "registered"),
+    supabase
+      .from("campaigns")
+      .select("id, generations")
+      .eq("event_id", eventId),
+  ]);
+
+  const totalAttendees = attendeesRes.count ?? 0;
+  const totalRegistrations = registrationsRes.count ?? 0;
+  const campaigns = campaignsRes.data ?? [];
+  const totalCampaigns = campaigns.length;
+  const totalGenerations = campaigns.reduce(
+    (sum: number, c: { id: string; generations: number | null }) =>
+      sum + (Number(c.generations) || 0),
+    0
+  );
+
+  return {
+    totalAttendees,
+    totalRegistrations,
+    totalCampaigns,
+    totalGenerations,
+  };
+}
+
+export async function requireOrganizerAccess(eventId: string) {
+  if (!eventId) {
+    throw new Error("Event ID is required.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Authentication required to access organizer dashboard.");
+  }
+
+  const access = await getOrganizerAccess(eventId, user.id, supabase);
+  if (!access.isOrganizer) {
+    throw new Error("Forbidden: viewer does not have organizer access to this event.");
+  }
+
+  const event = await getEventForOrganizer(eventId, user.id, supabase);
+
+  return {
+    user,
+    event,
+    access,
+  };
 }
 
 

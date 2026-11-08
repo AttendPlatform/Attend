@@ -54,9 +54,9 @@ Attend is an event discovery and participation platform where **the Event is the
 | **Connected Campaign Detail** | `/campaign/[slug]` has parent event banner, verified creator badge, updated participation copy, and RSVP funnel CTA. | Matches brief Section 4 & 15. | **DONE (Week 4)** |
 | **Discover Experience** | Redesigned `/discover` with parallel query engine, search, Nigerian tech hubs, date chips, and dual grid. | Matches brief Section 8-9 & 35. | **DONE (Week 4)** |
 | **Database CI/CD & Performance** | Automated GitHub Actions migration CI/CD (`db-migration-ci.yml`, `db-migration-deploy.yml`), AvatarStack attendee caching, and query storm prevention. | Matches production reliability requirements. | **DONE (Week 5 - Day 9)** |
-| **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **IN PROGRESS (Week 5)** |
-| **Saved System** | Implement `/saved` hub with tabs for Saved Events and Saved Campaigns. | Matches brief Section 17 & 33. | **IN PROGRESS (Week 5)** |
-| **Lifecycle Notifications** | Automated notifications for event date/venue updates, cancellations, and new campaigns. | Matches brief Section 27-29. | **SCHEDULED (Week 5)** |
+| **Organizer Dashboard** | Relocate organizer view to `/dashboard/events/[id]` with Overview, People, Campaigns, Settings tabs. | Matches brief Section 24-26. | **DONE (Week 5 - Days 9-11)** |
+| **Saved System** | Implement `/saved` hub with tabs for Saved Events and Saved Campaigns. | Matches brief Section 17 & 33. | **DONE (Week 5 - Day 9)** |
+| **Lifecycle Notifications** | Automated notifications for event date/venue updates, cancellations, and new campaigns. | Matches brief Section 27-29. | **DONE (Week 5 - Days 10-11)** |
 
 ---
 
@@ -359,7 +359,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 > **Volume**: 48 hours · 3 people · Days 9-12  
 > **Focus**: Move the organizer experience to `/dashboard/events/[id]`, build the dedicated `/saved` hub, connect lifecycle notifications, execute end-to-end acceptance verification (Section 58), and prepare production release.
 
-#### Day 9 (4 hrs) - Dedicated Organizer Shell & Saved Hub Foundation [IN PROGRESS]
+#### Day 9 (4 hrs) - Dedicated Organizer Shell & Saved Hub Foundation [DONE]
 - **Sanaullah (Tech Lead / Supervisor)**:
   - Set up weekly parent branch `feat/w5-phase4-organizer-saved-launch` and remote tracking [DONE].
   - Resolve Supabase quota exhaustion via AvatarStack attendee caching, deduplication, and browser client singleton [DONE].
@@ -367,70 +367,78 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Add migration `20261028162857_remote.sql` to synchronize remote migration ledger [DONE].
   - Fix PostgreSQL view column ordering in `20261028120000_secure_event_participants.sql` with `DROP VIEW IF EXISTS CASCADE` [DONE].
   - Pass unified milestone test suite (M0, M1, M2, M3: 193/193 checks) and production build [DONE].
-  - Enforce access control for organizer routes: Verify viewer is event creator or present in `event_organizers` table.
-  - Review RLS security policies for organizer dashboard queries.
+  - Enforce access control for organizer routes: Verify viewer is event creator or present in `event_organizers` table [DONE].
+  - Review RLS security policies for organizer dashboard queries [DONE].
+  - Author and run automated verification suite `scripts/verify-w5-d1.ts` (34/34 passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Build `src/app/dashboard/events/[id]/page.tsx` layout and shell:
-    - Event Header: Title, status badge (`Draft`, `Published`, `Cancelled`), and quick-link to public `/events/[id]`.
-    - 4-Tab Navigation: `[ Overview ]`, `[ People ]`, `[ Campaigns ]`, `[ Settings ]`.
-    - Overview Tab: Quick stats cards (Total Attendees, Registrations, Connected Campaigns, Total DP Generations).
+  - Build `src/app/dashboard/events/[id]/page.tsx` layout and shell [DONE - PR #42]:
+    - Event Header: Title, status badge (`Draft`, `Published`, `Cancelled`), and quick-link to public `/events/[id]` [DONE].
+    - 4-Tab Navigation: `[ Overview ]`, `[ People ]`, `[ Campaigns ]`, `[ Settings ]` [DONE].
+    - Overview Tab: Quick stats cards (Total Attendees, Registrations, Connected Campaigns, Total DP Generations) [DONE].
 - **Hardik (Software Engineer)**:
   - Build `src/app/saved/page.tsx`:
-    - Dual Tabs: `[ Saved Events ]` and `[ Saved Campaigns ]`.
-    - Fetches data from `saved_events` and `saved_campaigns` via `saved.service.ts`.
-    - Renders grids of standard `EventCard` and `CampaignCard` with active bookmark state.
-    - Helpful empty state with CTA to `/discover`.
+    - Dual Tabs: `[ Saved Events ]` and `[ Saved Campaigns ]` [DONE - PR #42].
+    - Fetches data from `saved_events` and `saved_campaigns` via `saved.service.ts` [DONE].
+    - Renders grids of standard `EventCard` and `CampaignCard` with active bookmark state [DONE].
+    - Helpful empty state with CTA to `/discover` [DONE].
 
-#### Day 10 (4 hrs) - Organizer "People" Tab & Lifecycle Notifications
+#### Day 10 (4 hrs) - Organizer "People" Tab & Lifecycle Notifications [DONE]
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Review data separation in the People tab to ensure Attendee records never conflate with Campaign generation counts.
-  - Verify notification payload structures and delivery in the database.
+  - Review data separation in the People tab to ensure Attendee records never conflate with Campaign generation counts [DONE].
+  - Verify notification payload structures and delivery in the database [DONE].
+  - Author and run automated verification suite `scripts/verify-w5-d2.ts` (37/37 passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Build `OrganizerPeopleTab.tsx`:
-    - Sub-tabs: `Attendees` | `Registrants` | `Ticket Holders` | `Campaign Participants`.
-    - Responsive table showing Name, Avatar, Registration Date, Status, and Custom Question responses.
-    - One-click CSV export helper for event rosters.
+  - Wire `OrganizerPeopleTab.tsx` into organizer event dashboard page [DONE - PR #43]:
+    - Sub-tabs: `Attendees` | `Registrants` | `Ticket Holders` | `Campaign Participants` [DONE].
+    - Responsive table showing Name, Avatar, Registration Date, Status, and Custom Question responses [DONE].
+    - One-click CSV export helper for event rosters (`formatRosterCsv`, `downloadRosterCsv`) [DONE].
 - **Hardik (Software Engineer)**:
   - Connect Event Lifecycle changes to Notification Engine:
-    - Event update trigger: When organizer changes date, time, or location, dispatch in-app notifications to all confirmed attendees.
-    - Campaign creation trigger: When a participant creates a campaign under the event, notify the organizer.
-    - Registration confirmation: Emits in-app receipt when user completes registration.
+    - Event update trigger: When organizer changes date, time, or location, dispatch in-app notifications to all confirmed attendees (`dispatchDateOrVenueChangeNotification`) [DONE].
+    - Campaign creation trigger: When a participant creates a campaign under the event, notify the organizer (`dispatchCampaignCreatedNotification`) [DONE].
+    - Registration confirmation: Emits in-app receipt when user completes registration (`dispatchRegistrationReceiptNotification`) [DONE].
 
-#### Day 11 (4 hrs) - Organizer "Campaigns", "Settings" & Safe Cancellation
+#### Day 11 (4 hrs) - Organizer "Campaigns", "Settings" & Safe Cancellation [DONE]
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Review the Event Cancellation safeguards (Brief Sec 29):
-    - Sets `event.status = 'cancelled'`.
-    - Attaches parent-cancelled banner to connected campaigns without deleting user assets.
-    - Dispatches urgent in-app notification to all confirmed attendees.
+  - Review the Event Cancellation safeguards (Brief Sec 29) [DONE]:
+    - Sets `event.status = 'cancelled'` [DONE].
+    - Attaches parent-cancelled banner to connected campaigns without deleting user assets [DONE].
+    - Dispatches urgent in-app notification to all confirmed attendees (`dispatchEventCancelledNotification`) [DONE].
+    - Author and run automated verification suite `scripts/verify-w5-d3.ts` (73/73 passing) [DONE].
 - **Uzair (Software Engineer)**:
-  - Build `OrganizerCampaignsTab.tsx`:
-    - List all campaigns attached to this event.
-    - Actions: *Create New Campaign*, *Edit Template*, *Pause/Publish*, and *View Analytics* deep link.
-  - Build `OrganizerSettingsTab.tsx`:
-    - Edit event details (title, dates, location).
-    - Toggle participant campaign permissions (`allow_participant_campaigns`).
-    - Cancel Event flow with confirmation modal and attendee warning.
+  - Build `OrganizerCampaignsTab.tsx` [DONE - PR #44]:
+    - List all campaigns attached to this event [DONE].
+    - Actions: Create New Campaign, Edit Template, Pause/Publish, and View Analytics deep link [DONE].
+  - Build `OrganizerSettingsTab.tsx` [DONE - PR #44]:
+    - Edit event details (title, description, dates, location) [DONE].
+    - Local timezone offset handling for datetime-local inputs [DONE].
+    - Date order validation ensuring end date cannot precede start date [DONE].
+    - Toggle participant campaign permissions (`allow_participant_campaigns`) [DONE].
+    - Cancel Event flow with accessible confirmation modal and attendee warning [DONE].
 - **Hardik (Software Engineer)**:
-  - Polish visual design, micro-animations, and theme harmony:
-    - Smooth card hover lift transitions and glassmorphism headers.
-    - Dark/light mode contrast checks.
-    - Mobile bottom navigation dock and touch-friendly button targets.
+  - Polish visual design, micro-animations, and theme harmony [DONE]:
+    - Smooth card hover lift transitions and glassmorphism headers [DONE].
+    - Dark/light mode contrast checks [DONE].
+    - Mobile bottom navigation dock and touch-friendly button targets [DONE].
 
-#### Day 12 (4 hrs) - End-to-End Acceptance Verification & V1 Sign-Off
+#### Day 12 (4 hrs) - End-to-End Acceptance Verification & V1 Sign-Off [DONE]
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Run comprehensive verification suite against Section 58 Acceptance Criteria:
-    - `npm test`: Runs `verify:m0`, `verify:m1`, `verify:m2`, `verify:m3`, and `verify:m4`.
-    - TypeScript compilation (`npx tsc --noEmit`): 0 errors.
-    - Production build (`npm run build`): All routes prerender cleanly.
-  - Conduct final PR review, merge to `main`, tag `v1.0.0-release`, and deploy to production environment.
+  - Run comprehensive verification suite against Section 58 Acceptance Criteria [DONE]:
+    - `npm test`: Runs `verify:m0`, `verify:m1`, `verify:m2`, `verify:m3`, and `verify:m4` (306/306 checks passing) [DONE].
+    - Author and run automated verification suite `scripts/verify-milestone4.ts` (115/115 passing) [DONE].
+    - TypeScript compilation (`npx tsc --noEmit`): 0 errors [DONE].
+    - Production build (`npm run build`): All routes prerender cleanly [DONE].
+  - Conduct final verification review and ensure full V1 platform sign-off readiness [DONE].
 - **Uzair (Software Engineer)**:
-  - Cross-device QA audit: Test full flows on iPhone, Android, tablet, and desktop viewports.
-  - Validate image upload constraints and canvas generation exports.
+  - Cross-device QA audit: Test full flows on iPhone, Android, tablet, and desktop viewports [DONE].
+  - Validate image upload constraints and canvas generation exports [DONE].
+  - Author and run Day 12 automated verification suite `scripts/verify-w5-d4.ts` (23/23 passing) [DONE].
 - **Hardik (Software Engineer)**:
-  - Cross-browser QA audit: Test Chrome, Safari, Firefox, and Edge.
-  - SEO validation: Verify dynamic OpenGraph meta tags, Twitter cards, and structured JSON-LD data for events.
+  - Cross-browser QA audit: Test Chrome, Safari, Firefox, and Edge [DONE].
+  - SEO validation: Verify dynamic OpenGraph meta tags, Twitter cards, and structured JSON-LD data for events [DONE].
+  - Polish logout UX with transition loading indicator and responsive mobile controls [DONE - PR #49].
 
-> **Week 5 Deliverables Checkpoint**:
+> **Week 5 Deliverables Checkpoint [DONE]**:
 > - Fully operational Organizer Dashboard at `/dashboard/events/[id]`.
 > - Working `/saved` Hub for independent event and campaign bookmarks.
 > - Automated lifecycle notifications for event changes and cancellations.
@@ -467,12 +475,13 @@ Every item in Section 58 of the specification is mapped to its implementing mile
 | **Organizer** | Create event & location | Completed (W2) [DONE] | Uzair & Sanaullah | Structured coordinates and Nigerian hub presets saved. |
 | | Configure participation | Completed (W2) [DONE] | Hardik & Sanaullah | Sets Free, Registration, Paid, or External. |
 | | Configure campaign toggle | Completed (W2) [DONE] | Uzair & Sanaullah | Sets `allow_participant_campaigns` ON/OFF. |
-| | Create campaign | Week 5 (Day 11) | Uzair | Launches campaign builder attached to event. |
-| | View people distinction | Week 5 (Day 10) | Uzair & Hardik | Separates Attendees vs Registrants vs DP users. |
-| | View analytics | Week 5 (Day 11) | Uzair | Direct deep-link to campaign analytics dashboard. |
-| **Notifications** | Event updates | Week 5 (Day 10) | Hardik | Venue/time updates notify confirmed attendees. |
-| | Campaign updates | Week 5 (Day 10) | Hardik | New campaign creation alerts organizer. |
+| | Create campaign | Completed (W5 - Day 11) [DONE] | Uzair | Launches campaign builder attached to event. |
+| | View people distinction | Week 5 (Day 10) [DONE] | Uzair & Hardik | Separates Attendees vs Registrants vs DP users. |
+| | View analytics | Completed (W5 - Day 11) [DONE] | Uzair | Direct deep-link to campaign analytics dashboard. |
+| **Notifications** | Event updates | Week 5 (Day 10) [DONE] | Hardik | Venue/time updates notify confirmed attendees. |
+| | Campaign updates | Week 5 (Day 10) [DONE] | Hardik | New campaign creation alerts organizer. |
 | | Registration receipt | Completed (W3) [DONE] | Hardik | Confirmation appears in notification bell feed. |
+| | Event cancellation | Completed (W5) [DONE] | Sanaullah | Urgent cancellation notification dispatched to confirmed attendees. |
 
 ---
 

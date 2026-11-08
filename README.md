@@ -47,6 +47,27 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - `db-migration-ci.yml`: Pull request validation workflow that enforces migration timestamp naming conventions, verifies SQL file integrity, and executes dry-run validation against the linked project
 - `db-migration-deploy.yml`: Production deployment pipeline triggered on merges to `main` with concurrency locks (`cancel-in-progress: false`) to push pending migrations atomically to the production database
 
+### 7. Dedicated Organizer Dashboard (`src/app/dashboard/events/[id]`, `src/components/dashboard`, `src/app/actions/organizer.ts`)
+- Dual-factor access control enforcing event creator and co-organizer roles via the `event_organizers` table
+- Real-time overview metrics: total attendees, registrations, connected campaigns, and flyer generations
+- People roster management with dedicated sub-tabs for Attendees, Registrants, Ticket Holders, and Campaign Participants
+- Fast client-side CSV export engine for participant and attendee rosters
+- Connected campaigns management tab with status toggle (Published/Paused), generation metrics, and analytics links
+- Event settings editor with timezone-safe datetime-local handling, date order validation, participant campaign toggle, and safe event cancellation safeguards
+
+### 8. Central Saved Items Hub (`src/app/saved`, `src/services/saved.service.ts`)
+- Dedicated hub with dual-tab interface for Saved Events and Saved Campaigns
+- Independent optimistic bookmark state with real-time persistence across sessions and active discovery links
+
+### 9. Lifecycle Notifications Engine (`src/services/notifications.service.ts`)
+- In-app notification engine with priority-tiered delivery and idempotent deduplication keys
+- Automatic triggers for event date and venue updates, campaign creation, registration confirmations, and urgent cancellations
+
+### 10. Event SEO, Structured Data & Navigation UX (`src/app/events/[id]/page.tsx`, `src/components/navigation/header.tsx`)
+- Dynamic metadata generation providing canonical URLs, Open Graph website cards, and responsive Twitter cards
+- Schema.org Event JSON-LD structured data with protocol validation and script tag escaping for search engine rich snippets
+- Authenticated header sign-out state with responsive icon-only mobile layout, loading indicators, and unmount safety guards
+
 ## Project Directory Structure
 
 ```text
@@ -65,26 +86,25 @@ Attend/
 │   └── sw.js
 ├── scripts/                # Automated verification suites and CI runners
 │   ├── verify-milestone0.ts
-│   ├── verify-location-layer.ts
-│   ├── verify-location-picker.ts
-│   ├── verify-event-creation.ts
 │   ├── verify-milestone1.ts
-│   ├── verify-day3.ts
-│   ├── verify-day4.ts
 │   ├── verify-milestone2.ts
-│   ├── verify-w4-d1.ts
-│   ├── verify-w4-d2.ts
-│   ├── verify-w4-d3.ts
-│   └── verify-milestone3.ts
+│   ├── verify-milestone3.ts
+│   ├── verify-milestone4.ts
+│   ├── verify-w5-d1.ts
+│   ├── verify-w5-d2.ts
+│   └── verify-w5-d3.ts
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
+│   │   ├── actions/        # Server Actions (organizer.ts)
 │   │   ├── campaign/       # Public campaign view and share route
 │   │   ├── create/         # Event creation flow with LocationPicker
+│   │   ├── dashboard/      # Organizer event dashboard (/dashboard/events/[id])
 │   │   ├── discover/       # Public event discovery feed
 │   │   ├── events/         # Event detail and campaign management routes
 │   │   ├── login/          # User authentication login
 │   │   ├── notifications/  # User in-app notifications hub
 │   │   ├── profile/        # User and organizer profile management
+│   │   ├── saved/          # Saved events and campaigns hub
 │   │   ├── settings/       # Account and notification preferences
 │   │   ├── signup/         # User registration
 │   │   ├── globals.css     # Global styles and Tailwind configuration
@@ -93,7 +113,8 @@ Attend/
 │   │   └── page.tsx        # Home landing page with discover feed
 │   ├── components/         # Reusable modular UI components
 │   │   ├── analytics/      # Tracking and telemetry components
-│   │   ├── campaigns/      # Promotional campaign cards and canvas builder
+│   │   ├── campaigns/      # Promotional campaign cards, headers, and builder
+│   │   ├── dashboard/      # OrganizerHeader, OrganizerTabs, Overview, People, Campaigns, Settings
 │   │   ├── discover/       # DiscoverFilterBar, DiscoverHub, and card skeletons
 │   │   ├── events/         # Event cards and participation model selector
 │   │   ├── home/           # Landing page sections and filter controls
@@ -105,6 +126,7 @@ Attend/
 │   ├── hooks/              # Custom React hooks (useNotifications, useToast)
 │   ├── lib/                # Core libraries and utility abstractions
 │   │   ├── campaigns/      # Canvas renderer, integrity guards, funnel routing, and templates
+│   │   ├── dashboard/      # Roster CSV formatting and export engine
 │   │   ├── location/       # Pluggable location layer and bounding box filters
 │   │   ├── notifications/  # Notification processing engine and client
 │   │   ├── supabase/       # Supabase browser, server, and proxy clients
@@ -114,6 +136,8 @@ Attend/
 │   │   ├── campaigns.service.ts
 │   │   ├── discover.service.ts
 │   │   ├── events.service.ts
+│   │   ├── notifications.service.ts
+│   │   ├── organizer.service.ts
 │   │   ├── profile.service.ts
 │   │   └── saved.service.ts
 │   ├── stores/             # Client-side Zustand state stores
@@ -124,6 +148,7 @@ Attend/
 │       ├── attendance.ts
 │       ├── campaign-builder.ts
 │       ├── campaigns.ts
+│       ├── dashboard.ts
 │       ├── discover.ts
 │       ├── events.ts
 │       └── home.ts
@@ -191,7 +216,11 @@ npm test
 
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
-| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3) |
+| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 306+ automated checks) |
+| `npm run verify:m4` | Milestone 4 (Phase 4) | Dual-factor organizer authorization, overview metrics, people roster, central saved hub, safe cancellation, lifecycle notifications, Event SEO, JSON-LD, and Section 58 matrix |
+| `npm run verify:w5-d3` | Week 5 Day 3 (Phase 4) | Organizer campaigns tab, settings tab, local timezone offset handling, date order validation, safe cancellation safeguards, and lifecycle notifications |
+| `npm run verify:w5-d2` | Week 5 Day 2 (Phase 4) | Organizer people roster tab, 4 distinct sub-tabs, data separation between event attendance and campaign participation, and CSV export |
+| `npm run verify:w5-d1` | Week 5 Day 1 (Phase 4) | Organizer dashboard shell, header, overview stats cards, access control redirect, and saved items hub |
 | `npm run verify:m3` | Milestone 3 (Phase 3) | Discover query engine, Nigerian city presets, modular dual-grid layout, connected campaigns layer, conversion funnel, and domain isolation |
 | `npm run verify:w4-d3` | Week 4 Day 3 (Phase 3) | Conversion funnel routing, campaign share tracking, discover query index optimizations, and Map-based lookups |
 | `npm run verify:w4-d2` | Week 4 Day 2 (Phase 3) | Location query efficiency, PostGIS-free bounding box calculations, Nigerian city matching, Fabric.js canvas builder integrity guards |
@@ -231,4 +260,9 @@ Detailed workflows, branch naming conventions, quality requirements, and daily o
 4. Pass all verification checks (`npm test`, `npx tsc --noEmit`, `npm run build`).
 5. Open a Pull Request targeting the active weekly parent branch using the PR template and request review from Sanaullah.
 6. Once Sanaullah reviews and merges the PR into the weekly parent branch, the day is officially concluded.
+
+## License
+
+This project is licensed under the **Business Source License 1.1 (BUSL-1.1)**. See the [LICENSE](LICENSE) file for terms and parameters.
+
 
