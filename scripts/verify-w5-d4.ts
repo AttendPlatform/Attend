@@ -76,60 +76,99 @@ async function runWeek5Day4Verification() {
 
   // 2. Image Upload Constraints & Type Validation
   console.log("\n--- 2. Image Upload Constraints & Security Limits ---");
-  const createPage = readFileSync(resolve(cwd, "src/app/create/page.tsx"), "utf8");
-  check(
-    "Create event enforces 8MB cover upload ceiling",
-    createPage.includes("8 * 1024 * 1024")
-  );
-  check(
-    "Create event restricts file input to secure image types (PNG, JPEG, WebP)",
-    createPage.includes('accept="image/png,image/jpeg,image/webp"')
-  );
+  const createPath = resolve(cwd, "src/app/create/page.tsx");
+  const createExists = existsSync(createPath);
+  check("Create event page exists", createExists, "src/app/create/page.tsx");
+  if (createExists) {
+    const createPage = readFileSync(createPath, "utf8");
+    check(
+      "Create event enforces 8MB cover upload ceiling",
+      createPage.includes("8 * 1024 * 1024")
+    );
+    check(
+      "Create event restricts file input to secure image types (PNG, JPEG, WebP)",
+      createPage.includes('accept="image/png,image/jpeg,image/webp"')
+    );
+  } else {
+    check("Create event enforces 8MB cover upload ceiling", false, "Missing file");
+    check("Create event restricts file input to secure image types (PNG, JPEG, WebP)", false, "Missing file");
+  }
 
-  const campaignSlugPage = readFileSync(resolve(cwd, "src/app/campaign/[slug]/page.tsx"), "utf8");
-  check(
-    "Campaign participation enforces 10MB photo upload limit",
-    campaignSlugPage.includes("10 * 1024 * 1024")
-  );
+  const campaignSlugPath = resolve(cwd, "src/app/campaign/[slug]/page.tsx");
+  const campaignSlugExists = existsSync(campaignSlugPath);
+  check("Campaign participation page exists", campaignSlugExists, "src/app/campaign/[slug]/page.tsx");
+  if (campaignSlugExists) {
+    const campaignSlugPage = readFileSync(campaignSlugPath, "utf8");
+    check(
+      "Campaign participation enforces 10MB photo upload limit",
+      campaignSlugPage.includes("10 * 1024 * 1024")
+    );
+  } else {
+    check("Campaign participation enforces 10MB photo upload limit", false, "Missing file");
+  }
 
-  const campaignBuilder = readFileSync(resolve(cwd, "src/components/campaigns/campaign-builder.tsx"), "utf8");
-  check(
-    "Campaign builder enforces 15MB template upload ceiling",
-    campaignBuilder.includes("15 * 1024 * 1024")
-  );
+  const campaignBuilderPath = resolve(cwd, "src/components/campaigns/campaign-builder.tsx");
+  const campaignBuilderExists = existsSync(campaignBuilderPath);
+  check("Campaign builder component exists", campaignBuilderExists, "src/components/campaigns/campaign-builder.tsx");
+  if (campaignBuilderExists) {
+    const campaignBuilder = readFileSync(campaignBuilderPath, "utf8");
+    check(
+      "Campaign builder enforces 15MB template upload ceiling",
+      campaignBuilder.includes("15 * 1024 * 1024")
+    );
+  } else {
+    check("Campaign builder enforces 15MB template upload ceiling", false, "Missing file");
+  }
 
   // 3. Canvas Generation Integrity & Export Boundaries
   console.log("\n--- 3. Canvas Generation Integrity & Safeguards ---");
-  const canvasIntegrity = readFileSync(resolve(cwd, "src/lib/campaigns/canvas-integrity.ts"), "utf8");
-  check(
-    "canvas-integrity exports MIN_CANVAS_DIMENSION and MAX_CANVAS_DIMENSION",
-    canvasIntegrity.includes("MIN_CANVAS_DIMENSION = 100") &&
-    canvasIntegrity.includes("MAX_CANVAS_DIMENSION = 8192")
-  );
-  check(
-    "canvas-integrity enforces zoom clamp between 1x and 5x",
-    canvasIntegrity.includes("MIN_ZOOM = 1") &&
-    canvasIntegrity.includes("MAX_ZOOM = 5")
-  );
-  check(
-    "canvas-integrity exports assertCanvasIntegrity validation",
-    canvasIntegrity.includes("export function assertCanvasIntegrity")
-  );
+  const canvasIntegrityPath = resolve(cwd, "src/lib/campaigns/canvas-integrity.ts");
+  const canvasIntegrityExists = existsSync(canvasIntegrityPath);
+  check("Canvas integrity module exists", canvasIntegrityExists, "src/lib/campaigns/canvas-integrity.ts");
+  if (canvasIntegrityExists) {
+    const canvasIntegrity = readFileSync(canvasIntegrityPath, "utf8");
+    check(
+      "canvas-integrity exports MIN_CANVAS_DIMENSION and MAX_CANVAS_DIMENSION",
+      canvasIntegrity.includes("MIN_CANVAS_DIMENSION = 100") &&
+      canvasIntegrity.includes("MAX_CANVAS_DIMENSION = 8192")
+    );
+    check(
+      "canvas-integrity enforces zoom clamp between 1x and 5x",
+      canvasIntegrity.includes("MIN_ZOOM = 1") &&
+      canvasIntegrity.includes("MAX_ZOOM = 5")
+    );
+    check(
+      "canvas-integrity exports assertCanvasIntegrity validation",
+      canvasIntegrity.includes("export function assertCanvasIntegrity")
+    );
+  } else {
+    check("canvas-integrity exports MIN_CANVAS_DIMENSION and MAX_CANVAS_DIMENSION", false, "Missing file");
+    check("canvas-integrity enforces zoom clamp between 1x and 5x", false, "Missing file");
+    check("canvas-integrity exports assertCanvasIntegrity validation", false, "Missing file");
+  }
 
-  const generateModule = readFileSync(resolve(cwd, "src/lib/campaigns/generate.ts"), "utf8");
-  check(
-    "generateCampaignImage validates canvas integrity prior to rendering",
-    generateModule.includes("assertCanvasIntegrity")
-  );
-  check(
-    "generateCampaignImage draws circular and rectangular photo shapes",
-    generateModule.includes('photoPosition.shape === "circle"')
-  );
-  check(
-    "generateCampaignImage exports lossless PNG data URL",
-    generateModule.includes('canvas.toDataURL("image/png"') ||
-    generateModule.includes("toDataURL(")
-  );
+  const generatePath = resolve(cwd, "src/lib/campaigns/generate.ts");
+  const generateExists = existsSync(generatePath);
+  check("Campaign generate module exists", generateExists, "src/lib/campaigns/generate.ts");
+  if (generateExists) {
+    const generateModule = readFileSync(generatePath, "utf8");
+    check(
+      "generateCampaignImage validates canvas integrity prior to rendering",
+      generateModule.includes("assertCanvasIntegrity")
+    );
+    check(
+      "generateCampaignImage draws circular and rectangular photo shapes",
+      generateModule.includes('photoPosition.shape === "circle"')
+    );
+    check(
+      "generateCampaignImage exports lossless PNG data URL",
+      generateModule.includes('canvas.toDataURL("image/png"')
+    );
+  } else {
+    check("generateCampaignImage validates canvas integrity prior to rendering", false, "Missing file");
+    check("generateCampaignImage draws circular and rectangular photo shapes", false, "Missing file");
+    check("generateCampaignImage exports lossless PNG data URL", false, "Missing file");
+  }
 
   // 4. Zero Em Dashes Policy
   console.log("\n--- 4. Zero Em Dashes Policy ---");
@@ -137,6 +176,11 @@ async function runWeek5Day4Verification() {
     "scripts/verify-w5-d4.ts",
     "src/lib/campaigns/canvas-integrity.ts",
     "src/lib/campaigns/generate.ts",
+    "src/app/create/page.tsx",
+    "src/app/campaign/[slug]/page.tsx",
+    "src/components/campaigns/campaign-builder.tsx",
+    "src/components/navigation/mobile-nav.tsx",
+    "src/components/events/MobileEventActionBar.tsx",
     "src/components/dashboard/OrganizerTabs.tsx",
     "src/components/dashboard/OrganizerOverviewTab.tsx",
     "src/components/dashboard/OrganizerPeopleTab.tsx",
