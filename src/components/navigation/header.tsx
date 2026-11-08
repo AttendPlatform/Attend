@@ -2,16 +2,82 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { LogOut } from "lucide-react";
 
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { toast } from "@/hooks/use-toast";
+import { createClient } from "@/lib/supabase/client";
 
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const isDiscover = pathname === "/discover";
-  const { user } = useAuthStore();
+  const { user, clearAuth } = useAuthStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const logoutTimeoutRef = useRef<number | null>(null);
+  const logoutDestinationRef = useRef<string | null>(null);
+  const cachedUserRef = useRef(user);
+
+  if (user) {
+    cachedUserRef.current = user;
+  }
+
+  const displayUser = user ?? (isLoggingOut ? cachedUserRef.current : null);
+
+  useEffect(() => {
+    if (logoutDestinationRef.current !== pathname) return;
+
+    logoutDestinationRef.current = null;
+    setIsLoggingOut(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    return () => {
+      if (logoutTimeoutRef.current !== null) {
+        window.clearTimeout(logoutTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    const supabase = createClient();
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error("Failed to sign out:", error);
+      setIsLoggingOut(false);
+      toast.error("Failed to sign out. Please try again.");
+      return;
+    }
+
+    logoutTimeoutRef.current = window.setTimeout(() => {
+      logoutTimeoutRef.current = null;
+      if (pathname === "/") {
+        clearAuth();
+        router.refresh();
+        setIsLoggingOut(false);
+        return;
+      }
+
+      logoutDestinationRef.current = "/";
+      router.push("/");
+      clearAuth();
+
+      logoutTimeoutRef.current = window.setTimeout(() => {
+        logoutTimeoutRef.current = null;
+        setIsLoggingOut(false);
+      }, 2000);
+    }, 500);
+  }
   
   /*
    * =========================================================
@@ -19,9 +85,9 @@ export function Header() {
    * =========================================================
    */
   const avatarSrc =
-    user?.user_metadata?.avatarUrl ||
-    user?.user_metadata?.avatar_url ||
-    user?.user_metadata?.avatar;
+    displayUser?.user_metadata?.avatarUrl ||
+    displayUser?.user_metadata?.avatar_url ||
+    displayUser?.user_metadata?.avatar;
 
   /*
    * =========================================================
@@ -29,8 +95,8 @@ export function Header() {
    * =========================================================
    */
   const displayName =
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
+    displayUser?.user_metadata?.full_name ||
+    displayUser?.user_metadata?.name ||
     "";
 
   const initial = displayName
@@ -90,7 +156,7 @@ export function Header() {
             RIGHT SIDE
         ===================================================== */}
         <div className="flex items-center gap-2">
-          {user ? (
+          {user || isLoggingOut ? (
             <>
               {/* ===================================================
                   NOTIFICATIONS
@@ -131,6 +197,29 @@ export function Header() {
                   Profile
                 </span>
               </Link>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                aria-label={isLoggingOut ? "Logging out" : "Log out"}
+                className={`rounded-full border p-2 text-sm font-medium transition-all duration-300 md:px-3 md:py-2 ${
+                  isLoggingOut
+                    ? "cursor-wait border-violet-200 bg-violet-50 text-violet-700 shadow-sm"
+                    : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900"
+                }`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  {isLoggingOut ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" aria-hidden="true" />
+                  ) : (
+                    <LogOut className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  <span className="hidden md:inline">
+                    {isLoggingOut ? "Logging out..." : "Logout"}
+                  </span>
+                </span>
+              </button>
             </>
           ) : (
             <>

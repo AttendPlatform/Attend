@@ -40,6 +40,28 @@ type PageProps = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
+const DEFAULT_SITE_URL = "https://attend-event-discovery.vercel.app";
+
+function getSiteUrl() {
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL).replace(/\/+$/, "");
+}
+
+function getSafeHttpUrl(value: string | null | undefined) {
+  if (!value) return null;
+
+  try {
+    const candidate = /^https?:\/\//i.test(value.trim())
+      ? value.trim()
+      : `https://${value.trim()}`;
+    const url = new URL(candidate);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
@@ -47,7 +69,7 @@ export async function generateMetadata({
   const supabase = await createClient();
   const { data: event } = await supabase
     .from("events")
-    .select("title, description, cover_image")
+    .select("id, title, description, cover_image")
     .eq("id", id)
     .eq("status", "published")
     .maybeSingle();
@@ -58,13 +80,27 @@ export async function generateMetadata({
     };
   }
 
+  const description = event.description || "Join this event on Attend.";
+  const eventUrl = `${getSiteUrl()}/events/${event.id}`;
+
   return {
     title: `${event.title} | Attend`,
-    description: event.description || "Join this event on Attend.",
+    description,
+    alternates: {
+      canonical: eventUrl,
+    },
     openGraph: {
+      type: "website",
       title: event.title,
-      description: event.description || "Join this event on Attend.",
+      description,
+      url: eventUrl,
       images: event.cover_image ? [event.cover_image] : [],
+    },
+    twitter: {
+      card: event.cover_image ? "summary_large_image" : "summary",
+      title: event.title,
+      description,
+      images: event.cover_image ? [event.cover_image] : undefined,
     },
   };
 }
@@ -350,9 +386,7 @@ export default async function PublicEventPage({
         ? new Date(startDate.getTime() + 2 * 60 * 60 * 1000)
         : null;
 
-  const eventUrl = `${
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://attend-event-discovery.vercel.app"
-  }/events/${event.id}`;
+  const eventUrl = `${getSiteUrl()}/events/${event.id}`;
 
   const escapeCalendarText = (value: string) =>
     value
@@ -403,9 +437,56 @@ export default async function PublicEventPage({
   // Campaigns remain separate from event attendance.
   const campaigns = (campaignsResult.data ?? []) as unknown as CampaignRecord[];
   const campaignsUnavailable = Boolean(campaignsResult.error);
+  const eventStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: event.title,
+    ...(event.description ? { description: event.description } : {}),
+    ...(event.cover_image ? { image: [event.cover_image] } : {}),
+    ...(validStartDate ? { startDate: startDate.toISOString() } : {}),
+    ...(endDate && !Number.isNaN(endDate.getTime())
+      ? { endDate: endDate.toISOString() }
+      : {}),
+    url: eventUrl,
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: event.is_online
+      ? "https://schema.org/OnlineEventAttendanceMode"
+      : "https://schema.org/OfflineEventAttendanceMode",
+    location: event.is_online
+      ? {
+          "@type": "VirtualLocation",
+          url: getSafeHttpUrl(event.online_url) || eventUrl,
+        }
+      : {
+          "@type": "Place",
+          name: event.venue_name || locationLabel,
+          ...((event.address || event.city || event.state || event.country)
+            ? {
+                address: {
+                  "@type": "PostalAddress",
+                  ...(event.address ? { streetAddress: event.address } : {}),
+                  ...(event.city ? { addressLocality: event.city } : {}),
+                  ...(event.state ? { addressRegion: event.state } : {}),
+                  ...(event.country ? { addressCountry: event.country } : {}),
+                },
+              }
+            : {}),
+        },
+    organizer: {
+      "@type": "Person",
+      name: organizerName,
+      url: `${getSiteUrl()}/profile/${event.creator_id}`,
+    },
+  };
 
   return (
     <main className="min-h-screen bg-neutral-50 pb-40 md:pb-24 lg:pb-12 text-neutral-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(eventStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <EventAttendanceProvider
         eventId={event.id}
         eventTitle={event.title}
