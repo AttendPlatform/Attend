@@ -20,6 +20,13 @@ export function Header() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const logoutTimeoutRef = useRef<number | null>(null);
   const logoutDestinationRef = useRef<string | null>(null);
+  const cachedUserRef = useRef(user);
+
+  if (user) {
+    cachedUserRef.current = user;
+  }
+
+  const displayUser = user ?? (isLoggingOut ? cachedUserRef.current : null);
 
   useEffect(() => {
     if (logoutDestinationRef.current !== pathname) return;
@@ -64,6 +71,11 @@ export function Header() {
       logoutDestinationRef.current = "/";
       router.push("/");
       clearAuth();
+
+      logoutTimeoutRef.current = window.setTimeout(() => {
+        logoutTimeoutRef.current = null;
+        setIsLoggingOut(false);
+      }, 2000);
     }, 500);
   }
   
@@ -73,9 +85,9 @@ export function Header() {
    * =========================================================
    */
   const avatarSrc =
-    user?.user_metadata?.avatarUrl ||
-    user?.user_metadata?.avatar_url ||
-    user?.user_metadata?.avatar;
+    displayUser?.user_metadata?.avatarUrl ||
+    displayUser?.user_metadata?.avatar_url ||
+    displayUser?.user_metadata?.avatar;
 
   /*
    * =========================================================
@@ -83,8 +95,8 @@ export function Header() {
    * =========================================================
    */
   const displayName =
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
+    displayUser?.user_metadata?.full_name ||
+    displayUser?.user_metadata?.name ||
     "";
 
   const initial = displayName
