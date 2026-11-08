@@ -63,6 +63,11 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - In-app notification engine with priority-tiered delivery and idempotent deduplication keys
 - Automatic triggers for event date and venue updates, campaign creation, registration confirmations, and urgent cancellations
 
+### 10. Event SEO, Structured Data & Navigation UX (`src/app/events/[id]/page.tsx`, `src/components/navigation/header.tsx`)
+- Dynamic metadata generation providing canonical URLs, Open Graph website cards, and responsive Twitter cards
+- Schema.org Event JSON-LD structured data with protocol validation and script tag escaping for search engine rich snippets
+- Authenticated header sign-out state with responsive icon-only mobile layout, loading indicators, and unmount safety guards
+
 ## Project Directory Structure
 
 ```text
@@ -211,8 +216,8 @@ npm test
 
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
-| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 300+ automated checks) |
-| `npm run verify:m4` | Milestone 4 (Phase 4) | Dual-factor organizer authorization, overview metrics, people roster, central saved hub, safe cancellation, lifecycle notifications, and Section 58 matrix |
+| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 306+ automated checks) |
+| `npm run verify:m4` | Milestone 4 (Phase 4) | Dual-factor organizer authorization, overview metrics, people roster, central saved hub, safe cancellation, lifecycle notifications, Event SEO, JSON-LD, and Section 58 matrix |
 | `npm run verify:w5-d3` | Week 5 Day 3 (Phase 4) | Organizer campaigns tab, settings tab, local timezone offset handling, date order validation, safe cancellation safeguards, and lifecycle notifications |
 | `npm run verify:w5-d2` | Week 5 Day 2 (Phase 4) | Organizer people roster tab, 4 distinct sub-tabs, data separation between event attendance and campaign participation, and CSV export |
 | `npm run verify:w5-d1` | Week 5 Day 1 (Phase 4) | Organizer dashboard shell, header, overview stats cards, access control redirect, and saved items hub |
