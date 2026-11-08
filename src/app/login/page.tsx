@@ -1,7 +1,7 @@
 
 "use client";
 
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -28,6 +28,32 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+  const [greeting, setGreeting] = useState("Good to see you");
+
+  useEffect(() => {
+    const greetings = [
+      "Good to see you",
+      "Welcome back",
+      "Great to have you here",
+      "Ready for what’s next?",
+      "Your next experience starts here",
+      "Let’s get you started",
+      "Good things happen when we connect",
+      "There’s more to experience",
+    ];
+
+    const chooseGreeting = (current: string) => {
+      const options = greetings.filter((item) => item !== current);
+      return options[Math.floor(Math.random() * options.length)];
+    };
+
+    setGreeting(chooseGreeting("Good to see you"));
+    const interval = window.setInterval(() => {
+      setGreeting((current) => chooseGreeting(current));
+    }, 30_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -157,8 +183,8 @@ function LoginForm() {
             Welcome back
           </p>
 
-          <h1 className="mt-3 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
-            Good to see you
+          <h1 aria-live="polite" className="mt-3 min-h-[2.5rem] text-3xl font-bold tracking-tight text-neutral-900 transition-opacity duration-300 sm:text-4xl">
+            {greeting}
             <span className="text-violet-600">.</span>
           </h1>
 
