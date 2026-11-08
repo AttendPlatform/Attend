@@ -233,9 +233,7 @@ export default function AboutPage() {
               </article>
             ))}
           </div>
-          <p className="mt-5 text-xs text-neutral-500">
-            Team portraits can be added when approved photos are available.
-          </p>
+        
         </div>
       </section>
 
