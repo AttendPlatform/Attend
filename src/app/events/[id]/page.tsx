@@ -50,7 +50,10 @@ function getSafeHttpUrl(value: string | null | undefined) {
   if (!value) return null;
 
   try {
-    const url = new URL(value);
+    const candidate = /^https?:\/\//i.test(value.trim())
+      ? value.trim()
+      : `https://${value.trim()}`;
+    const url = new URL(candidate);
     return url.protocol === "http:" || url.protocol === "https:"
       ? url.toString()
       : null;
