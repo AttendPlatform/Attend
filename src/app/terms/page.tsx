@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Footer } from "@/components/navigation/footer";
 import { LegalPage, type LegalSection } from "@/components/legal/legal-page";
 
 export const metadata: Metadata = {
@@ -174,11 +175,14 @@ const sections: LegalSection[] = [
 
 export default function TermsPage() {
   return (
-    <LegalPage
+    <>
+      <LegalPage
       title="Terms of Service"
       description="The rules and conditions that apply when you use Attend to discover events, create experiences, and connect with communities."
       effectiveDate="To be set on publication"
       sections={sections}
-    />
+      />
+      <Footer />
+    </>
   );
 }
