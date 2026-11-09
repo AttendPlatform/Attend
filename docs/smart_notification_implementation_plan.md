@@ -159,13 +159,13 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 ### Day 1 (4 Hours/Dev) - Schema Foundation, Shared Contracts & Unified Smart Engine
 
 #### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`)
-1. **Create Weekly Parent Branch**:
+1. **Create Weekly Parent Branch** [DONE]:
    ```bash
    git checkout main && git pull origin main
    git checkout -b feat/w1-smart-notifications-foundation
    git push -u origin feat/w1-smart-notifications-foundation
    ```
-2. **Author Week 1 Database Migration** (`supabase/migrations/20261110100000_smart_notifications_foundation.sql`):
+2. **Author Week 1 Database Migration** (`supabase/migrations/20261110100000_smart_notifications_foundation.sql`) [DONE]:
    - Extend `public.notifications` table:
      - `image_url TEXT`, `image_alt TEXT`
      - `presentation_format TEXT NOT NULL DEFAULT 'text'` (`CHECK (presentation_format IN ('text', 'image_popup', 'featured_event', 'banner', 'social', 'reminder', 'organizer_insight', 'system_announcement'))`)
@@ -182,10 +182,10 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
      - Columns: `id UUID PRIMARY KEY`, `user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE`, `action_type TEXT NOT NULL` (`'event_draft' | 'campaign_draft' | 'incomplete_registration' | 'incomplete_profile' | 'unfinished_event_edit'`), `event_id UUID REFERENCES events(id) ON DELETE CASCADE`, `campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE`, `draft_title TEXT`, `draft_payload JSONB NOT NULL DEFAULT '{}'::jsonb`, `resume_url TEXT NOT NULL`, `last_progressed_at TIMESTAMPTZ NOT NULL DEFAULT now()`, `reminder_stage INT NOT NULL DEFAULT 0`, `last_reminded_at TIMESTAMPTZ`, `recovered_at TIMESTAMPTZ`, `status TEXT NOT NULL DEFAULT 'active'` (`'active' | 'recovered' | 'completed' | 'dismissed' | 'suppressed'`), `created_at TIMESTAMPTZ`, `updated_at TIMESTAMPTZ`.
      - Unique constraint on `(user_id, action_type, COALESCE(event_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(campaign_id, '00000000-0000-0000-0000-000000000000'::uuid))` so progress updates upsert cleanly.
      - Enable RLS with strict `user_id = (SELECT auth.uid())` policies for `SELECT`, `INSERT`, `UPDATE`, `DELETE`.
-3. **Publish Shared TypeScript Contracts** (`src/types/notifications.ts`, update [src/lib/notifications/types.ts](src/lib/notifications/types.ts), [src/types/index.ts](src/types/index.ts), and [src/lib/supabase/database.types.ts](src/lib/supabase/database.types.ts)):
+3. **Publish Shared TypeScript Contracts** (`src/types/notifications.ts`, update [src/lib/notifications/types.ts](src/lib/notifications/types.ts), [src/types/index.ts](src/types/index.ts), and [src/lib/supabase/database.types.ts](src/lib/supabase/database.types.ts)) [DONE]:
    - Define `NotificationStatus = "unread" | "read" | "scheduled" | "sent" | "suppressed" | "expired" | "dismissed"`.
    - Define `NotificationPresentationFormat`, `NotificationPriority`, `SmartNotificationInput`, `VisualNotificationPayload`, and `AbandonedActionRecord`.
-4. **Author Day 1 Verification Suite**: Create `scripts/verify-sn-w1-d1.ts` verifying schema additions, shared contracts, status filtering, and removal of the unsafe raw-insert fallback.
+4. **Author Day 1 Verification Suite** [DONE]: Create `scripts/verify-sn-w1-d1.ts` verifying schema additions, shared contracts, status filtering, and removal of the unsafe raw-insert fallback.
 5. **Review & Merge**: Review and merge Uzair's and Hardik's Day 1 PRs into `feat/w1-smart-notifications-foundation`.
 
 #### Uzair (Software Engineer) - 4 Hours
