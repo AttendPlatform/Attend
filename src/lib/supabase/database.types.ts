@@ -14,6 +14,82 @@ export type Database = {
   }
   public: {
     Tables: {
+      abandoned_actions: {
+        Row: {
+          action_type: string
+          campaign_id: string | null
+          created_at: string
+          draft_payload: Json
+          draft_title: string | null
+          event_id: string | null
+          id: string
+          last_progressed_at: string
+          last_reminded_at: string | null
+          recovered_at: string | null
+          reminder_stage: number
+          resume_url: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          campaign_id?: string | null
+          created_at?: string
+          draft_payload?: Json
+          draft_title?: string | null
+          event_id?: string | null
+          id?: string
+          last_progressed_at?: string
+          last_reminded_at?: string | null
+          recovered_at?: string | null
+          reminder_stage?: number
+          resume_url: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          campaign_id?: string | null
+          created_at?: string
+          draft_payload?: Json
+          draft_title?: string | null
+          event_id?: string | null
+          id?: string
+          last_progressed_at?: string
+          last_reminded_at?: string | null
+          recovered_at?: string | null
+          reminder_stage?: number
+          resume_url?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abandoned_actions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abandoned_actions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abandoned_actions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_events: {
         Row: {
           campaign_id: string | null
@@ -534,12 +610,14 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          abandoned_reminders_enabled: boolean
           campaign_activity: boolean
           campaign_insights: boolean
           campaign_milestones: boolean
           created_at: string
           email_enabled: boolean
           event_reminders: boolean
+          max_daily_notifications: number
           new_events: boolean
           push_enabled: boolean
           quiet_hours_enabled: boolean
@@ -547,17 +625,21 @@ export type Database = {
           quiet_hours_start: string | null
           recommendations: boolean
           smart_notifications: boolean
+          social_notifications_enabled: boolean
+          timezone: string
           trending_events: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
+          abandoned_reminders_enabled?: boolean
           campaign_activity?: boolean
           campaign_insights?: boolean
           campaign_milestones?: boolean
           created_at?: string
           email_enabled?: boolean
           event_reminders?: boolean
+          max_daily_notifications?: number
           new_events?: boolean
           push_enabled?: boolean
           quiet_hours_enabled?: boolean
@@ -565,17 +647,21 @@ export type Database = {
           quiet_hours_start?: string | null
           recommendations?: boolean
           smart_notifications?: boolean
+          social_notifications_enabled?: boolean
+          timezone?: string
           trending_events?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
+          abandoned_reminders_enabled?: boolean
           campaign_activity?: boolean
           campaign_insights?: boolean
           campaign_milestones?: boolean
           created_at?: string
           email_enabled?: boolean
           event_reminders?: boolean
+          max_daily_notifications?: number
           new_events?: boolean
           push_enabled?: boolean
           quiet_hours_enabled?: boolean
@@ -583,6 +669,8 @@ export type Database = {
           quiet_hours_start?: string | null
           recommendations?: boolean
           smart_notifications?: boolean
+          social_notifications_enabled?: boolean
+          timezone?: string
           trending_events?: boolean
           updated_at?: string
           user_id?: string
@@ -637,21 +725,28 @@ export type Database = {
           created_at: string
           dedupe_key: string | null
           delivery_channel: string | null
+          delivery_error: string | null
+          dismissed_at: string | null
           event_id: string | null
           expires_at: string | null
           id: string
+          image_alt: string | null
+          image_url: string | null
           is_read: boolean
           link: string | null
           message: string | null
           metadata: Json | null
+          presentation_format: string
           priority: string
           read_at: string | null
+          retry_count: number
           scheduled_for: string | null
           sent_at: string | null
           status: string | null
           title: string
           type: string | null
           user_id: string
+          why_recommended: string | null
         }
         Insert: {
           action_label?: string | null
@@ -661,21 +756,28 @@ export type Database = {
           created_at?: string
           dedupe_key?: string | null
           delivery_channel?: string | null
+          delivery_error?: string | null
+          dismissed_at?: string | null
           event_id?: string | null
           expires_at?: string | null
           id?: string
+          image_alt?: string | null
+          image_url?: string | null
           is_read?: boolean
           link?: string | null
           message?: string | null
           metadata?: Json | null
+          presentation_format?: string
           priority?: string
           read_at?: string | null
+          retry_count?: number
           scheduled_for?: string | null
           sent_at?: string | null
           status?: string | null
           title: string
           type?: string | null
           user_id: string
+          why_recommended?: string | null
         }
         Update: {
           action_label?: string | null
@@ -685,21 +787,28 @@ export type Database = {
           created_at?: string
           dedupe_key?: string | null
           delivery_channel?: string | null
+          delivery_error?: string | null
+          dismissed_at?: string | null
           event_id?: string | null
           expires_at?: string | null
           id?: string
+          image_alt?: string | null
+          image_url?: string | null
           is_read?: boolean
           link?: string | null
           message?: string | null
           metadata?: Json | null
+          presentation_format?: string
           priority?: string
           read_at?: string | null
+          retry_count?: number
           scheduled_for?: string | null
           sent_at?: string | null
           status?: string | null
           title?: string
           type?: string | null
           user_id?: string
+          why_recommended?: string | null
         }
         Relationships: [
           {
