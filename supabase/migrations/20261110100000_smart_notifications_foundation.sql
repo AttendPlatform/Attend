@@ -39,4 +39,11 @@ CREATE INDEX IF NOT EXISTS idx_notifications_scheduled
   ON public.notifications(scheduled_for)
   WHERE status = 'scheduled';
 
+-- 2. Extend notification preferences with timezone, recovery, and frequency limits
+ALTER TABLE public.notification_preferences
+  ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'Africa/Lagos',
+  ADD COLUMN IF NOT EXISTS abandoned_reminders_enabled BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS social_notifications_enabled BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS max_daily_notifications INT NOT NULL DEFAULT 5;
+
 COMMIT;
