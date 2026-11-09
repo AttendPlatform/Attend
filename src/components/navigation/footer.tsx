@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, CalendarDays, Instagram, Mail } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Mail } from "lucide-react";
 
 export function Footer() {
   return (
