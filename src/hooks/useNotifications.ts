@@ -20,6 +20,9 @@ export function useNotifications(
   const dismissLatestNotification = useNotificationsStore(
     (s) => s.dismissLatestNotification
   );
+  const dismissNotification = useNotificationsStore(
+    (s) => s.dismissNotification
+  );
   const markRead = useNotificationsStore((s) => s.markRead);
   const markAllRead = useNotificationsStore((s) => s.markAllRead);
   const fetchNotificationsAction = useNotificationsStore(
@@ -51,6 +54,7 @@ export function useNotifications(
     loading,
     latestNotification,
     dismissLatestNotification,
+    dismissNotification,
     refresh,
     fetchNotifications,
     fetchUnreadCount: fetchUnreadCountAction,

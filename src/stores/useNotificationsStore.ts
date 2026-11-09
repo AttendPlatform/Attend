@@ -6,6 +6,7 @@ import {
   getUnreadNotificationCount,
   markAllNotificationsRead,
   markNotificationRead,
+  dismissNotification as dismissNotificationClient,
 } from '@/lib/notifications/client';
 import type { Notification } from '@/lib/notifications/types';
 
@@ -23,6 +24,7 @@ interface NotificationsState {
   cleanupRealtime: () => void;
   reset: () => void;
   dismissLatestNotification: () => void;
+  dismissNotification: (id: string) => Promise<void>;
   markRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
 }
@@ -119,28 +121,94 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
           (payload) => {
             if (payload.eventType === 'INSERT') {
               const notification = payload.new as Notification;
-              set((state) => ({
-                latestNotification: notification,
-                unreadCount: state.unreadCount + 1,
-                notifications: state.notifications.length > 0
-                  ? [notification, ...state.notifications.filter((item) => item.id !== notification.id)].slice(0, 50)
-                  : state.notifications,
-              }));
+              // Ignore rows inserted with scheduled, suppressed, expired, or dismissed status
+              if (notification.status !== 'unread' && notification.status !== 'sent') {
+                return;
+              }
+
+              set((state) => {
+                // Client-side deduplication by id and dedupe_key
+                const isDuplicateId = state.notifications.some((item) => item.id === notification.id);
+                const dedupeKey = (notification as { dedupe_key?: string | null }).dedupe_key;
+                const isDuplicateDedupe = Boolean(
+                  dedupeKey &&
+                  state.notifications.some(
+                    (item) => (item as { dedupe_key?: string | null }).dedupe_key === dedupeKey
+                  )
+                );
+
+                if (isDuplicateId || isDuplicateDedupe) {
+                  return state;
+                }
+
+                const isToastDuplicate =
+                  state.latestNotification?.id === notification.id ||
+                  Boolean(
+                    dedupeKey &&
+                    (state.latestNotification as { dedupe_key?: string | null })?.dedupe_key === dedupeKey
+                  );
+
+                return {
+                  latestNotification: isToastDuplicate ? state.latestNotification : notification,
+                  unreadCount: state.unreadCount + 1,
+                  notifications: [
+                    notification,
+                    ...state.notifications.filter((item) => item.id !== notification.id),
+                  ].slice(0, 50),
+                };
+              });
             } else if (payload.eventType === 'UPDATE') {
               const updated = payload.new as Notification;
               set((state) => {
                 const prev = state.notifications.find((item) => item.id === updated.id);
+                const wasScheduled = prev?.status === 'scheduled';
+                const isNowUnread = updated.status === 'unread' || updated.status === 'sent';
+
+                // Promoted from scheduled to unread (due notification promoted by engine)
+                if (wasScheduled && isNowUnread) {
+                  const dedupeKey = (updated as { dedupe_key?: string | null }).dedupe_key;
+                  const isDuplicateDedupe = Boolean(
+                    dedupeKey &&
+                    state.notifications.some(
+                      (item) =>
+                        item.id !== updated.id &&
+                        (item as { dedupe_key?: string | null }).dedupe_key === dedupeKey
+                    )
+                  );
+
+                  return {
+                    latestNotification: isDuplicateDedupe ? state.latestNotification : updated,
+                    unreadCount: state.unreadCount + 1,
+                    notifications: isDuplicateDedupe
+                      ? state.notifications
+                      : [
+                          updated,
+                          ...state.notifications.filter((item) => item.id !== updated.id),
+                        ].slice(0, 50),
+                  };
+                }
+
+                // Standard status update
+                const wasUnread = prev ? (prev.status === 'unread' || prev.status === 'sent') : false;
                 let countDiff = 0;
-                if (prev?.status === 'unread' && updated.status === 'read') {
+                if (wasUnread && !isNowUnread) {
                   countDiff = -1;
-                } else if (prev?.status === 'read' && updated.status === 'unread') {
+                } else if (!wasUnread && isNowUnread) {
                   countDiff = 1;
                 }
+
+                const isDismissed = updated.status === 'dismissed';
+                const isSuppressed = updated.status === 'suppressed' || updated.status === 'expired';
+
                 return {
                   unreadCount: Math.max(0, state.unreadCount + countDiff),
                   notifications: state.notifications.map((item) =>
                     item.id === updated.id ? updated : item
                   ),
+                  latestNotification:
+                    state.latestNotification?.id === updated.id && (isDismissed || isSuppressed)
+                      ? null
+                      : state.latestNotification,
                 };
               });
             } else if (payload.eventType === 'DELETE') {
@@ -148,10 +216,13 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
               if (oldId) {
                 set((state) => {
                   const deletedItem = state.notifications.find((item) => item.id === oldId);
-                  const countDiff = deletedItem?.status === 'unread' ? -1 : 0;
+                  const countDiff =
+                    deletedItem?.status === 'unread' || deletedItem?.status === 'sent' ? -1 : 0;
                   return {
                     unreadCount: Math.max(0, state.unreadCount + countDiff),
                     notifications: state.notifications.filter((item) => item.id !== oldId),
+                    latestNotification:
+                      state.latestNotification?.id === oldId ? null : state.latestNotification,
                   };
                 });
               }
@@ -196,6 +267,32 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
   dismissLatestNotification: () => {
     set({ latestNotification: null });
+  },
+
+  dismissNotification: async (id: string) => {
+    const { notifications, unreadCount } = get();
+    const notification = notifications.find((item) => item.id === id);
+    const wasUnread = notification?.status === 'unread' || notification?.status === 'sent';
+
+    set((state) => ({
+      notifications: state.notifications.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: 'dismissed',
+              dismissed_at: item.dismissed_at ?? new Date().toISOString(),
+            }
+          : item
+      ),
+      unreadCount: wasUnread ? Math.max(0, unreadCount - 1) : unreadCount,
+      latestNotification: state.latestNotification?.id === id ? null : state.latestNotification,
+    }));
+
+    try {
+      await dismissNotificationClient(id);
+    } catch (error) {
+      console.error('[Attend Notifications] Dismiss failed:', error);
+    }
   },
 
   markRead: async (id: string) => {
