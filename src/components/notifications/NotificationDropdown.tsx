@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { CheckCheck, Inbox } from "lucide-react";
 import type { Notification } from "@/lib/notifications/types";
+import { recordNotificationInteraction } from "@/lib/notifications/client";
 
 interface NotificationDropdownProps {
   notifications: Notification[];
@@ -46,6 +47,7 @@ export function NotificationDropdown({
   }, [onClose]);
 
   const handleNotificationClick = async (notification: Notification) => {
+    recordNotificationInteraction(notification.id, "click").catch(() => {});
     if (notification.status !== "read") {
       await markRead(notification.id);
     }
@@ -53,7 +55,14 @@ export function NotificationDropdown({
   };
 
   const filteredNotifications = notifications.filter((item) => {
-    if (filter === "unread") return item.status !== "read";
+    if (
+      item.status === "dismissed" ||
+      item.status === "suppressed" ||
+      item.status === "expired"
+    ) {
+      return false;
+    }
+    if (filter === "unread") return item.status === "unread" || item.status === "sent";
     return true;
   });
 
@@ -148,13 +157,30 @@ export function NotificationDropdown({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p
-                          className={`text-xs text-neutral-900 ${
-                            isUnread ? "font-semibold" : "font-medium"
-                          }`}
-                        >
-                          {item.title}
-                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p
+                            className={`text-xs text-neutral-900 ${
+                              isUnread ? "font-semibold" : "font-medium"
+                            }`}
+                          >
+                            {item.title}
+                          </p>
+                          {item.priority === "urgent" && (
+                            <span className="shrink-0 rounded bg-rose-100 px-1 py-0.5 text-[9px] font-bold text-rose-700 uppercase tracking-wider">
+                              Urgent
+                            </span>
+                          )}
+                          {item.priority === "high" && (
+                            <span className="shrink-0 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold text-amber-700 uppercase tracking-wider">
+                              High
+                            </span>
+                          )}
+                          {item.category === "recovery" && (
+                            <span className="shrink-0 rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">
+                              Draft
+                            </span>
+                          )}
+                        </div>
 
                         <span className="shrink-0 text-[10px] text-neutral-400">
                           {new Date(item.created_at).toLocaleTimeString([], {
@@ -176,6 +202,14 @@ export function NotificationDropdown({
                         </p>
                       )}
                     </div>
+
+                    {item.image_url && (
+                      <img
+                        src={item.image_url}
+                        alt={item.image_alt || item.title}
+                        className="h-10 w-10 shrink-0 rounded-xl object-cover border border-neutral-200/70"
+                      />
+                    )}
                   </div>
                 </Link>
               );
