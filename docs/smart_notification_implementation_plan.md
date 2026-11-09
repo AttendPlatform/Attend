@@ -188,19 +188,19 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 4. **Author Day 1 Verification Suite** [DONE]: Create `scripts/verify-sn-w1-d1.ts` verifying schema additions, shared contracts, status filtering, and removal of the unsafe raw-insert fallback.
 5. **Review & Merge**: Review and merge Uzair's and Hardik's Day 1 PRs into `feat/w1-smart-notifications-foundation`.
 
-#### Uzair (Software Engineer) - 4 Hours
+#### Uzair (Software Engineer) - 4 Hours [DONE]
 - **Branch**: `feat/uzair-w1-d1-notification-state-types`
 - **Target Base**: `feat/w1-smart-notifications-foundation`
 - **PR Title**: `feat(w1-d1): align notification store and UI with full lifecycle statuses`
 - **Deliverables**:
-  1. Update [src/stores/useNotificationsStore.ts](src/stores/useNotificationsStore.ts):
-     - Fix Realtime `INSERT` handler: Only prepend to `notifications`, increment `unreadCount`, or queue `latestNotification` when `payload.new.status === "unread" || payload.new.status === "sent"`. Ignore rows inserted with `status = "scheduled"`, `"suppressed"`, `"expired"`, or `"dismissed"`.
-     - Update Realtime `UPDATE` handler: When a row transitions from `status = "scheduled"` to `status = "unread"` (promoted when due), prepend it to `notifications`, increment `unreadCount`, and enqueue it for toast display.
-     - Add client-side deduplication by `id` and `dedupe_key` so rapid realtime updates never trigger duplicate toasts.
-  2. Update [src/lib/notifications/client.ts](src/lib/notifications/client.ts), [src/components/notifications/NotificationDropdown.tsx](src/components/notifications/NotificationDropdown.tsx), and [src/app/notifications/page.tsx](src/app/notifications/page.tsx):
-     - Add `dismissNotification(notificationId)` and `recordNotificationInteraction(notificationId, eventType)` client helpers.
-     - Add category filter pills (`All`, `Events`, `Campaigns`, `Reminders`, `Social`) on `/notifications` and priority indicator badges (`urgent`, `high`).
-     - Preserve `Mark all read` functionality intact (do not add any `Clear notifications` button).
+  1. Update [src/stores/useNotificationsStore.ts](src/stores/useNotificationsStore.ts) [DONE]:
+     - Fix Realtime `INSERT` handler: Only prepend to `notifications`, increment `unreadCount`, or queue `latestNotification` when `payload.new.status === "unread" || payload.new.status === "sent"`. Ignore rows inserted with `status = "scheduled"`, `"suppressed"`, `"expired"`, or `"dismissed"` [DONE].
+     - Update Realtime `UPDATE` handler: When a row transitions from `status = "scheduled"` to `status = "unread"` (promoted when due), prepend it to `notifications`, increment `unreadCount`, and enqueue it for toast display [DONE].
+     - Add client-side deduplication by `id` and `dedupe_key` so rapid realtime updates never trigger duplicate toasts [DONE].
+  2. Update [src/lib/notifications/client.ts](src/lib/notifications/client.ts), [src/components/notifications/NotificationDropdown.tsx](src/components/notifications/NotificationDropdown.tsx), and [src/app/notifications/page.tsx](src/app/notifications/page.tsx) [DONE]:
+     - Add `dismissNotification(notificationId)` and `recordNotificationInteraction(notificationId, eventType)` client helpers [DONE].
+     - Add category filter pills (`All`, `Events`, `Campaigns`, `Reminders`, `Social`) on `/notifications` and priority indicator badges (`urgent`, `high`) [DONE].
+     - Preserve `Mark all read` functionality intact (do not add any `Clear notifications` button) [DONE].
 
 #### Hardik (Software Engineer) - 4 Hours
 - **Branch**: `feat/hardik-w1-d1-unified-smart-engine`

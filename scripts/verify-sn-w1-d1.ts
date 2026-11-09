@@ -250,14 +250,96 @@ async function runSmartNotificationsDay1Verification() {
       dbTypesContent.includes("abandoned_reminders_enabled: boolean")
   );
 
-  // 5. Zero Em Dashes Policy
-  console.log("\n--- 5. Zero Em Dashes Policy ---");
+  // 5. Store & Client Lifecycle State Verification (Uzair Day 1)
+  console.log("\n--- 5. Store & Client Lifecycle State Verification ---");
+  const clientPath = resolve(cwd, "src/lib/notifications/client.ts");
+  const storePath = resolve(cwd, "src/stores/useNotificationsStore.ts");
+  const dropdownPath = resolve(cwd, "src/components/notifications/NotificationDropdown.tsx");
+  const notificationsPagePath = resolve(cwd, "src/app/notifications/page.tsx");
+  const hookPath = resolve(cwd, "src/hooks/useNotifications.ts");
+
+  check("Client helpers file exists: src/lib/notifications/client.ts", existsSync(clientPath));
+  check("Notification store exists: src/stores/useNotificationsStore.ts", existsSync(storePath));
+  check("Notification dropdown exists: src/components/notifications/NotificationDropdown.tsx", existsSync(dropdownPath));
+  check("Notifications page exists: src/app/notifications/page.tsx", existsSync(notificationsPagePath));
+  check("Notification hook exists: src/hooks/useNotifications.ts", existsSync(hookPath));
+
+  const clientContent = readFileSync(clientPath, "utf8");
+  check(
+    "client.ts exports dismissNotification helper",
+    clientContent.includes("export async function dismissNotification")
+  );
+  check(
+    "client.ts exports recordNotificationInteraction helper",
+    clientContent.includes("export async function recordNotificationInteraction")
+  );
+
+  const storeContent = readFileSync(storePath, "utf8");
+  check(
+    "useNotificationsStore filters non-active status rows on Realtime INSERT",
+    storeContent.includes("notification.status !== 'unread' && notification.status !== 'sent'")
+  );
+  check(
+    "useNotificationsStore promotes scheduled notifications on Realtime UPDATE",
+    storeContent.includes("wasScheduled && isNowUnread")
+  );
+  check(
+    "useNotificationsStore deduplicates incoming notifications by id and dedupe_key",
+    storeContent.includes("isDuplicateId || isDuplicateDedupe")
+  );
+  check(
+    "useNotificationsStore provides dismissNotification action",
+    storeContent.includes("dismissNotification: async (id: string)")
+  );
+
+  const dropdownContent = readFileSync(dropdownPath, "utf8");
+  check(
+    "NotificationDropdown filters dismissed, suppressed, and expired rows",
+    dropdownContent.includes('item.status === "dismissed"')
+  );
+  check(
+    "NotificationDropdown displays priority indicator badges and thumbnails",
+    dropdownContent.includes('item.priority === "urgent"') &&
+      dropdownContent.includes("item.image_url")
+  );
+  check(
+    "NotificationDropdown records click interaction on notification selection",
+    dropdownContent.includes("recordNotificationInteraction")
+  );
+
+  const pageContent = readFileSync(notificationsPagePath, "utf8");
+  check(
+    "Notifications page provides category filter pills (all, events, campaigns, reminders, social)",
+    pageContent.includes("setCategoryFilter") &&
+      pageContent.includes('"events"') &&
+      pageContent.includes('"campaigns"') &&
+      pageContent.includes('"reminders"') &&
+      pageContent.includes('"social"')
+  );
+  check(
+    "Notifications page displays priority badges and event cover thumbnails",
+    pageContent.includes('notification.priority === "urgent"') &&
+      pageContent.includes("notification.image_url")
+  );
+  check(
+    "Notifications page supports notification dismissal action",
+    pageContent.includes("dismissNotification") &&
+      (pageContent.includes("handleDismiss") || pageContent.includes("dismissNotification("))
+  );
+
+  // 6. Zero Em Dashes Policy
+  console.log("\n--- 6. Zero Em Dashes Policy ---");
   const filesToCheck = [
     migrationPath,
     notificationsTypePath,
     libNotificationsTypePath,
     indexTypePath,
     planDocPath,
+    clientPath,
+    storePath,
+    dropdownPath,
+    notificationsPagePath,
+    hookPath,
   ];
 
   for (const f of filesToCheck) {
