@@ -93,4 +93,77 @@ ON CONFLICT (type) DO UPDATE SET
   is_smart = EXCLUDED.is_smart,
   updated_at = timezone('utc'::text, now());
 
+-- 4. Abandoned actions table for non-intrusive draft and registration recovery
+CREATE TABLE IF NOT EXISTS public.abandoned_actions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  action_type TEXT NOT NULL CHECK (action_type IN (
+    'event_draft',
+    'campaign_draft',
+    'incomplete_registration',
+    'incomplete_profile',
+    'unfinished_event_edit'
+  )),
+  event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
+  campaign_id UUID REFERENCES public.campaigns(id) ON DELETE CASCADE,
+  draft_title TEXT,
+  draft_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  resume_url TEXT NOT NULL,
+  last_progressed_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  reminder_stage INT NOT NULL DEFAULT 0,
+  last_reminded_at TIMESTAMPTZ,
+  recovered_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN (
+    'active',
+    'recovered',
+    'completed',
+    'dismissed',
+    'suppressed'
+  )),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_abandoned_actions_unique_progress
+  ON public.abandoned_actions (
+    user_id,
+    action_type,
+    COALESCE(event_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    COALESCE(campaign_id, '00000000-0000-0000-0000-000000000000'::uuid)
+  );
+
+CREATE INDEX IF NOT EXISTS idx_abandoned_actions_user_status
+  ON public.abandoned_actions(user_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_abandoned_actions_reminders
+  ON public.abandoned_actions(status, last_progressed_at)
+  WHERE status = 'active';
+
+ALTER TABLE public.abandoned_actions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own abandoned actions" ON public.abandoned_actions;
+CREATE POLICY "Users can view their own abandoned actions"
+  ON public.abandoned_actions FOR SELECT
+  TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS "Users can insert their own abandoned actions" ON public.abandoned_actions;
+CREATE POLICY "Users can insert their own abandoned actions"
+  ON public.abandoned_actions FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS "Users can update their own abandoned actions" ON public.abandoned_actions;
+CREATE POLICY "Users can update their own abandoned actions"
+  ON public.abandoned_actions FOR UPDATE
+  TO authenticated
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS "Users can delete their own abandoned actions" ON public.abandoned_actions;
+CREATE POLICY "Users can delete their own abandoned actions"
+  ON public.abandoned_actions FOR DELETE
+  TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
 COMMIT;
