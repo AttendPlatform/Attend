@@ -379,7 +379,7 @@ async function runWeek5Day3Verification() {
     "src/components/dashboard/OrganizerSettingsTab.tsx",
     "src/app/actions/organizer.ts",
     "src/app/dashboard/events/[id]/page.tsx",
-    "scripts/week5/verify-w5-d3.ts",
+    "scripts/v1-phase/week5/verify-w5-d3.ts",
   ];
 
   let emDashFound = false;
@@ -389,7 +389,7 @@ async function runWeek5Day3Verification() {
       const content = readFileSync(fullPath, "utf8");
       const emDashChar = String.fromCharCode(0x2014);
       if (content.includes(emDashChar)) {
-        if (relPath === "scripts/week5/verify-w5-d3.ts") {
+        if (relPath === "scripts/v1-phase/week5/verify-w5-d3.ts") {
           const linesWithoutValidator = content
             .split("\n")
             .filter((line) => !line.includes("fromCharCode(0x2014)"))

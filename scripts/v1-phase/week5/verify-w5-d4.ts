@@ -173,7 +173,7 @@ async function runWeek5Day4Verification() {
   // 4. Zero Em Dashes Policy
   console.log("\n--- 4. Zero Em Dashes Policy ---");
   const testFiles = [
-    "scripts/week5/verify-w5-d4.ts",
+    "scripts/v1-phase/week5/verify-w5-d4.ts",
     "src/lib/campaigns/canvas-integrity.ts",
     "src/lib/campaigns/generate.ts",
     "src/app/create/page.tsx",

@@ -238,7 +238,7 @@ async function runWeek4Day1Verification() {
     discoverTypePath,
     indexTypePath,
     campaignsServicePath,
-    resolve(cwd, "scripts/week4/verify-w4-d1.ts"),
+    resolve(cwd, "scripts/v1-phase/week4/verify-w4-d1.ts"),
   ];
 
   let emDashFound = false;
