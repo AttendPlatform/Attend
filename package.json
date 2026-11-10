@@ -46,7 +46,8 @@
     "verify:w5-d4": "node --experimental-strip-types scripts/verify-w5-d4.ts",
     "verify:d12": "node --experimental-strip-types scripts/verify-w5-d4.ts",
     "verify:day12": "node --experimental-strip-types scripts/verify-w5-d4.ts",
-    "verify:sn-w1-d1": "node --experimental-strip-types scripts/verify-sn-w1-d1.ts"
+    "verify:sn-w1-d1": "node --experimental-strip-types scripts/verify-sn-w1-d1.ts",
+    "verify:sn-w1-d2": "node --experimental-strip-types scripts/verify-sn-w1-d2.ts"
 
   },
   "dependencies": {
