@@ -4,6 +4,7 @@
 BEGIN;
 
 -- 1. Upgrade create_notification_for_user with preference checks, deduplication, daily caps, and quiet hours
+DROP FUNCTION IF EXISTS public.create_notification_for_user;
 CREATE OR REPLACE FUNCTION public.create_notification_for_user(
   p_user_id UUID,
   p_type TEXT,
@@ -292,6 +293,7 @@ END;
 $$;
 
 -- 2. Upgrade process_smart_notification as compatible alias
+DROP FUNCTION IF EXISTS public.process_smart_notification;
 CREATE OR REPLACE FUNCTION public.process_smart_notification(
   p_user_id UUID,
   p_type TEXT,
@@ -330,6 +332,7 @@ END;
 $$;
 
 -- 3. Create promote_scheduled_notifications SECURITY DEFINER RPC
+DROP FUNCTION IF EXISTS public.promote_scheduled_notifications;
 CREATE OR REPLACE FUNCTION public.promote_scheduled_notifications()
 RETURNS SETOF public.notifications
 LANGUAGE plpgsql
@@ -351,6 +354,8 @@ END;
 $$;
 
 -- 4. Update get_my_notifications to only return active notifications
+DROP FUNCTION IF EXISTS public.get_my_notifications(TEXT, INT);
+DROP FUNCTION IF EXISTS public.get_my_notifications;
 CREATE OR REPLACE FUNCTION public.get_my_notifications(
   p_category TEXT DEFAULT NULL,
   p_limit INT DEFAULT 20
@@ -423,6 +428,7 @@ END;
 $$;
 
 -- 5. Update get_unread_notification_count to count only unread and sent rows
+DROP FUNCTION IF EXISTS public.get_unread_notification_count;
 CREATE OR REPLACE FUNCTION public.get_unread_notification_count()
 RETURNS INT
 LANGUAGE plpgsql
