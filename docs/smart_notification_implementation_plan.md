@@ -185,7 +185,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 3. **Publish Shared TypeScript Contracts** (`src/types/notifications.ts`, update [src/lib/notifications/types.ts](src/lib/notifications/types.ts), [src/types/index.ts](src/types/index.ts), and [src/lib/supabase/database.types.ts](src/lib/supabase/database.types.ts)) [DONE]:
    - Define `NotificationStatus = "unread" | "read" | "scheduled" | "sent" | "suppressed" | "expired" | "dismissed"`.
    - Define `NotificationPresentationFormat`, `NotificationPriority`, `SmartNotificationInput`, `VisualNotificationPayload`, and `AbandonedActionRecord`.
-4. **Author Day 1 Verification Suite** [DONE]: Create `scripts/verify-sn-w1-d1.ts` verifying schema additions, shared contracts, status filtering, and removal of the unsafe raw-insert fallback.
+4. **Author Day 1 Verification Suite** [DONE]: Create `scripts/smart-notifications/verify-sn-w1-d1.ts` verifying schema additions, shared contracts, status filtering, and removal of the unsafe raw-insert fallback.
 5. **Review & Merge**: Review and merge Uzair's and Hardik's Day 1 PRs into `feat/w1-smart-notifications-foundation`.
 
 #### Uzair (Software Engineer) - 4 Hours
@@ -229,7 +229,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
    - Create `public.promote_scheduled_notifications()` (`SECURITY DEFINER` RPC) [DONE]:
      - Atomically transitions rows with `status = 'scheduled'` and `scheduled_for <= now()` (where `expires_at IS NULL OR expires_at > now()`) to `status = 'unread'` and `sent_at = now()`, returning the promoted records for push dispatch [DONE].
    - Update `public.get_my_notifications()` and `public.get_unread_notification_count()` so only `status IN ('unread', 'read', 'sent')` rows are returned to the client [DONE].
-2. **Author Day 2 Verification Suite** [DONE]: Create `scripts/verify-sn-w1-d2.ts` testing preference toggles, deduplication idempotency, daily frequency caps, overnight timezone quiet hours (`Africa/Lagos`), and scheduled notification promotion [DONE].
+2. **Author Day 2 Verification Suite** [DONE]: Create `scripts/smart-notifications/verify-sn-w1-d2.ts` testing preference toggles, deduplication idempotency, daily frequency caps, overnight timezone quiet hours (`Africa/Lagos`), and scheduled notification promotion [DONE].
 3. **Review & Merge**: Review and merge Uzair's and Hardik's Day 2 PRs.
 
 #### Uzair (Software Engineer) - 4 Hours
@@ -271,7 +271,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
      - Active-editing guard: Never send a reminder if `last_progressed_at` is within the last `30 minutes`.
    - **Registration & Payment Verification Rule**:
      - Before sending an `incomplete_registration` reminder, verify against live tables: (a) user does NOT have an active row in `event_participants` (`attending`, `registered`, `ticketed`), (b) event `status === 'published'` and `start_at > now()`, (c) registration capacity is not full, and (d) if `participation_model === 'paid'`, verify `draft_payload.payment_status` is explicitly `'failed'` or `'expired'` (never prompt a user with a `'pending'` or `'completed'` payment to pay again).
-2. **Author Day 3 Verification Suite**: Create `scripts/verify-sn-w1-d3.ts` testing empty-form rejection, 24h delay enforcement, payment status verification, completion auto-suppression, and anti-surveillance copy validation.
+2. **Author Day 3 Verification Suite**: Create `scripts/smart-notifications/verify-sn-w1-d3.ts` testing empty-form rejection, 24h delay enforcement, payment status verification, completion auto-suppression, and anti-surveillance copy validation.
 3. **Review & Merge**: Review and merge Uzair's and Hardik's Day 3 PRs.
 
 #### Uzair (Software Engineer) - 4 Hours
@@ -595,11 +595,11 @@ npm run build
 
 | # | Verification Area | Acceptance Requirement | Implementing Day | Responsible Owner(s) | Automated Verification Script |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | **Smart Notification Preferences** | Category toggles, daily frequency caps, and unified account relationship eligibility (attendee vs organizer vs campaign owner) work accurately without raw-insert bypass. | Week 1 · Days 1-2 | Sanaullah, Uzair & Hardik | `scripts/verify-sn-w1-d1.ts` & `scripts/verify-sn-w1-d2.ts` |
-| **2** | **Notification Deduplication** | Duplicate triggers with identical `dedupe_key` in `notifications` or `notification_events` are suppressed idempotently on both server and client. | Week 1 · Days 1-2 | Sanaullah & Hardik | `scripts/verify-sn-w1-d2.ts` |
-| **3** | **Quiet Hours & Scheduled Delivery** | Non-urgent notifications during user's local timezone quiet hours (`Africa/Lagos` default) are held as `status = 'scheduled'`, hidden from realtime unread UI, and promoted when due. | Week 1 · Day 2 | Sanaullah, Uzair & Hardik | `scripts/verify-sn-w1-d2.ts` |
-| **4** | **Event Lifecycle Notifications** | Registration receipts, event date/venue updates, 24h/2h event reminders, campaign creations, and urgent event cancellations dispatch through the central engine. | Week 1 · Days 1-2 | Hardik & Sanaullah | `scripts/verify-sn-w1-d1.ts` & `scripts/verify-sn-w1-d2.ts` |
-| **5** | **Abandoned-Action Suppression** | Meaningful unfinished event/campaign drafts and registrations trigger product-oriented 24h reminders, verify payment/registration state, and auto-suppress on resume/completion/delete. | Week 1 · Day 3 | Sanaullah, Uzair & Hardik | `scripts/verify-sn-w1-d3.ts` |
+| **1** | **Smart Notification Preferences** | Category toggles, daily frequency caps, and unified account relationship eligibility (attendee vs organizer vs campaign owner) work accurately without raw-insert bypass. | Week 1 · Days 1-2 | Sanaullah, Uzair & Hardik | `scripts/smart-notifications/verify-sn-w1-d1.ts` & `scripts/smart-notifications/verify-sn-w1-d2.ts` |
+| **2** | **Notification Deduplication** | Duplicate triggers with identical `dedupe_key` in `notifications` or `notification_events` are suppressed idempotently on both server and client. | Week 1 · Days 1-2 | Sanaullah & Hardik | `scripts/smart-notifications/verify-sn-w1-d2.ts` |
+| **3** | **Quiet Hours & Scheduled Delivery** | Non-urgent notifications during user's local timezone quiet hours (`Africa/Lagos` default) are held as `status = 'scheduled'`, hidden from realtime unread UI, and promoted when due. | Week 1 · Day 2 | Sanaullah, Uzair & Hardik | `scripts/smart-notifications/verify-sn-w1-d2.ts` |
+| **4** | **Event Lifecycle Notifications** | Registration receipts, event date/venue updates, 24h/2h event reminders, campaign creations, and urgent event cancellations dispatch through the central engine. | Week 1 · Days 1-2 | Hardik & Sanaullah | `scripts/smart-notifications/verify-sn-w1-d1.ts` & `scripts/smart-notifications/verify-sn-w1-d2.ts` |
+| **5** | **Abandoned-Action Suppression** | Meaningful unfinished event/campaign drafts and registrations trigger product-oriented 24h reminders, verify payment/registration state, and auto-suppress on resume/completion/delete. | Week 1 · Day 3 | Sanaullah, Uzair & Hardik | `scripts/smart-notifications/verify-sn-w1-d3.ts` |
 | **6** | **Image Notification Rendering** | Pinterest-style visual popups render cover image, graceful fallback when image is missing, `Date · City`, recommendation reason, CTA, single-popup FIFO queue, and active-flow interruption guard. | Week 1 · Day 4 | Uzair & Sanaullah | `scripts/verify-sn-milestone1.ts` |
 | **7** | **Push Delivery & Click Navigation** | Existing `send-push` pipeline and `worker/index.ts` render event cover images in browser push notifications and enforce same-origin click navigation. | Week 1 · Day 4 | Hardik | `scripts/verify-sn-milestone1.ts` |
 | **8** | **Featured-Event Scheduling & Audience Rules** | Platform admin can feature/unfeature events, set priority & schedule, and choose `platform_only` placement independently of targeted audience notifications. | Week 2 · Day 5 | Sanaullah, Uzair & Hardik | `scripts/verify-sn-w2-d5.ts` |
