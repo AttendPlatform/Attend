@@ -87,14 +87,12 @@ Attend/
 │   ├── icon-512.png
 │   └── sw.js
 ├── scripts/                # Automated verification suites and CI runners
-│   ├── verify-milestone0.ts
-│   ├── verify-milestone1.ts
-│   ├── verify-milestone2.ts
-│   ├── verify-milestone3.ts
-│   ├── verify-milestone4.ts
-│   ├── verify-w5-d1.ts
-│   ├── verify-w5-d2.ts
-│   └── verify-w5-d3.ts
+│   ├── milestones/         # Core milestone suites (milestones 0 through 4)
+│   ├── smart-notifications/ # Smart notifications and engagement verification suites
+│   ├── week5/              # Week 5 Organizer dashboard and saved items suites
+│   ├── week4/              # Week 4 Discover and connected campaign suites
+│   ├── week3/              # Week 3 Public event and mobile action bar suites
+│   └── week1/              # Week 1 Location abstraction and event creation suites
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
 │   │   ├── actions/        # Server Actions (organizer.ts)
