@@ -219,17 +219,17 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 
 ### Day 2 (4 Hours/Dev) - Timezone Quiet Hours, Frequency Caps & Scheduled Delivery
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`)
-1. **Upgrade Notification Engine SQL RPCs** (`supabase/migrations/20261110100000_smart_notifications_foundation.sql` / Day 2 migration):
-   - Upgrade `public.process_smart_notification()` and `public.create_notification_for_user()`:
-     - **Preference Check**: Map `p_category` to `notification_preferences` columns (`event_reminders`, `new_events`, `trending_events`, `campaign_activity`, `campaign_milestones`, `recommendations`, `campaign_insights`, `abandoned_reminders_enabled`, `social_notifications_enabled`). Allow `p_priority = 'urgent'` transactional notifications (`event_cancelled`, `registration_receipt`) to deliver in-app regardless of marketing toggles.
-     - **Idempotent Deduplication**: Check `notifications.dedupe_key` and `notification_events.dedupe_key`. If already present, return the existing notification JSON idempotently without inserting a duplicate.
-     - **Daily Frequency Cap**: When `smart_notifications = true` and `p_priority IN ('low', 'normal')`, count non-urgent notifications sent to `p_user_id` in the past 24 hours; if `>= max_daily_notifications`, record `status = 'suppressed'` in `notification_events` and skip delivery.
-     - **Timezone-Aware Quiet Hours**: Evaluate `(now() AT TIME ZONE COALESCE(pref.timezone, 'Africa/Lagos'))::time` against `[quiet_hours_start, quiet_hours_end]` (handling overnight spans such as `22:00` to `07:00`). If `quiet_hours_enabled = true` and `p_priority != 'urgent'`, set `status = 'scheduled'` and compute `scheduled_for` as the exact UTC timestamp when `quiet_hours_end` finishes in the user's local timezone.
-   - Create `public.promote_scheduled_notifications()` (`SECURITY DEFINER` RPC):
-     - Atomically transitions rows with `status = 'scheduled'` and `scheduled_for <= now()` (where `expires_at IS NULL OR expires_at > now()`) to `status = 'unread'` and `sent_at = now()`, returning the promoted records for push dispatch.
-   - Update `public.get_my_notifications()` and `public.get_unread_notification_count()` so only `status IN ('unread', 'read', 'sent')` rows are returned to the client.
-2. **Author Day 2 Verification Suite**: Create `scripts/verify-sn-w1-d2.ts` testing preference toggles, deduplication idempotency, daily frequency caps, overnight timezone quiet hours (`Africa/Lagos`), and scheduled notification promotion.
+#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`) [DONE]
+1. **Upgrade Notification Engine SQL RPCs** (`supabase/migrations/20261110110000_smart_notifications_day2.sql`) [DONE]:
+   - Upgrade `public.process_smart_notification()` and `public.create_notification_for_user()` [DONE]:
+     - **Preference Check**: Map `p_category` to `notification_preferences` columns (`event_reminders`, `new_events`, `trending_events`, `campaign_activity`, `campaign_milestones`, `recommendations`, `campaign_insights`, `abandoned_reminders_enabled`, `social_notifications_enabled`). Allow `p_priority = 'urgent'` transactional notifications (`event_cancelled`, `registration_receipt`) to deliver in-app regardless of marketing toggles [DONE].
+     - **Idempotent Deduplication**: Check `notifications.dedupe_key` and `notification_events.dedupe_key`. If already present, return the existing notification JSON idempotently without inserting a duplicate [DONE].
+     - **Daily Frequency Cap**: When `smart_notifications = true` and `p_priority IN ('low', 'normal')`, count non-urgent notifications sent to `p_user_id` in the past 24 hours; if `>= max_daily_notifications`, record `status = 'suppressed'` in `notification_events` and skip delivery [DONE].
+     - **Timezone-Aware Quiet Hours**: Evaluate `(now() AT TIME ZONE COALESCE(pref.timezone, 'Africa/Lagos'))::time` against `[quiet_hours_start, quiet_hours_end]` (handling overnight spans such as `22:00` to `07:00`). If `quiet_hours_enabled = true` and `p_priority != 'urgent'`, set `status = 'scheduled'` and compute `scheduled_for` as the exact UTC timestamp when `quiet_hours_end` finishes in the user's local timezone [DONE].
+   - Create `public.promote_scheduled_notifications()` (`SECURITY DEFINER` RPC) [DONE]:
+     - Atomically transitions rows with `status = 'scheduled'` and `scheduled_for <= now()` (where `expires_at IS NULL OR expires_at > now()`) to `status = 'unread'` and `sent_at = now()`, returning the promoted records for push dispatch [DONE].
+   - Update `public.get_my_notifications()` and `public.get_unread_notification_count()` so only `status IN ('unread', 'read', 'sent')` rows are returned to the client [DONE].
+2. **Author Day 2 Verification Suite** [DONE]: Create `scripts/verify-sn-w1-d2.ts` testing preference toggles, deduplication idempotency, daily frequency caps, overnight timezone quiet hours (`Africa/Lagos`), and scheduled notification promotion [DONE].
 3. **Review & Merge**: Review and merge Uzair's and Hardik's Day 2 PRs.
 
 #### Uzair (Software Engineer) - 4 Hours
