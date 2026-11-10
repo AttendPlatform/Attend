@@ -1189,15 +1189,22 @@ export type Database = {
           category: string
           created_at: string
           delivery_channel: string
+          dismissed_at: string | null
           event_id: string
           id: string
+          image_alt: string | null
+          image_url: string | null
           message: string
           metadata: Json
+          presentation_format: string
           priority: string
           read_at: string
+          scheduled_for: string | null
+          sent_at: string | null
           status: string
           title: string
           type: string
+          why_recommended: string | null
         }[]
       }
       get_unread_notification_count: { Args: never; Returns: number }
@@ -1238,6 +1245,40 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      promote_scheduled_notifications: {
+        Args: never
+        Returns: {
+          action_label: string | null
+          action_url: string | null
+          campaign_id: string | null
+          category: string | null
+          created_at: string
+          dedupe_key: string | null
+          delivery_channel: string | null
+          delivery_error: string | null
+          dismissed_at: string | null
+          event_id: string | null
+          expires_at: string | null
+          id: string
+          image_alt: string | null
+          image_url: string | null
+          is_read: boolean
+          link: string | null
+          message: string | null
+          metadata: Json | null
+          presentation_format: string
+          priority: string
+          read_at: string | null
+          retry_count: number
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          title: string
+          type: string | null
+          user_id: string
+          why_recommended: string | null
+        }[]
       }
       record_notification_event: {
         Args: {
