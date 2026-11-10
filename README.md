@@ -219,6 +219,7 @@ npm test
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
 | `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 306+ automated checks) |
+| `npm run verify:sn-w1-d2` | Smart Notifications Week 1 Day 2 | Timezone-aware quiet hours (Africa/Lagos overnight spans), sliding 24h frequency caps, scheduled promotion RPC, deduplication idempotency, and zero em dashes |
 | `npm run verify:sn-w1-d1` | Smart Notifications Week 1 Day 1 | Schema foundation (notifications, preferences, templates, abandoned_actions), shared contracts, status filtering, and zero em dashes |
 | `npm run verify:m4` | Milestone 4 (Phase 4) | Dual-factor organizer authorization, overview metrics, people roster, central saved hub, safe cancellation, lifecycle notifications, Event SEO, JSON-LD, and Section 58 matrix |
 | `npm run verify:w5-d3` | Week 5 Day 3 (Phase 4) | Organizer campaigns tab, settings tab, local timezone offset handling, date order validation, safe cancellation safeguards, and lifecycle notifications |
