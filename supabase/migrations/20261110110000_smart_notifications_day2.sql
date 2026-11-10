@@ -449,3 +449,4 @@ GRANT EXECUTE ON FUNCTION public.get_my_notifications TO authenticated, service_
 GRANT EXECUTE ON FUNCTION public.get_unread_notification_count TO authenticated, service_role;
 
 COMMIT;
+
