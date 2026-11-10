@@ -87,14 +87,14 @@ Attend/
 │   ├── icon-512.png
 │   └── sw.js
 ├── scripts/                # Automated verification suites and CI runners
-│   ├── verify-milestone0.ts
-│   ├── verify-milestone1.ts
-│   ├── verify-milestone2.ts
-│   ├── verify-milestone3.ts
-│   ├── verify-milestone4.ts
-│   ├── verify-w5-d1.ts
-│   ├── verify-w5-d2.ts
-│   └── verify-w5-d3.ts
+│   ├── smart-notifications/ # Smart notifications and engagement verification suites
+│   │   └── week1/          # Week 1 Smart notification foundation and quiet hours suites
+│   └── v1-phase/           # Attend V1 milestone and weekly verification suites
+│       ├── milestones/     # Core milestone suites (milestones 0 through 4)
+│       ├── week1/          # Week 1 Location abstraction and event creation suites
+│       ├── week3/          # Week 3 Public event and mobile action bar suites
+│       ├── week4/          # Week 4 Discover and connected campaign suites
+│       └── week5/          # Week 5 Organizer dashboard and saved items suites
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
 │   │   ├── actions/        # Server Actions (organizer.ts)
@@ -219,6 +219,7 @@ npm test
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
 | `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 306+ automated checks) |
+| `npm run verify:sn-w1-d2` | Smart Notifications Week 1 Day 2 | Timezone-aware quiet hours (Africa/Lagos overnight spans), sliding 24h frequency caps, scheduled promotion RPC, deduplication idempotency, and zero em dashes |
 | `npm run verify:sn-w1-d1` | Smart Notifications Week 1 Day 1 | Schema foundation (notifications, preferences, templates, abandoned_actions), shared contracts, status filtering, and zero em dashes |
 | `npm run verify:m4` | Milestone 4 (Phase 4) | Dual-factor organizer authorization, overview metrics, people roster, central saved hub, safe cancellation, lifecycle notifications, Event SEO, JSON-LD, and Section 58 matrix |
 | `npm run verify:w5-d3` | Week 5 Day 3 (Phase 4) | Organizer campaigns tab, settings tab, local timezone offset handling, date order validation, safe cancellation safeguards, and lifecycle notifications |
