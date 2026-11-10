@@ -270,7 +270,7 @@ async function runWeek5Day2Verification() {
     servicesIndexPath,
     peopleTabPath,
     dashboardComponentIndexPath,
-    resolve(cwd, "scripts/verify-w5-d2.ts"),
+    resolve(cwd, "scripts/week5/verify-w5-d2.ts"),
   ];
 
   let emDashFound = false;

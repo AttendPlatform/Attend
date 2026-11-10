@@ -209,7 +209,7 @@ async function runSmartNotificationsDay2Verification() {
     migrationPath,
     dbTypesPath,
     planDocPath,
-    resolve(cwd, "scripts/verify-sn-w1-d2.ts"),
+    resolve(cwd, "scripts/smart-notifications/verify-sn-w1-d2.ts"),
   ];
 
   for (const f of filesToCheck) {
