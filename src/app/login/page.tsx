@@ -373,7 +373,7 @@ function LoginForm() {
         <p className="text-sm text-neutral-500">
           New to Attend?{" "}
           <Link
-            href="/signup"
+            href={`/signup?next=${encodeURIComponent(next)}`}
             className="font-bold text-violet-600 transition hover:text-violet-800"
           >
             Create an account
