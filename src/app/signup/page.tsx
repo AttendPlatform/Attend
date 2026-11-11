@@ -1,8 +1,10 @@
 
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { safeAuthRedirect } from "@/lib/auth/redirect";
 import { createClient } from "@/lib/supabase/client";
 import {
   ArrowRight,
@@ -45,8 +47,10 @@ const JOIN_REASONS = [
   },
 ] as const;
 
-export default function SignupPage() {
+function SignupForm() {
   const supabase = createClient();
+  const params = useSearchParams();
+  const next = safeAuthRedirect(params.get("next"));
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -79,7 +83,7 @@ export default function SignupPage() {
           full_name: name.trim(),
           signup_reasons: reasons,
         },
-        emailRedirectTo: `${window.location.origin}/auth/confirm?next=/`,
+        emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next)}`,
       },
     });
 
@@ -104,7 +108,7 @@ export default function SignupPage() {
       window.location.origin
     );
 
-    callbackUrl.searchParams.set("next", "/");
+    callbackUrl.searchParams.set("next", next);
     callbackUrl.searchParams.set(
       "signup_reasons",
       JSON.stringify(reasons)
@@ -216,7 +220,7 @@ export default function SignupPage() {
                 </p>
 
                 <Link
-                  href={`/verify-email?email=${encodeURIComponent(email)}&mode=signup`}
+                  href={`/verify-email?email=${encodeURIComponent(email)}&mode=signup&next=${encodeURIComponent(next)}`}
                   className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700"
                 >
                   Verify email address
@@ -494,4 +498,17 @@ export default function SignupPage() {
     </main>
   );
 }
-  
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-[#faf9ff] px-4">
+          <p className="text-sm text-neutral-500">Loading signup...</p>
+        </main>
+      }
+    >
+      <SignupForm />
+    </Suspense>
+  );
+}
