@@ -98,7 +98,7 @@ export default function AboutPage() {
               </span>
             </h1>
             <p className="mt-7 max-w-2xl text-base leading-8 text-neutral-600 sm:text-lg">
-              Attend is a platform built around the experience of events — from
+              Attend is a platform built around the experience of events: from
               discovering something worth showing up for, to creating an event,
               participating in campaigns and sharing the moments that matter.
             </p>
@@ -145,7 +145,7 @@ export default function AboutPage() {
         <div className="space-y-5 text-base leading-8 text-neutral-600">
           <p>
             Events create opportunities to learn, connect, celebrate and build
-            community. But the experience can feel scattered — discovering
+            community. But the experience can feel scattered: discovering
             events in one place, getting information somewhere else, and sharing
             the excitement on another platform.
           </p>
@@ -216,7 +216,7 @@ export default function AboutPage() {
             </h2>
             <p className="mt-4 leading-7 text-neutral-600">
               Attend is shaped by a team working across product, operations,
-              technology and marketing — bringing different skills together to
+              technology and marketing: bringing different skills together to
               build a better event experience.
             </p>
           </div>
