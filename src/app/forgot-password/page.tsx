@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
   const [message,setMessage] = useState("");
   async function submit(e: FormEvent) {
     e.preventDefault(); setLoading(true); setMessage("");
-    const redirectTo = `${window.location.origin}/auth/confirm?next=/reset-password`;
+    const redirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent("/reset-password")}`;
     const {error} = await supabase.auth.resetPasswordForEmail(email,{redirectTo});
     setLoading(false);
     setMessage(error ? error.message : "If an account exists for this email, a password reset link has been sent.");
