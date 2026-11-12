@@ -19,23 +19,17 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     let active = true;
-    let redirectTimer: number | undefined;
 
     async function checkRecoverySession() {
-      const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getUser();
       if (!active) return;
 
-      const sessionExists = !error && Boolean(data.session);
+      const sessionExists = !error && Boolean(data.user);
       setHasSession(sessionExists);
       setCheckingSession(false);
 
       if (!sessionExists) {
-        setMessage(
-          "This password reset link is invalid or has expired. Redirecting you to request a new one."
-        );
-        redirectTimer = window.setTimeout(() => {
-          window.location.replace("/forgot-password?error=expired");
-        }, 1800);
+        setMessage("This password reset link is invalid or has expired.");
       }
     }
 
@@ -43,7 +37,6 @@ export default function ResetPasswordPage() {
 
     return () => {
       active = false;
-      if (redirectTimer !== undefined) window.clearTimeout(redirectTimer);
     };
   }, [supabase]);
 
@@ -65,16 +58,29 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     setMessage("");
-    const { error } = await supabase.auth.updateUser({ password });
-    setLoading(false);
 
+    const { error } = await supabase.auth.updateUser({ password });
     if (error) {
+      setLoading(false);
       setMessage(error.message);
       return;
     }
 
-    await supabase.auth.signOut({ scope: "others" });
-    router.replace("/login?password_updated=1");
+    // End this browser session after the password change. Navigation still
+    // proceeds if the sign-out request fails, so the form cannot get stuck.
+    try {
+      const { error: signOutError } = await supabase.auth.signOut({
+        scope: "local",
+      });
+      if (signOutError) {
+        console.error("Password updated, but local sign-out failed:", signOutError);
+      }
+    } catch (signOutError) {
+      console.error("Password updated, but local sign-out failed:", signOutError);
+    } finally {
+      setLoading(false);
+      window.location.assign("/login?password_updated=1");
+    }
   }
 
   if (checkingSession) {
@@ -97,10 +103,25 @@ export default function ResetPasswordPage() {
         <h1 className="mt-8 text-3xl font-semibold">
           Choose a new password
         </h1>
+
         {!hasSession ? (
-          <p role="alert" className="mt-5 text-sm leading-6 text-rose-600">
-            {message}
-          </p>
+          <div className="mt-5 space-y-4">
+            <p role="alert" className="text-sm leading-6 text-rose-600">
+              {message}
+            </p>
+            <Link
+              href="/forgot-password"
+              className="inline-flex text-sm font-semibold text-violet-600 hover:text-violet-800"
+            >
+              Request a new password reset link
+            </Link>
+            <Link
+              href="/login"
+              className="block text-sm font-medium text-neutral-500 hover:text-neutral-800"
+            >
+              Back to sign in
+            </Link>
+          </div>
         ) : (
           <form onSubmit={submit} className="mt-8 space-y-4">
             <label className="block text-sm font-medium" htmlFor="password">
@@ -125,6 +146,7 @@ export default function ResetPasswordPage() {
                 {visible ? <EyeOff /> : <Eye />}
               </button>
             </div>
+
             <label className="block text-sm font-medium" htmlFor="confirm">
               Confirm password
             </label>
@@ -136,11 +158,13 @@ export default function ResetPasswordPage() {
               onChange={(e) => setConfirm(e.target.value)}
               className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-sm"
             />
+
             {message && (
               <p role="alert" className="text-sm text-rose-600">
                 {message}
               </p>
             )}
+
             <button
               disabled={loading}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-600 text-sm font-semibold text-white disabled:opacity-60"
