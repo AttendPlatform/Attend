@@ -604,7 +604,7 @@ async function runSmartNotificationsMilestone1Verification() {
     "scripts/smart-notifications/week1/verify-sn-milestone1.ts",
   ];
 
-  let emDashFiles: string[] = [];
+  const emDashFiles: string[] = [];
   for (const relPath of week1Files) {
     const fullPath = resolve(cwd, relPath);
     if (existsSync(fullPath)) {
