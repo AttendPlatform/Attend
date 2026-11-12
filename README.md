@@ -130,7 +130,7 @@ Attend/
 │   │   ├── campaigns/      # Canvas renderer, integrity guards, funnel routing, and templates
 │   │   ├── dashboard/      # Roster CSV formatting and export engine
 │   │   ├── location/       # Pluggable location layer and bounding box filters
-│   │   ├── notifications/  # Notification processing engine and client
+│   │   ├── notifications/  # Smart notification engine, recovery rules, visual guards, push, and client
 │   │   ├── supabase/       # Supabase browser, server, and proxy clients
 │   │   └── utils/          # Formatting helpers and error handlers
 │   ├── services/           # Domain services and Server Actions
@@ -153,7 +153,9 @@ Attend/
 │       ├── dashboard.ts
 │       ├── discover.ts
 │       ├── events.ts
-│       └── home.ts
+│       ├── home.ts
+│       ├── index.ts
+│       └── notifications.ts
 ├── supabase/
 │   ├── migrations/         # PostgreSQL schema migrations and RLS policies
 │   │   ├── 20260922202204_remote_schema.sql
@@ -166,9 +168,13 @@ Attend/
 │   │   ├── 20261021195000_v1_phase0_public_attendees_view.sql
 │   │   ├── 20261028120000_secure_event_participants.sql
 │   │   ├── 20261028140000_discover_query_performance_indexes.sql
-│   │   └── 20261028162857_remote.sql
+│   │   ├── 20261028162857_remote.sql
+│   │   ├── 20261110100000_smart_notifications_foundation.sql
+│   │   └── 20261110110000_smart_notifications_day2.sql
 │   ├── .gitignore          # Supabase CLI local ignore rules
 │   └── config.toml         # Local development configuration and CLI settings
+├── worker/                 # Custom PWA service worker
+│   └── index.ts            # Push payload and same-origin click navigation handler
 ├── CONTRIBUTING.md         # Engineering contribution guide and daily PR workflow
 ├── package.json            # Scripts, dependencies, and project metadata
 ├── tsconfig.json           # TypeScript configuration and path aliases
@@ -218,7 +224,7 @@ npm test
 
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
-| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 306+ automated checks) |
+| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 325 automated checks) |
 | `npm run verify:sn-m1` | Smart Notifications Week 1 Milestone 1 | End-to-end Week 1 audit: bell/dropdown/center, quiet hours, scheduled promotion, lifecycle & campaign analytics preservation, abandoned recovery rules, visual popup security/queue precedence, and Web Push |
 | `npm run verify:sn-w1-d3` | Smart Notifications Week 1 Day 3 | Abandoned-action eligibility rules, empty-form rejection, 24h/72h delay enforcement, payment status verification, completion auto-suppression, and anti-surveillance copy guard |
 | `npm run verify:sn-w1-d2` | Smart Notifications Week 1 Day 2 | Timezone-aware quiet hours (Africa/Lagos overnight spans), sliding 24h frequency caps, scheduled promotion RPC, deduplication idempotency, and zero em dashes |
