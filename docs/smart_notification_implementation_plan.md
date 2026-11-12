@@ -259,19 +259,19 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 
 ### Day 3 (4 Hours/Dev) - Intelligent Abandoned-Action Recovery
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`)
-1. **Build Abandoned-Action Eligibility & Anti-Surveillance Guard** (`src/lib/notifications/recovery-rules.ts`):
-   - **Anti-Surveillance Copy Validator** (`validateRecoveryCopy(title, message)`): Programmatically blocks any message containing surveillance phrasing (*"noticed you left"*, *"stopped halfway"*, *"saw you browsing"*, *"inactive for"*, *"watching"*). Enforces product-oriented copy:
-     - Event Draft: *"Your event draft is saved"* / *"You started creating an event but haven't finished. Pick up where you left off."* (`CTA: Continue editing`)
-     - Campaign Draft: *"Your campaign is ready when you are"* / *"You have an unpublished campaign draft. Complete it whenever you're ready."* (`CTA: Continue campaign`)
-     - Incomplete Registration: *"Your registration isn't complete"* / *"You started registering for [Event Title]. Continue where you left off."* (`CTA: Complete registration`)
-   - **Timing & Suppression Policy**:
-     - Stage 1 reminder eligible only after `24 hours` since `last_progressed_at` (configurable via admin settings).
-     - Optional Stage 2 final reminder eligible after `72 hours` (`max_reminders = 2`).
-     - Active-editing guard: Never send a reminder if `last_progressed_at` is within the last `30 minutes`.
-   - **Registration & Payment Verification Rule**:
-     - Before sending an `incomplete_registration` reminder, verify against live tables: (a) user does NOT have an active row in `event_participants` (`attending`, `registered`, `ticketed`), (b) event `status === 'published'` and `start_at > now()`, (c) registration capacity is not full, and (d) if `participation_model === 'paid'`, verify `draft_payload.payment_status` is explicitly `'failed'` or `'expired'` (never prompt a user with a `'pending'` or `'completed'` payment to pay again).
-2. **Author Day 3 Verification Suite**: Create `scripts/smart-notifications/week1/verify-sn-w1-d3.ts` testing empty-form rejection, 24h delay enforcement, payment status verification, completion auto-suppression, and anti-surveillance copy validation.
+#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`) [DONE]
+1. **Build Abandoned-Action Eligibility & Anti-Surveillance Guard** (`src/lib/notifications/recovery-rules.ts`) [DONE]:
+   - **Anti-Surveillance Copy Validator** (`validateRecoveryCopy(title, message)`): Programmatically blocks any message containing surveillance phrasing (*"noticed you left"*, *"stopped halfway"*, *"saw you browsing"*, *"inactive for"*, *"watching"*). Enforces product-oriented copy [DONE]:
+     - Event Draft: *"Your event draft is saved"* / *"You started creating an event but haven't finished. Pick up where you left off."* (`CTA: Continue editing`) [DONE]
+     - Campaign Draft: *"Your campaign is ready when you are"* / *"You have an unpublished campaign draft. Complete it whenever you're ready."* (`CTA: Continue campaign`) [DONE]
+     - Incomplete Registration: *"Your registration isn't complete"* / *"You started registering for [Event Title]. Continue where you left off."* (`CTA: Complete registration`) [DONE]
+   - **Timing & Suppression Policy** [DONE]:
+     - Stage 1 reminder eligible only after `24 hours` since `last_progressed_at` (configurable via admin settings) [DONE].
+     - Optional Stage 2 final reminder eligible after `72 hours` (`max_reminders = 2`) [DONE].
+     - Active-editing guard: Never send a reminder if `last_progressed_at` is within the last `30 minutes` [DONE].
+   - **Registration & Payment Verification Rule** [DONE]:
+     - Before sending an `incomplete_registration` reminder, verify against live tables: (a) user does NOT have an active row in `event_participants` (`attending`, `registered`, `ticketed`), (b) event `status === 'published'` and `start_at > now()`, (c) registration capacity is not full, and (d) if `participation_model === 'paid'`, verify `draft_payload.payment_status` is explicitly `'failed'` or `'expired'` (never prompt a user with a `'pending'` or `'completed'` payment to pay again) [DONE].
+2. **Author Day 3 Verification Suite** [DONE]: Create `scripts/smart-notifications/week1/verify-sn-w1-d3.ts` testing empty-form rejection, 24h delay enforcement, payment status verification, completion auto-suppression, and anti-surveillance copy validation [DONE].
 3. **Review & Merge**: Review and merge Uzair's and Hardik's Day 3 PRs.
 
 #### Uzair (Software Engineer) - 4 Hours
