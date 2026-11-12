@@ -88,7 +88,7 @@ Attend/
 │   └── sw.js
 ├── scripts/                # Automated verification suites and CI runners
 │   ├── smart-notifications/ # Smart notifications and engagement verification suites
-│   │   └── week1/          # Week 1 Smart notification foundation and quiet hours suites
+│   │   └── week1/          # Week 1 Smart notification foundation, recovery, and milestone 1 suites
 │   └── v1-phase/           # Attend V1 milestone and weekly verification suites
 │       ├── milestones/     # Core milestone suites (milestones 0 through 4)
 │       ├── week1/          # Week 1 Location abstraction and event creation suites
@@ -219,6 +219,7 @@ npm test
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
 | `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 306+ automated checks) |
+| `npm run verify:sn-m1` | Smart Notifications Week 1 Milestone 1 | End-to-end Week 1 audit: bell/dropdown/center, quiet hours, scheduled promotion, lifecycle & campaign analytics preservation, abandoned recovery rules, visual popup security/queue precedence, and Web Push |
 | `npm run verify:sn-w1-d3` | Smart Notifications Week 1 Day 3 | Abandoned-action eligibility rules, empty-form rejection, 24h/72h delay enforcement, payment status verification, completion auto-suppression, and anti-surveillance copy guard |
 | `npm run verify:sn-w1-d2` | Smart Notifications Week 1 Day 2 | Timezone-aware quiet hours (Africa/Lagos overnight spans), sliding 24h frequency caps, scheduled promotion RPC, deduplication idempotency, and zero em dashes |
 | `npm run verify:sn-w1-d1` | Smart Notifications Week 1 Day 1 | Schema foundation (notifications, preferences, templates, abandoned_actions), shared contracts, status filtering, and zero em dashes |
