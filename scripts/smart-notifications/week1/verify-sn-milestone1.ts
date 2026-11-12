@@ -322,7 +322,7 @@ async function runSmartNotificationsMilestone1Verification() {
         "/storage/v1/object/public/events/1.png"
   );
   check(
-    "Blocks unsafe image schemes, http URLs, protocol-relative URLs, and path traversal",
+    "Blocks unsafe image schemes, http URLs, protocol-relative URLs, encoded traversal, and private hosts",
     sanitizeNotificationImageUrl("javascript:alert(1)") === null &&
       sanitizeNotificationImageUrl("data:image/svg+xml,<svg/>") === null &&
       sanitizeNotificationImageUrl("vbscript:msgbox(1)") === null &&
@@ -330,6 +330,10 @@ async function runSmartNotificationsMilestone1Verification() {
         null &&
       sanitizeNotificationImageUrl("//evil.example.com/img.png") === null &&
       sanitizeNotificationImageUrl("/images/../secrets/key.png") === null &&
+      sanitizeNotificationImageUrl("/images/%2e%2e/secrets/key.png") === null &&
+      sanitizeNotificationImageUrl("https://127.0.0.1/img.png") === null &&
+      sanitizeNotificationImageUrl("https://169.254.169.254/img.png") === null &&
+      sanitizeNotificationImageUrl("https://[::ffff:127.0.0.1]/img.png") === null &&
       sanitizeNotificationImageUrl("https://user:pass@example.com/img.png") ===
         null
   );
@@ -444,10 +448,31 @@ async function runSmartNotificationsMilestone1Verification() {
       fifoQueue[1].id === "fifo-2"
   );
 
+  const urgentSameKey = makeNotification({
+    id: "dup-urgent",
+    priority: "urgent",
+    created_at: "2026-11-12T09:20:00.000Z",
+    dedupe_key: "same-key",
+  });
+  const upgradedQueue = enqueuePopupNotification(fifoQueue, urgentSameKey);
+  const evictedQueue = enqueuePopupNotification(upgradedQueue, {
+    ...urgentSameKey,
+    status: "read",
+  });
+  check(
+    "Popup queue prefers higher priority duplicates regardless of order and evicts read items",
+    upgradedQueue.length === 2 &&
+      upgradedQueue[0].id === "dup-urgent" &&
+      evictedQueue.length === 1 &&
+      evictedQueue[0].id === "fifo-2"
+  );
+
   // Interruption guard, cooldown & dismissal suppression checks
   check(
-    "Interruption guard identifies /create and /campaign/[slug] while allowing browsing routes",
+    "Interruption guard identifies /create and /campaign/[slug] with queries/trailing slashes while allowing browsing routes",
     isInterruptionGuardedRoute("/create") &&
+      isInterruptionGuardedRoute("/create?resumeDraft=1") &&
+      isInterruptionGuardedRoute("/profile/edit/") &&
       isInterruptionGuardedRoute("/campaign/lagos-tech-fest") &&
       !isInterruptionGuardedRoute("/") &&
       !isInterruptionGuardedRoute("/discover") &&
@@ -475,6 +500,11 @@ async function runSmartNotificationsMilestone1Verification() {
     dismissedAtMsByKey: { "rec-1": nowMs - 2 * 24 * 3_600_000 },
     nowMs,
   });
+  const suppressedByIdDecision = canDisplayPopupNotification(lowVisualEarlier, {
+    pathname: "/discover",
+    dismissedAtMsByKey: { "visual-low": nowMs - 2 * 24 * 3_600_000 },
+    nowMs,
+  });
   const nextWhileCreating = getNextEligiblePopupNotification(
     [normalVisualLater, urgentCancelled],
     { pathname: "/create", nowMs }
@@ -485,18 +515,25 @@ async function runSmartNotificationsMilestone1Verification() {
       !modalBlockedDecision.canDisplay &&
       !cooldownBlockedDecision.canDisplay &&
       !suppressedDecision.canDisplay &&
+      !suppressedByIdDecision.canDisplay &&
       nextWhileCreating?.id === "tx-urgent"
   );
 
   const urgentA11y = getVisualPopupAccessibilityProps(urgentCancelled);
   const visualA11y = getVisualPopupAccessibilityProps(normalVisualLater);
+  const fallbackA11y = getVisualPopupAccessibilityProps({
+    title: "   ",
+    priority: "normal",
+    image_alt: null,
+  });
   check(
     "Accessibility props enforce aria-live, status role, dismiss label, and alt text",
     urgentA11y.role === "status" &&
       urgentA11y.ariaLive === "assertive" &&
       visualA11y.ariaLive === "polite" &&
       visualA11y.dismissAriaLabel === "Dismiss notification" &&
-      visualA11y.imageAlt === normalVisualLater.title
+      visualA11y.imageAlt === normalVisualLater.title &&
+      fallbackA11y.imageAlt === "Notification"
   );
 
   // 6. Rich Web Push Foundation & Same-Origin Navigation
