@@ -306,12 +306,12 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 ### Day 4 (4 Hours/Dev) - Pinterest-Style Visual Event Popups, Rich Push & Week 1 Milestone Merge
 
 #### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`)
-1. **Audit Visual Notification Security, Accessibility & Queue Precedence**:
-   - Verify image URL sanitization (allow HTTPS URLs and local `/images/` or Supabase storage paths; fallback cleanly on load error).
-   - Verify priority ordering in the popup queue (`urgent` and `high` transactional notifications take precedence over `normal`/`low` visual recommendations).
-2. **Author & Execute Week 1 Milestone Verification Suite**:
-   - Create `scripts/smart-notifications/week1/verify-sn-milestone1.ts` (and register `verify:sn-m1` in [package.json](package.json)).
-   - Verify all Week 1 checkpoints: bell, dropdown, notification center, preferences, quiet hours, scheduled promotion, event lifecycle notifications, campaign analytics preservation (`track_campaign_event`), abandoned-action recovery, Pinterest visual popups, and rich Web Push.
+1. **Audit Visual Notification Security, Accessibility & Queue Precedence** (`src/lib/notifications/visual-rules.ts`) [DONE]:
+   - Verify image URL sanitization (allow HTTPS URLs and local `/images/` or Supabase storage paths; fallback cleanly on load error) [DONE].
+   - Verify priority ordering in the popup queue (`urgent` and `high` transactional notifications take precedence over `normal`/`low` visual recommendations) [DONE].
+2. **Author & Execute Week 1 Milestone Verification Suite** [DONE]:
+   - Create `scripts/smart-notifications/week1/verify-sn-milestone1.ts` (and register `verify:sn-m1` in [package.json](package.json)) [DONE].
+   - Verify all Week 1 checkpoints: bell, dropdown, notification center, preferences, quiet hours, scheduled promotion, event lifecycle notifications, campaign analytics preservation (`track_campaign_event`), abandoned-action recovery, Pinterest visual popups, and rich Web Push [DONE].
 3. **Merge Week 1 Milestone to `main`**:
    - Review and merge Uzair's and Hardik's Day 4 PRs into `feat/w1-smart-notifications-foundation`.
    - Run `npm test && npx tsc --noEmit && npm run build`.
