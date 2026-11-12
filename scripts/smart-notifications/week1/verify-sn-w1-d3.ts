@@ -1,21 +1,10 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../../../src/lib/supabase/database.types.ts";
-import type { AbandonedActionRecord } from "../../../src/types/notifications.ts";
-import {
-  ACTIVE_EDITING_GUARD_MINUTES,
-  buildRecoveryDedupeKey,
-  buildRecoveryDedupeKeysForAction,
-  DEFAULT_RECOVERY_STAGE_1_DELAY_HOURS,
-  DEFAULT_RECOVERY_STAGE_2_DELAY_HOURS,
-  evaluateAbandonedActionEligibility,
-  evaluateIncompleteRegistrationEligibility,
-  evaluateRecoveryTiming,
-  getRecoveryCopyTemplate,
-  hasMeaningfulAbandonedProgress,
-  validateRecoveryCopy,
-} from "../../../src/lib/notifications/recovery-rules.ts";
+import type { Database } from "../../../src/lib/supabase/database.types";
+import type { AbandonedActionRecord } from "../../../src/types/notifications";
+import type * as RecoveryRulesModule from "../../../src/lib/notifications/recovery-rules";
 
 interface CheckResult {
   name: string;
@@ -151,6 +140,22 @@ async function runSmartNotificationsDay3Verification() {
     "notifications barrel exports recovery-rules",
     notifIndexContent.includes("./recovery-rules")
   );
+
+  const {
+    ACTIVE_EDITING_GUARD_MINUTES,
+    buildRecoveryDedupeKey,
+    buildRecoveryDedupeKeysForAction,
+    DEFAULT_RECOVERY_STAGE_1_DELAY_HOURS,
+    DEFAULT_RECOVERY_STAGE_2_DELAY_HOURS,
+    evaluateAbandonedActionEligibility,
+    evaluateIncompleteRegistrationEligibility,
+    evaluateRecoveryTiming,
+    getRecoveryCopyTemplate,
+    hasMeaningfulAbandonedProgress,
+    validateRecoveryCopy,
+  } = (await import(
+    pathToFileURL(recoveryRulesPath).href
+  )) as typeof RecoveryRulesModule;
 
   // 2. Anti-Surveillance Copy Validation
   console.log("\n--- 2. Anti-Surveillance Copy Validation ---");
