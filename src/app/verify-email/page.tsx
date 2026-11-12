@@ -101,7 +101,7 @@ function VerifyEmailForm() {
               No email address was provided. Return to signup or sign in to request a verification code.
             </p>
             <Link
-              href="/signup"
+              href={`/signup?next=${encodeURIComponent(next)}`}
               className="inline-flex text-sm font-semibold text-violet-600 hover:text-violet-800"
             >
               Return to signup
