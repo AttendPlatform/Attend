@@ -179,7 +179,7 @@ export default function TermsPage() {
       <LegalPage
       title="Terms of Service"
       description="The rules and conditions that apply when you use Attend to discover events, create experiences, and connect with communities."
-      effectiveDate="To be set on publication"
+      effectiveDate="12 November 2026"
       sections={sections}
       />
       <Footer />
