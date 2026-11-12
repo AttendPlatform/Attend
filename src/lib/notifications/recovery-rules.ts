@@ -14,6 +14,7 @@ export const ACTIVE_PARTICIPANT_STATUSES = [
   "attending",
   "registered",
   "ticketed",
+  "attended",
 ] as const;
 
 export const BLOCKED_SURVEILLANCE_PHRASES = [
@@ -144,6 +145,32 @@ function parsePositiveInteger(value: unknown): number | null {
     return null;
   }
   return Math.floor(parsed);
+}
+
+function resolveFiniteNumber(
+  value: number | undefined,
+  fallback: number
+): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function hasMeaningfulCanvasConfig(value: unknown): boolean {
+  const config = asPlainRecord(value as Record<string, unknown> | undefined);
+  const keys = Object.keys(config);
+  if (keys.length === 0) {
+    return false;
+  }
+
+  if (Array.isArray(config.objects) && keys.length === 1) {
+    return config.objects.length > 0;
+  }
+
+  return keys.some((key) => {
+    if (key === "objects" && Array.isArray(config.objects)) {
+      return config.objects.length > 0;
+    }
+    return config[key] !== null && config[key] !== undefined && config[key] !== "";
+  });
 }
 
 /**
@@ -288,9 +315,6 @@ export function validateAbandonedActionProgress(
     }
 
     case "campaign_draft": {
-      const canvasConfig = asPlainRecord(
-        payload.canvasConfig as Record<string, unknown> | undefined
-      );
       const hasContent =
         hasNonEmptyText(input.draftTitle) ||
         hasNonEmptyText(payload.title) ||
@@ -299,7 +323,8 @@ export function validateAbandonedActionProgress(
         hasNonEmptyText(payload.templateId) ||
         hasNonEmptyText(payload.assetUrl) ||
         hasNonEmptyText(payload.asset_url) ||
-        Object.keys(canvasConfig).length > 0;
+        hasMeaningfulCanvasConfig(payload.canvasConfig) ||
+        hasMeaningfulCanvasConfig(payload.canvas_config);
 
       return hasContent
         ? { meaningful: true, reason: null }
@@ -396,20 +421,31 @@ export function evaluateRecoveryTiming(
     1,
     Math.min(
       DEFAULT_MAX_RECOVERY_REMINDERS,
-      config?.maxReminders ?? DEFAULT_MAX_RECOVERY_REMINDERS
+      Math.floor(
+        resolveFiniteNumber(config?.maxReminders, DEFAULT_MAX_RECOVERY_REMINDERS)
+      )
     )
   );
   const stage1DelayHours = Math.max(
     0,
-    config?.stage1DelayHours ?? DEFAULT_RECOVERY_STAGE_1_DELAY_HOURS
+    resolveFiniteNumber(
+      config?.stage1DelayHours,
+      DEFAULT_RECOVERY_STAGE_1_DELAY_HOURS
+    )
   );
   const stage2DelayHours = Math.max(
     stage1DelayHours,
-    config?.stage2DelayHours ?? DEFAULT_RECOVERY_STAGE_2_DELAY_HOURS
+    resolveFiniteNumber(
+      config?.stage2DelayHours,
+      DEFAULT_RECOVERY_STAGE_2_DELAY_HOURS
+    )
   );
   const activeEditingGuardMinutes = Math.max(
     ACTIVE_EDITING_GUARD_MINUTES,
-    config?.activeEditingGuardMinutes ?? ACTIVE_EDITING_GUARD_MINUTES
+    resolveFiniteNumber(
+      config?.activeEditingGuardMinutes,
+      ACTIVE_EDITING_GUARD_MINUTES
+    )
   );
 
   if (action.reminder_stage >= maxReminders) {
@@ -558,6 +594,28 @@ export function evaluateIncompleteRegistrationEligibility(
       suppressionStatus: "suppressed",
       reason: "event_already_started",
     };
+  }
+
+  if (context.event.participation_model === "external") {
+    return {
+      eligible: false,
+      shouldSuppress: true,
+      suppressionStatus: "suppressed",
+      reason: "external_participation_not_supported",
+    };
+  }
+
+  const registrationConfig = asPlainRecord(context.event.participation_config);
+  if (hasNonEmptyText(registrationConfig.registration_deadline)) {
+    const deadlineMs = new Date(registrationConfig.registration_deadline).getTime();
+    if (!Number.isNaN(deadlineMs) && deadlineMs <= now.getTime()) {
+      return {
+        eligible: false,
+        shouldSuppress: true,
+        suppressionStatus: "suppressed",
+        reason: "registration_deadline_passed",
+      };
+    }
   }
 
   const capacity = extractEventRegistrationCapacity(
@@ -714,8 +772,15 @@ export function buildRecoveryDedupeKeysForAction(
   actionId: string,
   maxReminders = DEFAULT_MAX_RECOVERY_REMINDERS
 ): string[] {
+  const safeMax = Math.max(
+    1,
+    Math.min(
+      DEFAULT_MAX_RECOVERY_REMINDERS,
+      Math.floor(resolveFiniteNumber(maxReminders, DEFAULT_MAX_RECOVERY_REMINDERS))
+    )
+  );
   const keys: string[] = [];
-  for (let stage = 1; stage <= maxReminders; stage += 1) {
+  for (let stage = 1; stage <= safeMax; stage += 1) {
     if (stage === 1 || stage === 2) {
       keys.push(buildRecoveryDedupeKey(actionId, stage));
     }
@@ -781,7 +846,11 @@ export async function evaluateAbandonedActionEligibility(
       };
     }
     eventTitle = registrationCheck.eventTitle ?? eventTitle;
-  } else if (action.action_type === "event_draft" && action.event_id) {
+  } else if (
+    (action.action_type === "event_draft" ||
+      action.action_type === "unfinished_event_edit") &&
+    action.event_id
+  ) {
     const { data: eventRow, error } = await supabase
       .from("events")
       .select("status")
@@ -800,25 +869,39 @@ export async function evaluateAbandonedActionEligibility(
       };
     }
 
-    if (!eventRow || eventRow.status === "cancelled" || eventRow.status === "archived") {
+    if (
+      !eventRow ||
+      eventRow.status === "cancelled" ||
+      eventRow.status === "archived" ||
+      eventRow.status === "rejected"
+    ) {
       return {
         eligible: false,
         shouldSuppress: true,
         suppressionStatus: "suppressed",
         nextStage: null,
-        reason: "event_no_longer_draft",
+        reason:
+          action.action_type === "event_draft"
+            ? "event_no_longer_draft"
+            : "event_no_longer_editable",
         copy: null,
         dedupeKey: null,
       };
     }
 
-    if (eventRow.status === "published" || eventRow.status === "completed") {
+    if (
+      eventRow.status === "completed" ||
+      (action.action_type === "event_draft" && eventRow.status === "published")
+    ) {
       return {
         eligible: false,
         shouldSuppress: true,
         suppressionStatus: "completed",
         nextStage: null,
-        reason: "event_already_published",
+        reason:
+          eventRow.status === "published"
+            ? "event_already_published"
+            : "event_already_completed",
         copy: null,
         dedupeKey: null,
       };
