@@ -1,27 +1,9 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { Notification } from "../../../src/types/notifications.ts";
-import {
-  evaluateIncompleteRegistrationEligibility,
-  evaluateRecoveryTiming,
-  getRecoveryCopyTemplate,
-  hasMeaningfulAbandonedProgress,
-  validateRecoveryCopy,
-} from "../../../src/lib/notifications/recovery-rules.ts";
-import {
-  canDisplayPopupNotification,
-  enqueuePopupNotification,
-  getNextEligiblePopupNotification,
-  getVisualPopupAccessibilityProps,
-  isInterruptionGuardedRoute,
-  isSafeNotificationActionUrl,
-  isSupabaseStorageUrl,
-  resolveVisualNotificationImage,
-  sanitizeNotificationActionUrl,
-  sanitizeNotificationImageUrl,
-  sortNotificationPopupQueue,
-  VISUAL_POPUP_COOLDOWN_MS,
-} from "../../../src/lib/notifications/visual-rules.ts";
+import { pathToFileURL } from "node:url";
+import type { Notification } from "../../../src/types/notifications";
+import type * as RecoveryRulesModule from "../../../src/lib/notifications/recovery-rules";
+import type * as VisualRulesModule from "../../../src/lib/notifications/visual-rules";
 
 interface CheckResult {
   name: string;
@@ -199,6 +181,16 @@ async function runSmartNotificationsMilestone1Verification() {
 
   // 4. Abandoned-Action Recovery Rules (Day 3)
   console.log("\n--- 4. Abandoned-Action Recovery Rules ---");
+  const recoveryRulesPath = resolve(cwd, "src/lib/notifications/recovery-rules.ts");
+  const {
+    evaluateIncompleteRegistrationEligibility,
+    evaluateRecoveryTiming,
+    getRecoveryCopyTemplate,
+    hasMeaningfulAbandonedProgress,
+    validateRecoveryCopy,
+  } = (await import(
+    pathToFileURL(recoveryRulesPath).href
+  )) as typeof RecoveryRulesModule;
   const now = new Date("2026-11-12T12:00:00.000Z");
 
   check(
@@ -290,6 +282,23 @@ async function runSmartNotificationsMilestone1Verification() {
     "next.config.ts allows Supabase storage remote images",
     readFileSync(nextConfigPath, "utf8").includes("**.supabase.co")
   );
+
+  const {
+    canDisplayPopupNotification,
+    enqueuePopupNotification,
+    getNextEligiblePopupNotification,
+    getVisualPopupAccessibilityProps,
+    isInterruptionGuardedRoute,
+    isSafeNotificationActionUrl,
+    isSupabaseStorageUrl,
+    resolveVisualNotificationImage,
+    sanitizeNotificationActionUrl,
+    sanitizeNotificationImageUrl,
+    sortNotificationPopupQueue,
+    VISUAL_POPUP_COOLDOWN_MS,
+  } = (await import(
+    pathToFileURL(visualRulesPath).href
+  )) as typeof VisualRulesModule;
 
   // Image URL sanitization checks
   check(
