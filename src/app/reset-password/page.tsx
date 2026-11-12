@@ -21,15 +21,22 @@ export default function ResetPasswordPage() {
     let active = true;
 
     async function checkRecoverySession() {
-      const { data, error } = await supabase.auth.getUser();
-      if (!active) return;
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!active) return;
 
-      const sessionExists = !error && Boolean(data.user);
-      setHasSession(sessionExists);
-      setCheckingSession(false);
+        const sessionExists = !error && Boolean(data.user);
+        setHasSession(sessionExists);
+        setCheckingSession(false);
 
-      if (!sessionExists) {
-        setMessage("This password reset link is invalid or has expired.");
+        if (!sessionExists) {
+          setMessage("This password reset link is invalid or has expired.");
+        }
+      } catch {
+        if (!active) return;
+        setHasSession(false);
+        setCheckingSession(false);
+        setMessage("We could not verify this reset link. Please request a new one.");
       }
     }
 
