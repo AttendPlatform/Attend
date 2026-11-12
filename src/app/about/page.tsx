@@ -221,7 +221,7 @@ export default function AboutPage() {
             </p>
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {team.map((member, index) => (
+            {team.map((member) => (
               <article key={member.name} className="rounded-2xl border border-neutral-200/80 bg-white p-6 shadow-sm">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-violet-200 text-xl font-semibold text-violet-700">
                   {member.initials}
@@ -241,7 +241,7 @@ export default function AboutPage() {
       <section className="mx-auto max-w-7xl px-5 py-20 sm:px-6 lg:py-24">
         <div className="flex flex-col gap-8 rounded-[2rem] bg-neutral-950 px-7 py-10 text-white sm:px-10 sm:py-14 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold text-violet-300">LET'S CONNECT</p>
+            <p className="text-sm font-semibold text-violet-300">LET&apos;S CONNECT</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
               Have a question, idea or feedback?
             </h2>
