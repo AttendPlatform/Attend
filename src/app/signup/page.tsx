@@ -75,7 +75,7 @@ function SignupForm() {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
       options: {
@@ -91,6 +91,11 @@ function SignupForm() {
 
     if (error) {
       setError(error.message);
+      return;
+    }
+
+    if (data.session) {
+      window.location.assign(next);
       return;
     }
 
@@ -482,7 +487,7 @@ function SignupForm() {
             <p className="mt-8 text-center text-sm text-neutral-500">
               Already have an account?{" "}
               <Link
-                href="/login"
+                href={`/login?next=${encodeURIComponent(next)}`}
                 className="font-bold text-violet-600 transition hover:text-violet-800"
               >
                 Sign in
