@@ -254,12 +254,20 @@ async function runSmartNotificationsDay3Verification() {
     })
   );
   check(
-    "Rejects empty campaign draft",
+    "Rejects empty campaign draft or untouched empty canvas_config",
     !hasMeaningfulAbandonedProgress({
       actionType: "campaign_draft",
       draftTitle: "  ",
       draftPayload: { title: "", canvasConfig: {} },
-    })
+    }) &&
+      !hasMeaningfulAbandonedProgress({
+        actionType: "campaign_draft",
+        draftPayload: { canvas_config: { objects: [] } },
+      }) &&
+      hasMeaningfulAbandonedProgress({
+        actionType: "campaign_draft",
+        draftPayload: { canvas_config: { objects: [{ type: "image" }] } },
+      })
   );
   check(
     "Rejects untouched or prefilled-only registration form",
@@ -379,6 +387,18 @@ async function runSmartNotificationsDay3Verification() {
       maxReached.reason === "max_reminders_reached"
   );
 
+  const nanConfigTiming = evaluateRecoveryTiming(
+    makeAction({
+      last_progressed_at: new Date(now.getTime() - 2 * 3_600_000).toISOString(),
+    }),
+    { stage1DelayHours: Number.NaN, maxReminders: Number.NaN },
+    now
+  );
+  check(
+    "Falls back safely to default delays when numeric config values are NaN",
+    !nanConfigTiming.eligible && nanConfigTiming.reason === "stage_1_delay_not_met"
+  );
+
   // 5. Registration & Payment Status Verification
   console.log("\n--- 5. Registration & Payment Status Verification ---");
   const futureStart = new Date(now.getTime() + 5 * 24 * 3_600_000).toISOString();
@@ -448,6 +468,45 @@ async function runSmartNotificationsDay3Verification() {
         now
       );
       return !res.eligible && res.shouldSuppress && res.reason === "event_capacity_full";
+    })()
+  );
+
+  check(
+    "Suppresses if registration deadline passed or participation model is external",
+    (() => {
+      const deadlinePassed = evaluateIncompleteRegistrationEligibility(
+        {
+          hasActiveParticipation: false,
+          event: {
+            ...baseRegistrationEvent,
+            participation_config: {
+              max_attendees: 100,
+              registration_deadline: pastStart,
+            },
+          },
+          activeParticipantCount: 10,
+        },
+        now
+      );
+      const externalModel = evaluateIncompleteRegistrationEligibility(
+        {
+          hasActiveParticipation: false,
+          event: {
+            ...baseRegistrationEvent,
+            participation_model: "external",
+          },
+          activeParticipantCount: 10,
+        },
+        now
+      );
+      return (
+        !deadlinePassed.eligible &&
+        deadlinePassed.shouldSuppress &&
+        deadlinePassed.reason === "registration_deadline_passed" &&
+        !externalModel.eligible &&
+        externalModel.shouldSuppress &&
+        externalModel.reason === "external_participation_not_supported"
+      );
     })()
   );
 
@@ -586,6 +645,34 @@ async function runSmartNotificationsDay3Verification() {
     !completedRegResult.eligible &&
       completedRegResult.shouldSuppress &&
       completedRegResult.suppressionStatus === "completed"
+  );
+
+  const rejectedDraftMock = createMockSupabase({
+    events: { status: "rejected" },
+  });
+  const rejectedDraftResult = await evaluateAbandonedActionEligibility(
+    rejectedDraftMock,
+    makeAction({
+      action_type: "event_draft",
+      last_progressed_at: new Date(now.getTime() - 26 * 3_600_000).toISOString(),
+    }),
+    { now }
+  );
+  const editPublishedResult = await evaluateAbandonedActionEligibility(
+    publishedEventMock,
+    makeAction({
+      action_type: "unfinished_event_edit",
+      last_progressed_at: new Date(now.getTime() - 26 * 3_600_000).toISOString(),
+    }),
+    { now }
+  );
+  check(
+    "Suppresses rejected drafts while keeping unfinished edits on published events eligible",
+    !rejectedDraftResult.eligible &&
+      rejectedDraftResult.shouldSuppress &&
+      rejectedDraftResult.suppressionStatus === "suppressed" &&
+      editPublishedResult.eligible &&
+      editPublishedResult.nextStage === 1
   );
 
   const eligibleDraftMock = createMockSupabase({
