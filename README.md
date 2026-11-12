@@ -59,9 +59,15 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - Dedicated hub with dual-tab interface for Saved Events and Saved Campaigns
 - Independent optimistic bookmark state with real-time persistence across sessions and active discovery links
 
-### 9. Lifecycle Notifications Engine (`src/services/notifications.service.ts`)
-- In-app notification engine with priority-tiered delivery and idempotent deduplication keys
-- Automatic triggers for event date and venue updates, campaign creation, registration confirmations, and urgent cancellations
+### 9. Smart Notification & Engagement Engine (`src/lib/notifications`, `src/services/notifications.service.ts`)
+- Centralized smart notification engine supporting 8 presentation formats (text, Pinterest-style visual popups, featured events, promotional banners, social notifications, reminders, organizer insights, and announcements)
+- Timezone-aware quiet hours, idempotent deduplication keys, daily frequency caps, and single-popup priority queue
+- Automated triggers for lifecycle updates, 24h event reminders, abandoned draft recovery, and friend attendance
+
+### 10. Event SEO, Structured Data & Navigation UX (`src/app/events/[id]/page.tsx`, `src/components/navigation/header.tsx`)
+- Dynamic metadata generation providing canonical URLs, Open Graph website cards, and responsive Twitter cards
+- Schema.org Event JSON-LD structured data with protocol validation and script tag escaping for search engine rich snippets
+- Authenticated header sign-out state with responsive icon-only mobile layout, loading indicators, and unmount safety guards
 
 ## Project Directory Structure
 
@@ -73,6 +79,7 @@ Attend/
 │   │   └── db-migration-deploy.yml  # Production migration deployment
 │   └── pull_request_template.md
 ├── docs/                   # Implementation roadmaps and architectural plans
+│   ├── smart_notification_implementation_plan.md # Smart notification and engagement roadmap
 │   └── v1_implementation_plan.md
 ├── public/                 # Static assets and PWA service worker
 │   ├── favicon.png
@@ -80,14 +87,14 @@ Attend/
 │   ├── icon-512.png
 │   └── sw.js
 ├── scripts/                # Automated verification suites and CI runners
-│   ├── verify-milestone0.ts
-│   ├── verify-milestone1.ts
-│   ├── verify-milestone2.ts
-│   ├── verify-milestone3.ts
-│   ├── verify-milestone4.ts
-│   ├── verify-w5-d1.ts
-│   ├── verify-w5-d2.ts
-│   └── verify-w5-d3.ts
+│   ├── smart-notifications/ # Smart notifications and engagement verification suites
+│   │   └── week1/          # Week 1 Smart notification foundation and quiet hours suites
+│   └── v1-phase/           # Attend V1 milestone and weekly verification suites
+│       ├── milestones/     # Core milestone suites (milestones 0 through 4)
+│       ├── week1/          # Week 1 Location abstraction and event creation suites
+│       ├── week3/          # Week 3 Public event and mobile action bar suites
+│       ├── week4/          # Week 4 Discover and connected campaign suites
+│       └── week5/          # Week 5 Organizer dashboard and saved items suites
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
 │   │   ├── actions/        # Server Actions (organizer.ts)
@@ -211,8 +218,10 @@ npm test
 
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
-| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 300+ automated checks) |
-| `npm run verify:m4` | Milestone 4 (Phase 4) | Dual-factor organizer authorization, overview metrics, people roster, central saved hub, safe cancellation, lifecycle notifications, and Section 58 matrix |
+| `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 306+ automated checks) |
+| `npm run verify:sn-w1-d2` | Smart Notifications Week 1 Day 2 | Timezone-aware quiet hours (Africa/Lagos overnight spans), sliding 24h frequency caps, scheduled promotion RPC, deduplication idempotency, and zero em dashes |
+| `npm run verify:sn-w1-d1` | Smart Notifications Week 1 Day 1 | Schema foundation (notifications, preferences, templates, abandoned_actions), shared contracts, status filtering, and zero em dashes |
+| `npm run verify:m4` | Milestone 4 (Phase 4) | Dual-factor organizer authorization, overview metrics, people roster, central saved hub, safe cancellation, lifecycle notifications, Event SEO, JSON-LD, and Section 58 matrix |
 | `npm run verify:w5-d3` | Week 5 Day 3 (Phase 4) | Organizer campaigns tab, settings tab, local timezone offset handling, date order validation, safe cancellation safeguards, and lifecycle notifications |
 | `npm run verify:w5-d2` | Week 5 Day 2 (Phase 4) | Organizer people roster tab, 4 distinct sub-tabs, data separation between event attendance and campaign participation, and CSV export |
 | `npm run verify:w5-d1` | Week 5 Day 1 (Phase 4) | Organizer dashboard shell, header, overview stats cards, access control redirect, and saved items hub |
@@ -245,11 +254,12 @@ Development follows an accelerated 5-week progression roadmap executed by a 3-pe
 
 Detailed workflows, branch naming conventions, quality requirements, and daily operating procedures are documented in:
 - [CONTRIBUTING.md](CONTRIBUTING.md): Daily development protocol, branching strategy, and PR instructions
+- [docs/smart_notification_implementation_plan.md](docs/smart_notification_implementation_plan.md): 2-week smart notification and engagement implementation plan
 - [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md): Complete phase-by-phase architectural roadmap and day-by-day objectives
 - [.github/pull_request_template.md](.github/pull_request_template.md): Standard Pull Request description template
 
 ### Daily Workflow Summary
-1. Synchronize with the active weekly parent branch set up by Sanaullah (e.g. `feat/w5-phase4-organizer-saved-launch`).
+1. Synchronize with the active weekly parent branch set up by Sanaullah (e.g. `feat/w1-smart-notifications-foundation`).
 2. Create your daily feature branch (`feat/<name>-w<week>-d<day>-<feature>`).
 3. Implement the daily assignment from the implementation plan with clean atomic commits.
 4. Pass all verification checks (`npm test`, `npx tsc --noEmit`, `npm run build`).

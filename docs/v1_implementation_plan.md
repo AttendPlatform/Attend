@@ -121,7 +121,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 1. **Sanaullah (Tech Lead & Project Supervisor)**:
    - Architecture enforcement, domain contract design, and Supabase RLS policy oversight.
    - Reviewing and merging daily pull requests from Uzair and Hardik.
-   - Authoring and maintaining automated milestone verification suites (`scripts/verify-milestone*.ts`).
+   - Authoring and maintaining automated milestone verification suites (`scripts/v1-phase/milestones/verify-milestone*.ts`).
    - Integration testing, build validation (`npm run build`), and production release management.
 2. **Uzair (Software Engineer - Core UI & Public Experiences)**:
    - Reusable UI primitives (`AvatarStack`, `SaveButton`, `ShareButton`, `EventCard`, `CampaignCard`).
@@ -180,7 +180,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 > - Migration `20261006171700_v1_phase0_indexes.sql`: High-performance indexes across foreign keys.
 > - Migration `20261008154000_v1_phase0_data_integrity.sql`: Data backfill, orphaned campaign safeguards, and creator backfill into `event_organizers`.
 > - Domain Services: Created `src/services/events.service.ts`, `src/services/campaigns.service.ts`, `src/services/attendance.service.ts`, and `src/services/saved.service.ts`.
-> - Verification: `scripts/verify-milestone0.ts` passing 24/24 tests.
+> - Verification: `scripts/v1-phase/milestones/verify-milestone0.ts` passing 24/24 tests.
 
 ---
 
@@ -192,7 +192,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 > - Components: Built `LocationPicker.tsx` (preset hub selector, manual coordinate override, online toggle) and `MapPreview.tsx` (OpenStreetMap embed and directions links).
 > - Event Creation Upgrade: Rebuilt `src/app/create/page.tsx` with `ParticipationModelSelector` supporting all 4 models (Free, Registration, Paid, External), participant campaign toggle, and draft/publish states.
 > - Documentation: Added complete project directory structure to `README.md` and added standard barrel exports across `src/types/`, `src/stores/`, `src/hooks/`, `src/components/`, and `src/lib/`.
-> - Verification: 5 automated test suites (`scripts/verify-milestone1.ts`, etc.) passing 163/163 checks. Zero build or TypeScript errors.
+> - Verification: 5 automated test suites (`scripts/v1-phase/milestones/verify-milestone1.ts`, etc.) passing 163/163 checks. Zero build or TypeScript errors.
 
 ---
 
@@ -205,7 +205,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 > - Attendance State Machine & CTAs: Dynamic `EventPrimaryAction` supporting Free RSVP, external tickets, and paid tiers.
 > - Registration System: Accessible `RegistrationModal` with dynamic Zod question schemas, `CancelRsvpModal`, and sticky `MobileEventActionBar`.
 > - Auth & State Continuity: Guest sign-in intent retention across auth boundaries via `EventAttendanceProvider`.
-> - Verification: Automated Milestone 2 verification suite (`scripts/verify-milestone2.ts`) passing 73/73 checks.
+> - Verification: Automated Milestone 2 verification suite (`scripts/v1-phase/milestones/verify-milestone2.ts`) passing 73/73 checks.
 
 #### Days 1 & 2 (8 hrs) - Completed Core UI Primitives, Public Layout & RSVP Controller [DONE]
 - **Completed Deliverables**:
@@ -225,19 +225,19 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - `src/components/events/RegistrationModal.tsx`: Accessible dialog with responsive scrolling, real-time Zod validation, error indicators, submission loading spinners, and registration confirmation.
   - `src/lib/validations/registration.ts`: Dynamic Zod validation schemas for attendee details (`name`, `email`, `phone`, `organization`, `job_title`) and customizable questions.
   - `src/app/events/[id]/page.tsx`: Integrated `EventAttendanceProvider`, `CancelRsvpModal`, `RegistrationModal`, `MobileEventActionBar`, and scroll clearance (`pb-40 md:pb-24 lg:pb-12`).
-  - `scripts/verify-day3.ts`: Unified automated verification suite passing 50/50 checks (`npm run verify:day3`).
+  - `scripts/v1-phase/week3/verify-day3.ts`: Unified automated verification suite passing 50/50 checks (`npm run verify:day3`).
 
 #### Day 4 (4 hrs) - Guest Sign-In Retention Flow & Milestone 2 Automated Verification [DONE]
 - **Completed Deliverables**:
   - **Uzair (Software Engineer)**:
     - `src/app/events/[id]/page.tsx`: Enhanced connected campaign cards with smooth lift, backdrop blur badges, hover scaling, and added creator empty states aligned with event organizer settings.
-    - `scripts/verify-day4.ts`: Automated test suite for visual polish and creator states passing 14/14 checks (`npm run verify:day4`).
+    - `scripts/v1-phase/week3/verify-day4.ts`: Automated test suite for visual polish and creator states passing 14/14 checks (`npm run verify:day4`).
   - **Sanaullah (Tech Lead / Supervisor)**:
     - `src/lib/utils/guest-intent.ts`: Client-safe guest intent persistence and post-login URL construction helpers (`setGuestIntent`, `getGuestIntent`, `clearGuestIntent`, `buildLoginUrlWithIntent`, `parseGuestIntentFromSearch`).
     - `src/app/login/page.tsx`: Upgraded authentication form with safe `next` parameter resolution (preventing open redirect vulnerabilities) wrapped in a `Suspense` boundary.
     - `src/components/events/EventPrimaryAction.tsx` and `MobileEventActionBar.tsx`: Preserves intended attendee action (`attend` or `register`) across both desktop and mobile viewports when guest clicks attendance CTAs.
     - `src/components/events/EventAttendanceProvider.tsx`: Automatically resumes intended attendance or opens registration modal on return from `/login`, and cleans up intent query parameters via history replacement.
-    - `scripts/verify-milestone2.ts`: Comprehensive Milestone 2 automated test suite covering all 4 participation tiers, `AvatarStack` calculations and privacy masking, `saved_events` persistence, dynamic OpenGraph metadata, guest intent retention, and zero em dashes passing 73/73 checks (`npm run verify:m2`).
+    - `scripts/v1-phase/milestones/verify-milestone2.ts`: Comprehensive Milestone 2 automated test suite covering all 4 participation tiers, `AvatarStack` calculations and privacy masking, `saved_events` persistence, dynamic OpenGraph metadata, guest intent retention, and zero em dashes passing 73/73 checks (`npm run verify:m2`).
     - `package.json`: Registered `verify:m2` and `verify:milestone2` npm scripts and added to unified `npm test`.
     - Merged `feat/w3-phase2-public-event-attendance` into `main` and verified production build passing 100%.
 
@@ -263,7 +263,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 > - Conversion Funnel Architecture: Connected campaign participation to parent event RSVP via `CampaignResultActions` and `?src=campaign_funnel` routing.
 > - High-Performance Discover Hub: Rebuilt `/discover` with parallel event and campaign query engine, debounced search, date chips, and Nigerian hub presets.
 > - Performance Indexing & Spatial Pruning: Migration `20261028140000_discover_query_performance_indexes.sql` with composite indexes and bounding box calculations without PostGIS bloat.
-> - Verification: Automated Milestone 3 verification suite (`scripts/verify-milestone3.ts`) passing 62/62 checks.
+> - Verification: Automated Milestone 3 verification suite (`scripts/v1-phase/milestones/verify-milestone3.ts`) passing 62/62 checks.
 
 #### Day 5 (4 hrs) - CampaignCard Upgrade & Discover Filter Bar
 - **Sanaullah (Tech Lead / Supervisor)**:
@@ -272,7 +272,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Ensure campaign participation logic remains strictly isolated from event attendance (generating a DP does not make a user an event attendee) [DONE].
   - Added `checkCampaignAttendanceIsolation` domain guard to `src/services/campaigns.service.ts` [DONE].
   - Set up weekly parent branch `feat/w4-phase3-campaigns-discover` and feature branch `feat/sanaullah-w4-d1-contracts-isolation` [DONE].
-  - Authored automated verification suite `scripts/verify-w4-d1.ts` (43/43 checks passing) [DONE].
+  - Authored automated verification suite `scripts/v1-phase/week4/verify-w4-d1.ts` (43/43 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Rebuild `src/components/campaigns/CampaignCard.tsx` [DONE]:
     - Campaign template asset preview with high-definition rendering [DONE].
@@ -292,7 +292,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Authored PostGIS-free spatial pruning and canonical city matching in `src/lib/location/bounding-box.ts` and integrated into `discover.service.ts` [DONE].
   - Review Fabric.js canvas builder integrity on `/campaign/[slug]` to ensure no regressions occur while adding the parent event header [DONE].
   - Authored canvas integrity guard assertions and layer schema validators in `src/lib/campaigns/canvas-integrity.ts` and integrated into `generate.ts` [DONE].
-  - Authored automated verification suite `scripts/verify-w4-d2.ts` (44/44 checks passing) [DONE].
+  - Authored automated verification suite `scripts/v1-phase/week4/verify-w4-d2.ts` (44/44 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Overhaul `src/app/campaign/[slug]/page.tsx` header [DONE]:
     - Display prominent parent event banner: *"Official Campaign for [Event Title] · [View Event Page]"* [DONE].
@@ -318,7 +318,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Review Supabase query performance and indexing in `discover.service.ts` [DONE].
   - Authored database migration `20261028140000_discover_query_performance_indexes.sql` establishing composite and secondary indexes across events, campaigns, and templates [DONE].
   - Optimized `discover.service.ts` with SQL query pushdowns and O(1) Map indexing for categories, profiles, and templates [DONE].
-  - Authored automated verification suite `scripts/verify-w4-d3.ts` (49/49 checks passing) [DONE].
+  - Authored automated verification suite `scripts/v1-phase/week4/verify-w4-d3.ts` (49/49 checks passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Build post-generation funnel in `CampaignResultActions` [DONE]:
     - Download generated banner graphic ("Download Graphic") [DONE].
@@ -332,7 +332,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 
 #### Day 8 (4 hrs) - Modular Discover Page & Milestone 3 Checkpoint
 - **Sanaullah (Tech Lead / Supervisor)**:
-  - Author and run automated verification suite `scripts/verify-milestone3.ts` (62/62 passing) [DONE]:
+  - Author and run automated verification suite `scripts/v1-phase/milestones/verify-milestone3.ts` (62/62 passing) [DONE]:
     - Tests Discover query filtering by city, date chip, and search keyword [DONE].
     - Tests Campaign page parent event linking and copy alignment [DONE].
     - Tests campaign generation analytics isolation from event attendance [DONE].
@@ -369,7 +369,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
   - Pass unified milestone test suite (M0, M1, M2, M3: 193/193 checks) and production build [DONE].
   - Enforce access control for organizer routes: Verify viewer is event creator or present in `event_organizers` table [DONE].
   - Review RLS security policies for organizer dashboard queries [DONE].
-  - Author and run automated verification suite `scripts/verify-w5-d1.ts` (34/34 passing) [DONE].
+  - Author and run automated verification suite `scripts/v1-phase/week5/verify-w5-d1.ts` (34/34 passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Build `src/app/dashboard/events/[id]/page.tsx` layout and shell [DONE - PR #42]:
     - Event Header: Title, status badge (`Draft`, `Published`, `Cancelled`), and quick-link to public `/events/[id]` [DONE].
@@ -386,7 +386,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
 - **Sanaullah (Tech Lead / Supervisor)**:
   - Review data separation in the People tab to ensure Attendee records never conflate with Campaign generation counts [DONE].
   - Verify notification payload structures and delivery in the database [DONE].
-  - Author and run automated verification suite `scripts/verify-w5-d2.ts` (37/37 passing) [DONE].
+  - Author and run automated verification suite `scripts/v1-phase/week5/verify-w5-d2.ts` (37/37 passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Wire `OrganizerPeopleTab.tsx` into organizer event dashboard page [DONE - PR #43]:
     - Sub-tabs: `Attendees` | `Registrants` | `Ticket Holders` | `Campaign Participants` [DONE].
@@ -404,7 +404,7 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Sets `event.status = 'cancelled'` [DONE].
     - Attaches parent-cancelled banner to connected campaigns without deleting user assets [DONE].
     - Dispatches urgent in-app notification to all confirmed attendees (`dispatchEventCancelledNotification`) [DONE].
-    - Author and run automated verification suite `scripts/verify-w5-d3.ts` (73/73 passing) [DONE].
+    - Author and run automated verification suite `scripts/v1-phase/week5/verify-w5-d3.ts` (73/73 passing) [DONE].
 - **Uzair (Software Engineer)**:
   - Build `OrganizerCampaignsTab.tsx` [DONE - PR #44]:
     - List all campaigns attached to this event [DONE].
@@ -421,22 +421,24 @@ Per Section 60 of the Development Brief, every existing asset is classified into
     - Dark/light mode contrast checks [DONE].
     - Mobile bottom navigation dock and touch-friendly button targets [DONE].
 
-#### Day 12 (4 hrs) - End-to-End Acceptance Verification & V1 Sign-Off
+#### Day 12 (4 hrs) - End-to-End Acceptance Verification & V1 Sign-Off [DONE]
 - **Sanaullah (Tech Lead / Supervisor)**:
   - Run comprehensive verification suite against Section 58 Acceptance Criteria [DONE]:
-    - `npm test`: Runs `verify:m0`, `verify:m1`, `verify:m2`, `verify:m3`, and `verify:m4` (300/300 checks passing) [DONE].
-    - Author and run automated verification suite `scripts/verify-milestone4.ts` (109/109 passing) [DONE].
+    - `npm test`: Runs `verify:m0`, `verify:m1`, `verify:m2`, `verify:m3`, and `verify:m4` (306/306 checks passing) [DONE].
+    - Author and run automated verification suite `scripts/v1-phase/milestones/verify-milestone4.ts` (115/115 passing) [DONE].
     - TypeScript compilation (`npx tsc --noEmit`): 0 errors [DONE].
     - Production build (`npm run build`): All routes prerender cleanly [DONE].
   - Conduct final verification review and ensure full V1 platform sign-off readiness [DONE].
 - **Uzair (Software Engineer)**:
-  - Cross-device QA audit: Test full flows on iPhone, Android, tablet, and desktop viewports.
-  - Validate image upload constraints and canvas generation exports.
+  - Cross-device QA audit: Test full flows on iPhone, Android, tablet, and desktop viewports [DONE].
+  - Validate image upload constraints and canvas generation exports [DONE].
+  - Author and run Day 12 automated verification suite `scripts/v1-phase/week5/verify-w5-d4.ts` (23/23 passing) [DONE].
 - **Hardik (Software Engineer)**:
-  - Cross-browser QA audit: Test Chrome, Safari, Firefox, and Edge.
-  - SEO validation: Verify dynamic OpenGraph meta tags, Twitter cards, and structured JSON-LD data for events.
+  - Cross-browser QA audit: Test Chrome, Safari, Firefox, and Edge [DONE].
+  - SEO validation: Verify dynamic OpenGraph meta tags, Twitter cards, and structured JSON-LD data for events [DONE].
+  - Polish logout UX with transition loading indicator and responsive mobile controls [DONE - PR #49].
 
-> **Week 5 Deliverables Checkpoint**:
+> **Week 5 Deliverables Checkpoint [DONE]**:
 > - Fully operational Organizer Dashboard at `/dashboard/events/[id]`.
 > - Working `/saved` Hub for independent event and campaign bookmarks.
 > - Automated lifecycle notifications for event changes and cancellations.

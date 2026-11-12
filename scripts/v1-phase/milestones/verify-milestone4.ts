@@ -285,6 +285,37 @@ async function runMilestone4Verification() {
     eventPageContent.includes("EventPrimaryAction") &&
     eventPageContent.includes("ExpandableEventCover")
   );
+  check("Day 12 SEO: event pages publish canonical and Open Graph metadata",
+    eventPageContent.includes("alternates:") &&
+    eventPageContent.includes("canonical: eventUrl") &&
+    eventPageContent.includes('type: "website"') &&
+    eventPageContent.includes("url: eventUrl")
+  );
+  check("Day 12 SEO: event pages publish dynamic Twitter cards",
+    eventPageContent.includes("twitter:") &&
+    eventPageContent.includes('card: event.cover_image ? "summary_large_image" : "summary"')
+  );
+  check("Day 12 SEO: event pages embed safely escaped Event JSON-LD",
+    eventPageContent.includes('"@type": "Event"') &&
+    eventPageContent.includes('type="application/ld+json"') &&
+    eventPageContent.includes('replace(/</g, "\\\\u003c")') &&
+    eventPageContent.includes("function getSafeHttpUrl") &&
+    eventPageContent.includes("getSafeHttpUrl(event.online_url)")
+  );
+
+  const navigationHeaderContent = readFileSync(resolve(cwd, "src/components/navigation/header.tsx"), "utf8");
+  check("Logout stays visible while auth state clears and route changes",
+    navigationHeaderContent.includes("{user || isLoggingOut ? (") &&
+    navigationHeaderContent.includes('logoutDestinationRef.current = "/"')
+  );
+  check("Logout timeout is cleaned up and failures are surfaced to the user",
+    navigationHeaderContent.includes("window.clearTimeout(logoutTimeoutRef.current)") &&
+    navigationHeaderContent.includes('toast.error("Failed to sign out. Please try again.")')
+  );
+  check("Logout control is icon-only on small screens with an accessible label",
+    navigationHeaderContent.includes('className="hidden md:inline"') &&
+    navigationHeaderContent.includes('aria-label={isLoggingOut ? "Logging out" : "Log out"}')
+  );
 
   const createPageContent = readFileSync(resolve(cwd, "src/app/create/page.tsx"), "utf8");
   check("Section 58 Organizer: create flow configures participation models and Nigerian hubs",
@@ -301,7 +332,7 @@ async function runMilestone4Verification() {
   // 10. Zero em dashes policy
   console.log("\n--- 10. Zero Em Dashes Policy ---");
   const milestone4Files = [
-    "scripts/verify-milestone4.ts",
+    "scripts/v1-phase/milestones/verify-milestone4.ts",
     "src/types/dashboard.ts",
     "src/services/organizer.service.ts",
     "src/services/events.service.ts",
@@ -315,7 +346,9 @@ async function runMilestone4Verification() {
     "src/components/dashboard/OrganizerPeopleTab.tsx",
     "src/components/campaigns/CampaignHeader.tsx",
     "src/components/campaigns/CampaignResultActions.tsx",
+    "src/components/navigation/header.tsx",
     "src/app/dashboard/events/[id]/page.tsx",
+    "src/app/events/[id]/page.tsx",
     "src/app/saved/page.tsx",
   ];
 

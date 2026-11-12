@@ -474,7 +474,7 @@ export default function CreateEventPage() {
               <section className="space-y-7">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-                    01 — The essentials
+                    01 - The essentials
                   </p>
                   <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">
                     Tell us about your event
@@ -647,7 +647,7 @@ export default function CreateEventPage() {
               <section className="space-y-8">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-                    02 — The details
+                    02 - The details
                   </p>
                   <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">
                     When and where?
@@ -748,7 +748,7 @@ export default function CreateEventPage() {
               <section className="space-y-8">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">
-                    03 — Make it happen
+                    03 - Make it happen
                   </p>
                   <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950 sm:text-2xl">
                     How will people attend?
