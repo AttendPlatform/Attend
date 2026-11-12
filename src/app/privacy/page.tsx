@@ -176,7 +176,7 @@ export default function PrivacyPage() {
       <LegalPage
       title="Privacy Policy"
       description="How Attend collects, uses, stores, shares, and protects your personal information."
-      effectiveDate="To be set on publication"
+      effectiveDate="12 November 2026"
       sections={sections}
       />
       <Footer />
