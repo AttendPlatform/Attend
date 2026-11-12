@@ -47,6 +47,7 @@ export interface Notification {
   event_id: string | null;
   campaign_id: string | null;
   metadata: Record<string, unknown>;
+  dedupe_key?: string | null;
   delivery_channel: string | null;
   status: NotificationStatus;
   priority: NotificationPriority;
