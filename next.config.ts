@@ -1,3 +1,4 @@
+
 import type { NextConfig } from "next";
 import withPWA from "@ducanh2912/next-pwa";
 
@@ -7,7 +8,12 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**.supabase.co", // Permits image rendering from any Supabase Storage bucket
+        hostname: "**.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
       },
     ],
   },

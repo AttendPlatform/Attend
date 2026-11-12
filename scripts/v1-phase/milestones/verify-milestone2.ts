@@ -223,10 +223,15 @@ async function runMilestone2Verification() {
     resolve(process.cwd(), "src/app/login/page.tsx"),
     "utf8"
   );
-  check("login/page.tsx safely resolves next parameter",
-    loginPageContent.includes("searchParams.get(\"next\")") &&
-    loginPageContent.includes('nextParam.startsWith("/")') &&
-    loginPageContent.includes('!nextParam.startsWith("//")')
+  const authRedirectContent = readFileSync(
+    resolve(process.cwd(), "src/lib/auth/redirect.ts"),
+    "utf8"
+  );
+  check("login/page.tsx uses the centralized safe redirect helper",
+    loginPageContent.includes('safeAuthRedirect(params.get("next"))') &&
+    authRedirectContent.includes('!value.startsWith("/")') &&
+    authRedirectContent.includes('value.startsWith("//")') &&
+    authRedirectContent.includes('value.includes("\\\\")')
   );
 
   check("EventPrimaryAction connects intent on guest click",
