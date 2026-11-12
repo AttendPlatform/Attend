@@ -62,6 +62,54 @@ function hasControlCharsOrWhitespace(value: string): boolean {
   return /[\u0000-\u001F\u007F\s]/.test(value);
 }
 
+function hasUnsafeLocalPathSegments(rawPath: string): boolean {
+  if (rawPath.startsWith("//") || rawPath.includes("\\") || rawPath.includes("..")) {
+    return true;
+  }
+
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(rawPath);
+  } catch {
+    return true;
+  }
+
+  return (
+    hasControlCharsOrWhitespace(decoded) ||
+    decoded.startsWith("//") ||
+    decoded.includes("\\") ||
+    decoded.includes("..")
+  );
+}
+
+function isPrivateOrLocalHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  if (
+    normalized === "localhost" ||
+    normalized.endsWith(".local") ||
+    normalized.endsWith(".internal") ||
+    normalized.startsWith("[") ||
+    normalized.endsWith("]")
+  ) {
+    return true;
+  }
+
+  const ipv4Match = normalized.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!ipv4Match) {
+    return false;
+  }
+
+  const [a, b] = [Number(ipv4Match[1]), Number(ipv4Match[2])];
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+}
+
 function isAllowedHost(
   hostname: string,
   allowedHosts: readonly string[]
@@ -98,12 +146,7 @@ export function sanitizeNotificationImageUrl(
   }
 
   if (trimmed.startsWith("/")) {
-    // Block protocol-relative URLs, backslashes, and directory traversal.
-    if (
-      trimmed.startsWith("//") ||
-      trimmed.includes("\\") ||
-      trimmed.includes("..")
-    ) {
+    if (hasUnsafeLocalPathSegments(trimmed)) {
       return null;
     }
 
@@ -129,7 +172,11 @@ export function sanitizeNotificationImageUrl(
     if (parsed.username || parsed.password) {
       return null;
     }
-    if (!parsed.hostname || !parsed.hostname.includes(".")) {
+    if (
+      !parsed.hostname ||
+      !parsed.hostname.includes(".") ||
+      isPrivateOrLocalHostname(parsed.hostname)
+    ) {
       return null;
     }
     if (
@@ -159,7 +206,7 @@ export function isSupabaseStorageUrl(
     const parsed = new URL(sanitized);
     return (
       parsed.hostname.endsWith(".supabase.co") &&
-      parsed.pathname.includes("/storage/v1/object/")
+      parsed.pathname.startsWith("/storage/v1/object/")
     );
   } catch {
     return false;
@@ -173,7 +220,8 @@ export function resolveVisualNotificationImage(
   notification: Pick<Notification, "title" | "image_url" | "image_alt" | "metadata">,
   options?: ImageSanitizationOptions & { imageLoadFailed?: boolean }
 ): VisualImageResolution {
-  const fallbackAlt = notification.image_alt?.trim() || notification.title;
+  const fallbackAlt =
+    notification.image_alt?.trim() || notification.title.trim() || "Notification";
   if (options?.imageLoadFailed) {
     return {
       src: null,
@@ -212,13 +260,20 @@ export function isSafeNotificationActionUrl(
   }
 
   if (trimmed.startsWith("/")) {
-    return !trimmed.startsWith("//") && !trimmed.includes("\\");
+    return !hasUnsafeLocalPathSegments(trimmed);
   }
 
   try {
     const parsed = new URL(trimmed);
     if (appOrigin) {
-      return parsed.origin === new URL(appOrigin).origin;
+      const parsedOrigin = new URL(appOrigin);
+      if (
+        (parsed.protocol !== "https:" && parsed.protocol !== "http:") ||
+        parsed.origin === "null"
+      ) {
+        return false;
+      }
+      return parsed.origin === parsedOrigin.origin;
     }
     return parsed.protocol === "https:";
   } catch {
@@ -321,14 +376,15 @@ export function comparePopupNotifications(
 export function sortNotificationPopupQueue(
   queue: readonly Notification[]
 ): Notification[] {
+  const orderedActive = queue
+    .filter((item) => ACTIVE_POPUP_STATUSES.has(item.status))
+    .sort(comparePopupNotifications);
+
   const seenIds = new Set<string>();
   const seenDedupeKeys = new Set<string>();
-  const filtered: Notification[] = [];
+  const deduped: Notification[] = [];
 
-  for (const item of queue) {
-    if (!ACTIVE_POPUP_STATUSES.has(item.status)) {
-      continue;
-    }
+  for (const item of orderedActive) {
     if (seenIds.has(item.id)) {
       continue;
     }
@@ -340,20 +396,21 @@ export function sortNotificationPopupQueue(
     if (dedupeKey) {
       seenDedupeKeys.add(dedupeKey);
     }
-    filtered.push(item);
+    deduped.push(item);
   }
 
-  return filtered.sort(comparePopupNotifications);
+  return deduped;
 }
 
 export function enqueuePopupNotification(
   queue: readonly Notification[],
   incoming: Notification
 ): Notification[] {
+  const withoutExisting = queue.filter((item) => item.id !== incoming.id);
   if (!ACTIVE_POPUP_STATUSES.has(incoming.status)) {
-    return sortNotificationPopupQueue(queue);
+    return sortNotificationPopupQueue(withoutExisting);
   }
-  return sortNotificationPopupQueue([...queue, incoming]);
+  return sortNotificationPopupQueue([...withoutExisting, incoming]);
 }
 
 export function isInterruptionGuardedRoute(
@@ -362,10 +419,12 @@ export function isInterruptionGuardedRoute(
   if (!pathname) {
     return false;
   }
-  const normalized = pathname.trim().toLowerCase();
-  if (!normalized) {
+  const cleanPath = pathname.split(/[?#]/, 1)[0].trim().toLowerCase();
+  if (!cleanPath) {
     return false;
   }
+  const normalized =
+    cleanPath.length > 1 ? cleanPath.replace(/\/+$/, "") : cleanPath;
 
   return (
     normalized === "/create" ||
@@ -403,14 +462,21 @@ export function canDisplayPopupNotification(
   }
 
   const nowMs = context.nowMs ?? Date.now();
-  const suppressionKey = getNotificationDedupeKey(notification) ?? notification.id;
-  if (
+  const dedupeKey = getNotificationDedupeKey(notification);
+  const isDismissed =
     isNotificationDismissalSuppressed(
-      suppressionKey,
+      notification.id,
       context.dismissedAtMsByKey,
       nowMs
-    )
-  ) {
+    ) ||
+    (dedupeKey !== null &&
+      isNotificationDismissalSuppressed(
+        dedupeKey,
+        context.dismissedAtMsByKey,
+        nowMs
+      ));
+
+  if (isDismissed) {
     return {
       canDisplay: false,
       reason: "dismissed_within_suppression_window",
@@ -473,6 +539,9 @@ export function getVisualPopupAccessibilityProps(
     role: "status",
     ariaLive: notification.priority === "urgent" ? "assertive" : "polite",
     dismissAriaLabel: "Dismiss notification",
-    imageAlt: notification.image_alt?.trim() || notification.title,
+    imageAlt:
+      notification.image_alt?.trim() ||
+      notification.title.trim() ||
+      "Notification",
   };
 }
