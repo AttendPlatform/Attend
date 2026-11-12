@@ -20,6 +20,17 @@ function LoginForm() {
   const supabase = createClient();
   const params = useSearchParams();
   const next = safeAuthRedirect(params.get("next"));
+  const authErrorCode = params.get("error");
+  const authErrorMessages: Record<string, string> = {
+    missing_code: "The sign-in link is incomplete. Please try signing in again.",
+    oauth_callback: "We could not complete Google sign-in. Please try again.",
+    expired_confirmation: "This email link has expired. Request a new link and try again.",
+    invalid_confirmation: "This email link is invalid. Request a new link and try again.",
+  };
+  const authErrorMessage = authErrorCode
+    ? authErrorMessages[authErrorCode] ?? "Sign-in could not be completed. Please try again."
+    : "";
+  const passwordUpdated = params.get("password_updated") === "1";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,7 +58,6 @@ function LoginForm() {
       return options[Math.floor(Math.random() * options.length)];
     };
 
-    setGreeting(chooseGreeting("Good to see you"));
     const interval = window.setInterval(() => {
       setGreeting((current) => chooseGreeting(current));
     }, 30_000);
@@ -338,12 +348,21 @@ function LoginForm() {
             </div>
           )}
 
-          {error && (
+          {passwordUpdated && (
+            <div
+              role="status"
+              className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+            >
+              Your password has been updated. Sign in with your new password.
+            </div>
+          )}
+
+          {(error || authErrorMessage) && (
             <div
               role="alert"
               className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600"
             >
-              {error}
+              {error || authErrorMessage}
             </div>
           )}
 
