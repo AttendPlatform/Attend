@@ -69,6 +69,13 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - Schema.org Event JSON-LD structured data with protocol validation and script tag escaping for search engine rich snippets
 - Authenticated header sign-out state with responsive icon-only mobile layout, loading indicators, and unmount safety guards
 
+### 11. Authentication, Redirect Security & Legal Pages (`src/lib/auth`, `src/app/auth`, `src/components/legal`)
+- Google OAuth, email/password sign-in, passwordless email-code (OTP) login, and email confirmation flows (`/login`, `/signup`, `/verify-email`)
+- PKCE OAuth callback (`/auth/callback`) and email confirmation/recovery handler (`/auth/confirm`) supporting both `code` and `token_hash` links
+- Password recovery flow (`/forgot-password`, `/reset-password`) with `supabase.auth.getUser()` session verification and post-reset local sign-out
+- Centralized `safeAuthRedirect` helper (`src/lib/auth/redirect.ts`) enforcing internal relative paths and blocking backslash, control-character, and dot-segment protocol-relative bypasses
+- Public About, Privacy Policy, and Terms of Service pages (`/about`, `/privacy`, `/terms`) with shared `LegalPage` and `Footer` components
+
 ## Project Directory Structure
 
 ```text
@@ -97,18 +104,25 @@ Attend/
 │       └── week5/          # Week 5 Organizer dashboard and saved items suites
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
+│   │   ├── about/          # Public About page
 │   │   ├── actions/        # Server Actions (organizer.ts)
+│   │   ├── auth/           # OAuth callback and email confirmation route handlers
 │   │   ├── campaign/       # Public campaign view and share route
 │   │   ├── create/         # Event creation flow with LocationPicker
 │   │   ├── dashboard/      # Organizer event dashboard (/dashboard/events/[id])
 │   │   ├── discover/       # Public event discovery feed
 │   │   ├── events/         # Event detail and campaign management routes
-│   │   ├── login/          # User authentication login
+│   │   ├── forgot-password/# Password reset request flow
+│   │   ├── login/          # User authentication login (OAuth, password, OTP)
 │   │   ├── notifications/  # User in-app notifications hub
+│   │   ├── privacy/        # Privacy Policy page
 │   │   ├── profile/        # User and organizer profile management
+│   │   ├── reset-password/ # Password reset completion flow
 │   │   ├── saved/          # Saved events and campaigns hub
 │   │   ├── settings/       # Account and notification preferences
-│   │   ├── signup/         # User registration
+│   │   ├── signup/         # User registration and onboarding reasons
+│   │   ├── terms/          # Terms of Service page
+│   │   ├── verify-email/   # Email OTP verification and resend flow
 │   │   ├── globals.css     # Global styles and Tailwind configuration
 │   │   ├── layout.tsx      # Root application layout with providers
 │   │   ├── manifest.ts     # PWA Web App Manifest
@@ -120,13 +134,15 @@ Attend/
 │   │   ├── discover/       # DiscoverFilterBar, DiscoverHub, and card skeletons
 │   │   ├── events/         # Event cards and participation model selector
 │   │   ├── home/           # Landing page sections and filter controls
+│   │   ├── legal/          # Shared LegalPage layout for Privacy and Terms
 │   │   ├── location/       # LocationPicker and MapPreview components
-│   │   ├── navigation/     # AppShell, Header, and MobileNav
+│   │   ├── navigation/     # AppShell, Footer, Header, and MobileNav
 │   │   ├── notifications/  # Toast, bell, and dropdown notifications
 │   │   ├── providers/      # Context providers (Auth, Theme)
 │   │   └── ui/             # Primitives and shared UI controls
 │   ├── hooks/              # Custom React hooks (useNotifications, useToast)
 │   ├── lib/                # Core libraries and utility abstractions
+│   │   ├── auth/           # Safe redirect validation helper (safeAuthRedirect)
 │   │   ├── campaigns/      # Canvas renderer, integrity guards, funnel routing, and templates
 │   │   ├── dashboard/      # Roster CSV formatting and export engine
 │   │   ├── location/       # Pluggable location layer and bounding box filters
