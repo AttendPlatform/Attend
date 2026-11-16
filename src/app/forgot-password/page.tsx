@@ -12,6 +12,7 @@ function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"error" | "success">("success");
 
   const expiredLink = params.get("error") === "expired";
 
@@ -27,6 +28,7 @@ function ForgotPasswordForm() {
     );
 
     setLoading(false);
+    setMessageType(error ? "error" : "success");
     setMessage(
       error
         ? error.message
@@ -68,7 +70,14 @@ function ForgotPasswordForm() {
             className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
           />
           {message && (
-            <p role="status" className="text-sm text-neutral-600">
+            <p
+              role={messageType === "error" ? "alert" : "status"}
+              className={
+                messageType === "error"
+                  ? "text-sm text-rose-600"
+                  : "text-sm text-neutral-600"
+              }
+            >
               {message}
             </p>
           )}
