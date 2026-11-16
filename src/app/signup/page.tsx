@@ -106,8 +106,7 @@ function SignupForm() {
     setLoading(true);
     setError("");
 
-    // Carry the selected reasons through the OAuth callback.
-    // The callback route will be updated separately to save them.
+    // Carry the selected reasons through the OAuth callback for user metadata.
     const callbackUrl = new URL(
       "/auth/callback",
       window.location.origin
