@@ -15,7 +15,10 @@ export function safeAuthRedirect(
   try {
     const parsed = new URL(value, "https://attend.local");
 
-    if (parsed.origin !== "https://attend.local") {
+    if (
+      parsed.origin !== "https://attend.local" ||
+      parsed.pathname.startsWith("//")
+    ) {
       return fallback;
     }
 
