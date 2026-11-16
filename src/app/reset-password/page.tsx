@@ -2,13 +2,11 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function ResetPasswordPage() {
   const supabase = createClient();
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [visible, setVisible] = useState(false);
