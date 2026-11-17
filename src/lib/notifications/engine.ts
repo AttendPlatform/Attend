@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 import type {
   Notification,
-  NotificationPriority,
   RecipientEligibilityContext,
   SmartNotificationInput,
 } from "@/types/notifications";
