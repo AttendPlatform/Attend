@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 import type {
@@ -87,7 +89,7 @@ function parseCreatedNotification(value: unknown): CreatedNotification | null {
     action_label: typeof record.action_label === "string" ? record.action_label : null,
     event_id: typeof record.event_id === "string" ? record.event_id : null,
     campaign_id: typeof record.campaign_id === "string" ? record.campaign_id : null,
-    metadata: (record.metadata ?? {}) as Json,
+    metadata: (record.metadata ?? {}) as Record<string, unknown>,
     dedupe_key: typeof record.dedupe_key === "string" ? record.dedupe_key : null,
     priority: typeof record.priority === "string" ? record.priority as NotificationPriority : "normal",
     status: record.status as Notification["status"],
@@ -255,6 +257,15 @@ export async function dispatchSmartNotification(
     return null;
   }
 
+  const metadata: Record<string, unknown> = {
+    ...(params.metadata ?? {}),
+    ...(params.presentationFormat ? { presentation_format: params.presentationFormat } : {}),
+    ...(params.imageUrl ? { image_url: params.imageUrl } : {}),
+    ...(params.imageAlt ? { image_alt: params.imageAlt } : {}),
+    ...(params.whyRecommended ? { why_recommended: params.whyRecommended } : {}),
+    ...(params.scheduledFor ? { scheduled_for: params.scheduledFor } : {}),
+  };
+
   const { data, error } = await supabase.rpc("create_notification_for_user", {
     p_user_id: params.userId,
     p_type: params.type,
@@ -265,7 +276,7 @@ export async function dispatchSmartNotification(
     p_action_label: params.actionLabel ?? undefined,
     p_event_id: params.eventId ?? undefined,
     p_campaign_id: params.campaignId ?? undefined,
-    p_metadata: params.metadata ? toJson(params.metadata) : undefined,
+    p_metadata: Object.keys(metadata).length ? toJson(metadata) : undefined,
     p_dedupe_key: params.dedupeKey ?? undefined,
     p_priority: params.priority ?? "normal",
   });
@@ -294,7 +305,8 @@ export async function processCampaignActivity(activity: CampaignActivity) {
     message: string,
     metric: string,
     value: number,
-    actionLabel: string
+    actionLabel: string,
+    dedupeKey: string
   ) => {
     const notification = await dispatchSmartNotification({
       userId: activity.creatorId,
@@ -307,7 +319,7 @@ export async function processCampaignActivity(activity: CampaignActivity) {
       eventId: activity.eventId ?? null,
       campaignId: activity.campaignId,
       metadata: { [metric]: value, metric, campaign_name: activity.campaignName },
-      dedupeKey: `campaign-${activity.campaignId}-${metric}-${value}`,
+      dedupeKey,
       priority: "normal",
       recipientContext: {
         userId: activity.creatorId,
@@ -326,7 +338,8 @@ export async function processCampaignActivity(activity: CampaignActivity) {
       `"${activity.campaignName}" has received its first generated version.`,
       "generations",
       1,
-      "View campaign"
+      "View campaign",
+      `campaign-${activity.campaignId}-first-generation`
     );
   }
 
@@ -337,7 +350,8 @@ export async function processCampaignActivity(activity: CampaignActivity) {
       `"${activity.campaignName}" has reached 10 generations.`,
       "generations",
       10,
-      "View campaign"
+      "View campaign",
+      `campaign-${activity.campaignId}-generations-10`
     );
   }
 
@@ -348,7 +362,8 @@ export async function processCampaignActivity(activity: CampaignActivity) {
       `"${activity.campaignName}" has reached ${activity.views} views.`,
       "views",
       activity.views,
-      "View analytics"
+      "View analytics",
+      `campaign-${activity.campaignId}-views-${activity.views}`
     );
   }
 
@@ -359,7 +374,8 @@ export async function processCampaignActivity(activity: CampaignActivity) {
       `"${activity.campaignName}" has been shared ${activity.shares} times.`,
       "shares",
       activity.shares,
-      "View analytics"
+      "View analytics",
+      `campaign-${activity.campaignId}-shares-${activity.shares}`
     );
   }
 
@@ -370,7 +386,8 @@ export async function processCampaignActivity(activity: CampaignActivity) {
       `"${activity.campaignName}" has been downloaded ${activity.downloads} times.`,
       "downloads",
       activity.downloads,
-      "View analytics"
+      "View analytics",
+      `campaign-${activity.campaignId}-downloads-${activity.downloads}`
     );
   }
 
