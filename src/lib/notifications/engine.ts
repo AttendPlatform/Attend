@@ -74,7 +74,10 @@ function parseCreatedNotification(value: unknown): CreatedNotification | null {
     return null;
   }
 
-  if (typeof record.status !== "string") {
+  const allowedStatuses: Notification["status"][] = [
+    "unread", "read", "scheduled", "sent", "suppressed", "expired", "dismissed",
+  ];
+  if (typeof record.status !== "string" || !allowedStatuses.includes(record.status as Notification["status"])) {
     return null;
   }
 
@@ -91,7 +94,9 @@ function parseCreatedNotification(value: unknown): CreatedNotification | null {
     campaign_id: typeof record.campaign_id === "string" ? record.campaign_id : null,
     metadata: (record.metadata ?? {}) as Record<string, unknown>,
     dedupe_key: typeof record.dedupe_key === "string" ? record.dedupe_key : null,
-    priority: typeof record.priority === "string" ? record.priority as NotificationPriority : "normal",
+    priority: record.priority === "low" || record.priority === "normal" || record.priority === "high" || record.priority === "urgent"
+      ? record.priority
+      : "normal",
     status: record.status as Notification["status"],
   };
 }
