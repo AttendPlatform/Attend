@@ -120,12 +120,21 @@ export async function verifyRecipientEligibility(
     case "ticket_holder": {
       if (!context.eventId) return false;
 
-      const { data, error } = await supabase
+      const participantQuery = supabase
         .from("event_participants")
         .select("user_id")
         .eq("event_id", context.eventId)
-        .eq("user_id", userId)
-        .in("status", [...ACTIVE_PARTICIPANT_STATUSES]);
+        .eq("user_id", userId);
+
+      const relationshipQuery =
+        context.roleRequired === "attendee"
+          ? participantQuery
+          : participantQuery.eq("participation_type", context.roleRequired);
+
+      const { data, error } = await relationshipQuery.in(
+        "status",
+        [...ACTIVE_PARTICIPANT_STATUSES]
+      );
 
       return !error && Boolean(data?.length);
     }
