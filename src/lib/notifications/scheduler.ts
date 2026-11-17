@@ -216,7 +216,7 @@ async function dispatchReminderWindow(
         eventId: event.id,
         actionUrl: `/events/${event.id}`,
         actionLabel: "View event",
-        dedupeKey: `event-${event.id}-reminder-${window.label.replace(" ", "")}-${userId}`,
+        dedupeKey: `event-${event.id}-reminder-${window.type === "event_reminder_24h" ? "24h" : "2h"}-${userId}`,
         metadata: {
           reminder_type: window.type,
           event_start_at: event.start_at,
@@ -353,11 +353,11 @@ export async function dispatchOrganizerProgressInsights() {
       continue;
     }
 
-    const milestone = [...ORGANIZER_MILESTONES]
-      .reverse()
-      .find((value) => (count ?? 0) >= value);
+    const reachedMilestones = ORGANIZER_MILESTONES.filter(
+      (value) => (count ?? 0) >= value
+    );
 
-    if (!milestone) continue;
+    if (reachedMilestones.length === 0) continue;
 
     const recipientIds = [
       ...new Set([
@@ -366,28 +366,30 @@ export async function dispatchOrganizerProgressInsights() {
       ]),
     ].filter(Boolean);
 
-    for (const userId of recipientIds) {
-      summary.attempted += 1;
-      const result = await dispatchToUser(supabase, {
-        userId,
-        type: "organizer_insight",
-        category: "organizer_insight",
-        title: `${milestone} people are part of your event`,
-        message: `"${event.title}" has reached ${milestone} confirmed attendees or registrations. Keep your participants informed and engaged.`,
-        eventId: event.id,
-        actionUrl: `/dashboard/events/${event.id}`,
-        actionLabel: "View event",
-        dedupeKey: `event-${event.id}-attendee-milestone-${milestone}-${userId}`,
-        metadata: {
-          milestone,
-          confirmed_participants: count ?? 0,
-          metric: "confirmed_participants",
-        },
-        priority: "normal",
-      });
+    for (const milestone of reachedMilestones) {
+      for (const userId of recipientIds) {
+        summary.attempted += 1;
+        const result = await dispatchToUser(supabase, {
+          userId,
+          type: "organizer_insight",
+          category: "organizer_insight",
+          title: `${milestone} people are part of your event`,
+          message: `"${event.title}" has reached ${milestone} confirmed attendees or registrations. Keep your participants informed and engaged.`,
+          eventId: event.id,
+          actionUrl: `/dashboard/events/${event.id}`,
+          actionLabel: "View event",
+          dedupeKey: `event-${event.id}-attendee-milestone-${milestone}-${userId}`,
+          metadata: {
+            milestone,
+            confirmed_participants: count ?? 0,
+            metric: "confirmed_participants",
+          },
+          priority: "normal",
+        });
 
-      if (result === "failed") summary.failed += 1;
-      if (result === "delivered") summary.delivered += 1;
+        if (result === "failed") summary.failed += 1;
+        if (result === "delivered") summary.delivered += 1;
+      }
     }
   }
 
