@@ -183,6 +183,14 @@ function inferRecipientContext(
   const type = params.type.toLowerCase();
   const category = params.category.toLowerCase();
 
+  if (type === "campaign_created" && params.eventId) {
+    return {
+      userId: params.userId,
+      eventId: params.eventId,
+      roleRequired: "organizer",
+    };
+  }
+
   if (params.campaignId && (
     type.includes("campaign") ||
     category.startsWith("campaign_") ||
@@ -201,7 +209,7 @@ function inferRecipientContext(
     return {
       userId: params.userId,
       eventId: params.eventId,
-      roleRequired: type === "campaign_created" ? "organizer" : "attendee",
+      roleRequired: "attendee",
     };
   }
 
