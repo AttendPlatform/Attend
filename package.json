@@ -49,7 +49,8 @@
     "verify:sn-w1-d1": "node --experimental-strip-types scripts/smart-notifications/week1/verify-sn-w1-d1.ts",
     "verify:sn-w1-d2": "node --experimental-strip-types scripts/smart-notifications/week1/verify-sn-w1-d2.ts",
     "verify:sn-w1-d3": "node --experimental-strip-types scripts/smart-notifications/week1/verify-sn-w1-d3.ts",
-    "verify:sn-m1": "node --experimental-strip-types scripts/smart-notifications/week1/verify-sn-milestone1.ts"
+    "verify:sn-m1": "node --experimental-strip-types scripts/smart-notifications/week1/verify-sn-milestone1.ts",
+    "verify:sn-w1-d2-worker": "node --experimental-strip-types scripts/smart-notifications/week1/verify-sn-w1-d2-worker.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
