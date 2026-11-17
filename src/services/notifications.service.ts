@@ -16,7 +16,7 @@ export interface LifecycleNotificationResult {
   recipientIds: string[];
 }
 
-export async function createNotificationRecord(params: {
+async function createNotificationRecord(params: {
   userId: string;
   type: string;
   category: string;
@@ -29,7 +29,7 @@ export async function createNotificationRecord(params: {
   metadata?: Record<string, unknown>;
   dedupeKey?: string | null;
   priority?: "low" | "normal" | "high" | "urgent";
-  recipientContext?: RecipientEligibilityContext;
+  recipientContext: RecipientEligibilityContext;
 }): Promise<boolean> {
   const notification = await dispatchSmartNotification(params);
   return notification !== null;
