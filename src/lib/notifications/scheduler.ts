@@ -140,14 +140,16 @@ async function dispatchToUser(
     return "suppressed";
   }
 
-  if (notification.status === "unread" || notification.status === "sent") {
-    try {
-      await sendPushNotification(supabase, notification);
-    } catch (pushError) {
-      // The in-app notification is already committed. Log push failure without
-      // retrying the RPC and creating a second notification.
-      console.error(pushError);
-    }
+  if (notification.status !== "unread" && notification.status !== "sent") {
+    return "suppressed";
+  }
+
+  try {
+    await sendPushNotification(supabase, notification);
+  } catch (pushError) {
+    // The in-app notification is already committed. Log push failure without
+    // retrying the RPC and creating a second notification.
+    console.error(pushError);
   }
 
   return "delivered";
