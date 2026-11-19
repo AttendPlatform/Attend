@@ -1,7 +1,10 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { dispatchSmartNotification } from "@/lib/notifications/engine";
+import {
+  dispatchSmartNotification,
+  dispatchVisualEventNotification,
+} from "@/lib/notifications/engine";
 import type { RecipientEligibilityContext } from "@/types/notifications";
 import type {
   EventUpdatedNotificationPayload,
@@ -264,6 +267,80 @@ export async function dispatchEventCancelledNotification(
     dispatchedCount,
     recipientIds,
   };
+}
+
+export interface VisualEventRecommendationInput {
+  eventId: string;
+  eventTitle: string;
+  coverImage?: string | null;
+  shortDescription?: string | null;
+  startAt?: string | null;
+  city?: string | null;
+  venueName?: string | null;
+  recipientUserIds: string[];
+}
+
+async function dispatchVisualRecommendationTrigger(
+  input: VisualEventRecommendationInput,
+  whyRecommended: string,
+  dedupePrefix: string
+): Promise<LifecycleNotificationResult> {
+  const recipientIds = Array.from(new Set(input.recipientUserIds.filter(Boolean)));
+  if (!input.eventId || !input.eventTitle || recipientIds.length === 0) {
+    return { success: true, dispatchedCount: 0, recipientIds: [] };
+  }
+
+  const dispatched = await dispatchVisualEventNotification({
+    eventId: input.eventId,
+    eventTitle: input.eventTitle,
+    coverImage: input.coverImage,
+    shortDescription: input.shortDescription,
+    startAt: input.startAt,
+    city: input.city,
+    venueName: input.venueName,
+    actionUrl: `/events/${input.eventId}`,
+    actionLabel: "View event",
+    whyRecommended,
+    recipientUserIds: recipientIds,
+    dedupeKeyPrefix: `${dedupePrefix}-${input.eventId}`,
+    priority: "normal",
+  });
+
+  return {
+    success: true,
+    dispatchedCount: dispatched.length,
+    recipientIds,
+  };
+}
+
+export async function dispatchSavedEventApproachingVisualNotification(
+  input: VisualEventRecommendationInput
+): Promise<LifecycleNotificationResult> {
+  return dispatchVisualRecommendationTrigger(
+    input,
+    "An event you saved is approaching",
+    "visual-saved-approaching"
+  );
+}
+
+export async function dispatchFollowedOrganizerEventVisualNotification(
+  input: VisualEventRecommendationInput
+): Promise<LifecycleNotificationResult> {
+  return dispatchVisualRecommendationTrigger(
+    input,
+    "An organizer you follow published a new event",
+    "visual-organizer-new"
+  );
+}
+
+export async function dispatchInterestMatchEventVisualNotification(
+  input: VisualEventRecommendationInput
+): Promise<LifecycleNotificationResult> {
+  return dispatchVisualRecommendationTrigger(
+    input,
+    "An event matching your interests is now available",
+    "visual-interest-match"
+  );
 }
 
 
