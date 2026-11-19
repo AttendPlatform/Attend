@@ -460,12 +460,10 @@ export default function CreateEventPage() {
         }
       }
 
-      if (eventStatus === "published") {
-        await completeAbandonedActionAction({
-          actionId: activeDraftActionId ?? undefined,
-          actionType: "event_draft",
-        });
-      }
+      await completeAbandonedActionAction({
+        actionId: activeDraftActionId ?? undefined,
+        actionType: "event_draft",
+      });
 
       if (coverUploadFailed) {
         toast.error(
