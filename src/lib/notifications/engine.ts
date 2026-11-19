@@ -85,7 +85,7 @@ function parseCreatedNotification(value: unknown): CreatedNotification | null {
     user_id: record.user_id,
     type: typeof record.type === "string" ? record.type : null,
     category: typeof record.category === "string" ? record.category : null,
-    title: typeof record.title === "string" ? record.title : null,
+    title: typeof record.title === "string" ? record.title : "",
     message: typeof record.message === "string" ? record.message : null,
     action_url: typeof record.action_url === "string" ? record.action_url : null,
     action_label: typeof record.action_label === "string" ? record.action_label : null,
