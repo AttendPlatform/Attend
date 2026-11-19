@@ -33,6 +33,11 @@ import {
   validateParticipationConfig,
   EventCategoryRow,
 } from "@/services/events.service";
+import {
+  completeAbandonedActionAction,
+  getAbandonedActionByIdAction,
+  saveAbandonedActionAction,
+} from "@/app/actions/abandoned-actions";
 
 type CreateStep = 1 | 2 | 3;
 
@@ -96,6 +101,9 @@ export default function CreateEventPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeDraftActionId, setActiveDraftActionId] = useState<string | null>(
+    null
+  );
 
   const timezone =
     Intl.DateTimeFormat().resolvedOptions().timeZone || "Local time";
@@ -133,6 +141,73 @@ export default function CreateEventPage() {
 
         if (data?.length) {
           setCategoryId(data[0].id);
+        }
+
+        const resumeDraftId =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("resumeDraft")
+            : null;
+
+        if (resumeDraftId) {
+          const draftResult = await getAbandonedActionByIdAction(resumeDraftId);
+          if (!active) return;
+
+          if (draftResult.ok && draftResult.action) {
+            const payload = draftResult.action.draft_payload ?? {};
+            setActiveDraftActionId(draftResult.action.id);
+
+            if (typeof payload.title === "string") setTitle(payload.title);
+            else if (draftResult.action.draft_title) {
+              setTitle(draftResult.action.draft_title);
+            }
+            if (typeof payload.description === "string") {
+              setDescription(payload.description);
+            }
+            if (typeof payload.categoryId === "string" && payload.categoryId) {
+              setCategoryId(payload.categoryId);
+            }
+            if (typeof payload.startAt === "string") setStartAt(payload.startAt);
+            if (typeof payload.endAt === "string") setEndAt(payload.endAt);
+            if (
+              payload.location &&
+              typeof payload.location === "object" &&
+              !Array.isArray(payload.location)
+            ) {
+              setLocation((prev) => ({
+                ...prev,
+                ...(payload.location as Partial<StructuredLocation>),
+              }));
+            }
+            if (
+              typeof payload.participationModel === "string" &&
+              ["free", "registration", "paid", "external"].includes(
+                payload.participationModel
+              )
+            ) {
+              setParticipationModel(
+                payload.participationModel as ParticipationModelType
+              );
+            }
+            if (
+              payload.participationConfig &&
+              typeof payload.participationConfig === "object" &&
+              !Array.isArray(payload.participationConfig)
+            ) {
+              setParticipationConfig(
+                payload.participationConfig as Record<string, unknown>
+              );
+            }
+            if (typeof payload.allowParticipantCampaigns === "boolean") {
+              setAllowParticipantCampaigns(payload.allowParticipantCampaigns);
+            }
+            if (
+              payload.step === 1 ||
+              payload.step === 2 ||
+              payload.step === 3
+            ) {
+              setStep(payload.step);
+            }
+          }
         }
       } catch (err) {
         console.error("Create event initialization failed:", err);
@@ -245,10 +320,40 @@ export default function CreateEventPage() {
     return true;
   }
 
+  function saveDraftProgress(nextStep: CreateStep) {
+    if (!title.trim() || !categoryId) return;
+
+    void saveAbandonedActionAction({
+      actionType: "event_draft",
+      draftTitle: title.trim(),
+      draftPayload: {
+        title: title.trim(),
+        description,
+        categoryId,
+        startAt,
+        endAt,
+        location,
+        participationModel,
+        participationConfig,
+        allowParticipantCampaigns,
+        step: nextStep,
+      },
+      resumeUrl: activeDraftActionId
+        ? `/create?resumeDraft=${activeDraftActionId}`
+        : "/create",
+    }).then((res) => {
+      if (res.ok && res.action?.id) {
+        setActiveDraftActionId(res.action.id);
+      }
+    });
+  }
+
   function handleContinue() {
     if (!validateCurrentStep()) return;
 
-    setStep((current) => Math.min(current + 1, 3) as CreateStep);
+    const nextStep = Math.min(step + 1, 3) as CreateStep;
+    saveDraftProgress(nextStep);
+    setStep(nextStep);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -353,6 +458,13 @@ export default function CreateEventPage() {
             coverUploadFailed = true;
           }
         }
+      }
+
+      if (eventStatus === "published") {
+        await completeAbandonedActionAction({
+          actionId: activeDraftActionId ?? undefined,
+          actionType: "event_draft",
+        });
       }
 
       if (coverUploadFailed) {
