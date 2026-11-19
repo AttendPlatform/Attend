@@ -13,6 +13,9 @@ sw.addEventListener("push", (event: PushEvent) => {
     body?: string;
     icon?: string;
     badge?: string;
+    image?: string;
+    actionLabel?: string;
+    notificationId?: string;
     url?: string;
     tag?: string;
   };
@@ -23,14 +26,24 @@ sw.addEventListener("push", (event: PushEvent) => {
     data = { body: event.data.text() };
   }
 
+  const notificationOptions: NotificationOptions & { image?: string } = {
+    body: data.body || "",
+    icon: data.icon || "/icons/icon-192x192.png",
+    badge: data.badge || "/icons/icon-192x192.png",
+    data: {
+      url: data.url || "/notifications",
+      notificationId: data.notificationId,
+      actionLabel: data.actionLabel,
+    },
+    tag: data.tag || "attend-notification",
+  };
+
+  if (data.image) {
+    notificationOptions.image = data.image;
+  }
+
   event.waitUntil(
-    sw.registration.showNotification(data.title || "Attend", {
-      body: data.body || "",
-      icon: data.icon || "/icons/icon-192x192.png",
-      badge: data.badge || "/icons/icon-192x192.png",
-      data: { url: data.url || "/notifications" },
-      tag: data.tag || "attend-notification",
-    })
+    sw.registration.showNotification(data.title || "Attend", notificationOptions)
   );
 });
 
@@ -46,6 +59,8 @@ sw.addEventListener("notificationclick", (event: NotificationEvent) => {
   if (target.origin !== sw.location.origin) {
     target.href = new URL("/notifications", sw.location.origin).href;
   }
+
+  target.searchParams.set("src", "push_notification");
 
   event.waitUntil(
     sw.clients
