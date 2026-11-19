@@ -6,7 +6,9 @@ import type {
   Notification,
   RecipientEligibilityContext,
   SmartNotificationInput,
+  VisualNotificationPayload,
 } from "@/types/notifications";
+import { sanitizeNotificationImageUrl } from "./visual-rules";
 
 type CampaignActivity = {
   campaignId: string;
@@ -184,6 +186,10 @@ function inferRecipientContext(
   const type = params.type.toLowerCase();
   const category = params.category.toLowerCase();
 
+  if (category === "recommendations" || params.presentationFormat === "image_popup") {
+    return null;
+  }
+
   if (type === "campaign_created" && params.eventId) {
     return {
       userId: params.userId,
@@ -242,6 +248,11 @@ async function sendPushNotification(
 
   if (!preferences?.push_enabled) return;
 
+  const metadata = notification.metadata ?? {};
+  const rawImage =
+    typeof metadata.image_url === "string" ? metadata.image_url : null;
+  const sanitizedImage = sanitizeNotificationImageUrl(rawImage);
+
   try {
     const { error: pushError } = await supabase.functions.invoke("send-push", {
       body: {
@@ -249,6 +260,10 @@ async function sendPushNotification(
         body: notification.message ?? "",
         url: notification.action_url ?? "/notifications",
         tag: notification.id ? `notification-${notification.id}` : "attend-notification",
+        notificationId: notification.id,
+        eventId: notification.event_id ?? undefined,
+        actionLabel: notification.action_label ?? undefined,
+        ...(sanitizedImage ? { image: sanitizedImage } : {}),
       },
     });
 
@@ -316,6 +331,60 @@ export async function dispatchSmartNotification(
   }
 
   return notification;
+}
+
+export async function dispatchVisualEventNotification(
+  params: VisualNotificationPayload
+): Promise<CreatedNotification[]> {
+  if (!params.eventId || !params.eventTitle || params.recipientUserIds.length === 0) {
+    return [];
+  }
+
+  const uniqueRecipients = Array.from(new Set(params.recipientUserIds.filter(Boolean)));
+  const sanitizedCover = sanitizeNotificationImageUrl(params.coverImage);
+  const whyRecommended =
+    params.whyRecommended ?? "You might be interested in this event";
+  const actionLabel = params.actionLabel ?? "View event";
+  const message =
+    params.shortDescription?.trim() ||
+    `${whyRecommended}: ${params.eventTitle}`;
+
+  const results: CreatedNotification[] = [];
+
+  for (const userId of uniqueRecipients) {
+    const dispatched = await dispatchSmartNotification({
+      userId,
+      type: "event_recommendation",
+      category: "recommendations",
+      presentationFormat: "image_popup",
+      priority: params.priority ?? "normal",
+      title: params.eventTitle,
+      message,
+      actionUrl: params.actionUrl,
+      actionLabel,
+      eventId: params.eventId,
+      imageUrl: sanitizedCover,
+      imageAlt: params.eventTitle,
+      whyRecommended,
+      dedupeKey: `${params.dedupeKeyPrefix}-${userId}`,
+      metadata: {
+        event_id: params.eventId,
+        short_description: params.shortDescription ?? null,
+        start_at: params.startAt ?? null,
+        city: params.city ?? null,
+        venue_name: params.venueName ?? null,
+        image_url: sanitizedCover,
+        why_recommended: whyRecommended,
+        presentation_format: "image_popup",
+      },
+    });
+
+    if (dispatched) {
+      results.push(dispatched);
+    }
+  }
+
+  return results;
 }
 
 export async function processCampaignActivity(activity: CampaignActivity) {
