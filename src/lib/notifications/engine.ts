@@ -42,6 +42,7 @@ type CreatedNotification = Pick<
 
 type SmartDispatchInput = SmartNotificationInput & {
   recipientContext?: RecipientEligibilityContext;
+  supabaseClient?: SupabaseServerClient;
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -271,7 +272,7 @@ export async function dispatchSmartNotification(
     return null;
   }
 
-  const supabase = await createClient();
+  const supabase = params.supabaseClient ?? (await createClient());
   const context = params.recipientContext ?? inferRecipientContext(params);
 
   if (context && !(await verifyRecipientEligibility(supabase, params.userId, context))) {
