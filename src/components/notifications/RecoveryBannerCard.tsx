@@ -18,7 +18,9 @@ export function RecoveryBannerCard({
 }: RecoveryBannerCardProps) {
   const [dismissing, setDismissing] = useState(false);
 
-  const copy = getRecoveryCopyTemplate(action.action_type, action.draft_title);
+  const copy = getRecoveryCopyTemplate(action.action_type, {
+    eventTitle: action.draft_title,
+  });
   const resumeHref =
     action.action_type === "event_draft" &&
     !action.event_id &&
