@@ -11,6 +11,8 @@ import {
   getOrganizerPeopleStats,
   getOrganizerPeopleRoster,
 } from "@/services/attendance.service";
+import { listActiveAbandonedActions } from "@/services/abandoned-actions.service";
+import { RecoveryBannerCard } from "@/components/notifications/RecoveryBannerCard";
 import {
   OrganizerHeader,
   OrganizerTabs,
@@ -62,14 +64,19 @@ export default async function OrganizerEventDashboardPage({ params, searchParams
     redirect(`/events/${id}`);
   }
 
-  const [event, stats] = await Promise.all([
+  const [event, stats, activeRecoveryActions] = await Promise.all([
     getOrganizerEvent(supabase, id),
     getOrganizerEventStats(supabase, id),
+    listActiveAbandonedActions(supabase, user.id),
   ]);
 
   if (!event) {
     notFound();
   }
+
+  const eventRecoveryActions = activeRecoveryActions.filter(
+    (item) => item.event_id === id || item.action_type === "event_draft"
+  );
 
   const [peopleStats, attendeeRoster, campaignRoster] =
     activeTab === "people"
@@ -93,6 +100,14 @@ export default async function OrganizerEventDashboardPage({ params, searchParams
       <OrganizerTabs eventId={event.id} activeTab={activeTab} />
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        {eventRecoveryActions.length > 0 && (
+          <div className="mb-6 space-y-3">
+            {eventRecoveryActions.map((action) => (
+              <RecoveryBannerCard key={action.id} action={action} />
+            ))}
+          </div>
+        )}
+
         {activeTab === "overview" && <OrganizerOverviewTab event={event} stats={stats} />}
 
         {activeTab === "people" && peopleStats && (

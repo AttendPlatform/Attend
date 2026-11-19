@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bell, CheckCheck, Settings, X } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { recordNotificationInteraction } from "@/lib/notifications/client";
-import type { Notification } from "@/lib/notifications/types";
+import type {
+  AbandonedActionRecord,
+  Notification,
+} from "@/lib/notifications/types";
+import { getActiveAbandonedActionsAction } from "@/app/actions/abandoned-actions";
+import { RecoveryBannerCard } from "@/components/notifications/RecoveryBannerCard";
 
 type NotificationCategoryFilter =
   | "all"
@@ -67,6 +72,21 @@ function matchesCategory(
 export default function NotificationsPage() {
   const [categoryFilter, setCategoryFilter] =
     useState<NotificationCategoryFilter>("all");
+  const [recoveryActions, setRecoveryActions] = useState<
+    AbandonedActionRecord[]
+  >([]);
+
+  useEffect(() => {
+    let active = true;
+    getActiveAbandonedActionsAction().then((res) => {
+      if (active && res.ok) {
+        setRecoveryActions(res.actions);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const {
     notifications,
@@ -183,6 +203,23 @@ export default function NotificationsPage() {
             );
           })}
         </div>
+
+        {(categoryFilter === "all" || categoryFilter === "reminders") &&
+          recoveryActions.length > 0 && (
+            <div className="mb-6 space-y-3">
+              {recoveryActions.map((action) => (
+                <RecoveryBannerCard
+                  key={action.id}
+                  action={action}
+                  onDismissed={(id) =>
+                    setRecoveryActions((prev) =>
+                      prev.filter((item) => item.id !== id)
+                    )
+                  }
+                />
+              ))}
+            </div>
+          )}
 
         {/* Content Section */}
         {loading ? (
