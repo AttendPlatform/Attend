@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import {
+  dispatchAbandonedActionReminders,
   dispatchOrganizerProgressInsights,
   dispatchUpcomingEventReminders,
   processDueScheduledNotifications,
@@ -40,12 +41,14 @@ export async function GET(request: Request) {
     const scheduled = await processDueScheduledNotifications();
     const reminders = await dispatchUpcomingEventReminders();
     const organizerInsights = await dispatchOrganizerProgressInsights();
+    const abandonedRecovery = await dispatchAbandonedActionReminders();
 
     return NextResponse.json({
       success: true,
       scheduled,
       reminders,
       organizerInsights,
+      abandonedRecovery,
       processedAt: new Date().toISOString(),
     });
   } catch (error) {

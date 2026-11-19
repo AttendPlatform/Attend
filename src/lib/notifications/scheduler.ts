@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { processAbandonedActionReminders } from "@/services/abandoned-actions.service";
 
 type ServiceClient = ReturnType<typeof createServiceClient>;
 type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
@@ -394,4 +395,9 @@ export async function dispatchOrganizerProgressInsights() {
   }
 
   return summary;
+}
+
+export async function dispatchAbandonedActionReminders() {
+  const supabase = createServiceClient();
+  return processAbandonedActionReminders(supabase);
 }
