@@ -7,7 +7,13 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
   dismissNotification as dismissNotificationClient,
+  recordNotificationInteraction,
 } from '@/lib/notifications/client';
+import {
+  enqueuePopupNotification,
+  getNotificationDedupeKey,
+  isVisualNotification,
+} from '@/lib/notifications/visual-rules';
 import type { Notification } from '@/lib/notifications/types';
 
 interface NotificationsState {
@@ -15,6 +21,9 @@ interface NotificationsState {
   unreadCount: number;
   loading: boolean;
   latestNotification: Notification | null;
+  toastQueue: Notification[];
+  lastVisualPopupAt: number | null;
+  dismissedRecommendationAt: Record<string, number>;
   isInitialized: boolean;
 
   fetchUnreadCount: () => Promise<number>;
@@ -24,6 +33,8 @@ interface NotificationsState {
   cleanupRealtime: () => void;
   reset: () => void;
   dismissLatestNotification: () => void;
+  markVisualPopupShown: (notification: Notification) => void;
+  dismissPopupNotification: (notification: Notification, suppressRecommendation?: boolean) => void;
   dismissNotification: (id: string) => Promise<void>;
   markRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
@@ -38,6 +49,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   unreadCount: 0,
   loading: false,
   latestNotification: null,
+  toastQueue: [],
+  lastVisualPopupAt: null,
+  dismissedRecommendationAt: {},
   isInitialized: false,
 
   fetchUnreadCount: async () => {
@@ -150,6 +164,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
                 return {
                   latestNotification: isToastDuplicate ? state.latestNotification : notification,
+                  toastQueue: isToastDuplicate
+                    ? state.toastQueue
+                    : enqueuePopupNotification(state.toastQueue, notification),
                   unreadCount: state.unreadCount + 1,
                   notifications: [
                     notification,
@@ -178,6 +195,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
                   return {
                     latestNotification: isDuplicateDedupe ? state.latestNotification : updated,
+                    toastQueue: isDuplicateDedupe
+                      ? state.toastQueue
+                      : enqueuePopupNotification(state.toastQueue, updated),
                     unreadCount: state.unreadCount + 1,
                     notifications: isDuplicateDedupe
                       ? state.notifications
@@ -209,6 +229,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
                     state.latestNotification?.id === updated.id && (isDismissed || isSuppressed)
                       ? null
                       : state.latestNotification,
+                  toastQueue:
+                    isDismissed || isSuppressed
+                      ? state.toastQueue.filter((item) => item.id !== updated.id)
+                      : state.toastQueue,
                 };
               });
             } else if (payload.eventType === 'DELETE') {
@@ -261,12 +285,50 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       unreadCount: 0,
       loading: false,
       latestNotification: null,
+      toastQueue: [],
+      lastVisualPopupAt: null,
+      dismissedRecommendationAt: {},
       isInitialized: false,
     });
   },
 
   dismissLatestNotification: () => {
-    set({ latestNotification: null });
+    set((state) => ({
+      latestNotification: null,
+      toastQueue: state.latestNotification
+        ? state.toastQueue.filter((item) => item.id !== state.latestNotification?.id)
+        : state.toastQueue,
+    }));
+  },
+
+  markVisualPopupShown: (notification: Notification) => {
+    if (!isVisualNotification(notification)) return;
+    set({ lastVisualPopupAt: Date.now() });
+  },
+
+  dismissPopupNotification: (
+    notification: Notification,
+    suppressRecommendation = false
+  ) => {
+    set((state) => {
+      const nextDismissed = { ...state.dismissedRecommendationAt };
+      if (suppressRecommendation && isVisualNotification(notification)) {
+        const key = getNotificationDedupeKey(notification) || notification.id;
+        nextDismissed[key] = Date.now();
+      }
+      return {
+        toastQueue: state.toastQueue.filter((item) => item.id !== notification.id),
+        latestNotification:
+          state.latestNotification?.id === notification.id
+            ? null
+            : state.latestNotification,
+        dismissedRecommendationAt: nextDismissed,
+      };
+    });
+
+    if (suppressRecommendation) {
+      void recordNotificationInteraction(notification.id, 'dismiss');
+    }
   },
 
   dismissNotification: async (id: string) => {
