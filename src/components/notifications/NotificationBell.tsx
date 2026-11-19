@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
 
@@ -9,6 +9,7 @@ import { recordNotificationInteraction } from "@/lib/notifications/client";
 import {
   getNextEligiblePopupNotification,
   isVisualNotification,
+  VISUAL_POPUP_COOLDOWN_MS,
 } from "@/lib/notifications/visual-rules";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { NotificationToast } from "./NotificationToast";
@@ -21,6 +22,7 @@ function hasActiveModalInDom(): boolean {
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [hasOpenModal, setHasOpenModal] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const pathname = usePathname() || "/";
   const impressedIdsRef = useRef<Set<string>>(new Set());
 
@@ -46,7 +48,9 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    setHasOpenModal(hasActiveModalInDom());
+    const raf = window.requestAnimationFrame(() => {
+      setHasOpenModal(hasActiveModalInDom());
+    });
 
     const observer = new MutationObserver(() => {
       setHasOpenModal(hasActiveModalInDom());
@@ -58,16 +62,39 @@ export function NotificationBell() {
       attributeFilter: ["role"],
     });
 
-    return () => observer.disconnect();
+    return () => {
+      window.cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
   }, []);
 
-  const activePopup = getNextEligiblePopupNotification(toastQueue, {
-    pathname,
-    hasOpenModal,
-    nowMs: Date.now(),
-    lastVisualPopupShownAtMs: lastVisualPopupAt,
-    dismissedAtMsByKey: dismissedRecommendationAt,
-  });
+  useEffect(() => {
+    if (toastQueue.length === 0) return;
+
+    const elapsed = lastVisualPopupAt ? Date.now() - lastVisualPopupAt : VISUAL_POPUP_COOLDOWN_MS;
+    const delay =
+      lastVisualPopupAt && elapsed < VISUAL_POPUP_COOLDOWN_MS
+        ? VISUAL_POPUP_COOLDOWN_MS - elapsed + 50
+        : 0;
+
+    const timer = window.setTimeout(() => {
+      setNowMs(Date.now());
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [toastQueue, lastVisualPopupAt, dismissedRecommendationAt, pathname, hasOpenModal]);
+
+  const activePopup = useMemo(
+    () =>
+      getNextEligiblePopupNotification(toastQueue, {
+        pathname,
+        hasOpenModal,
+        nowMs,
+        lastVisualPopupShownAtMs: lastVisualPopupAt,
+        dismissedAtMsByKey: dismissedRecommendationAt,
+      }),
+    [toastQueue, pathname, hasOpenModal, nowMs, lastVisualPopupAt, dismissedRecommendationAt]
+  );
 
   useEffect(() => {
     if (!activePopup) {
@@ -97,6 +124,7 @@ export function NotificationBell() {
     <>
       {activePopup && (
         <NotificationToast
+          key={activePopup.id}
           notification={activePopup}
           onClose={() => dismissPopupNotification(activePopup, false)}
           onDismiss={() => dismissPopupNotification(activePopup, true)}
