@@ -6,27 +6,22 @@ All development follows the accelerated roadmap specified in [docs/v1_implementa
 
 ---
 
-## 1. Team Roles & Operating Cadence
+## 1. Engineering Ownership & Operating Cadence
 
-### Team Structure
-- **Sanaullah**: Tech Lead & Project Supervisor
-  - Owns architectural design, Supabase database schemas, and RLS security policies.
-  - Reviews and merges all daily pull requests from engineering.
-  - Runs automated verification test suites and coordinates production releases.
-- **Uzair**: Software Engineer
-  - Specializes in UI primitives, public event destination layouts, connected campaigns, and organizer dashboards.
-- **Hardik**: Software Engineer
-  - Specializes in attendance domain services, state machines, dynamic CTAs, discover query engines, and lifecycle notification triggers.
+### Ownership
+- **Solo Full-Stack Engineering**:
+  - Owns architectural design, Supabase database schemas, SQL RPCs, and RLS security policies.
+  - Implements backend domain services, UI/UX components, and automated verification test suites (`scripts/smart-notifications/week*/verify-sn-*.ts`).
+  - Runs build, typecheck, and milestone regression checks before merging weekly parent branches into `main`.
 
 ### The 4-Hour Daily Workflow
-Engineering operates on a focused cadence of **4 hours per day, 4 days per week** (16 hours per week per contributor). 
+Engineering operates on a focused cadence of **4 hours per day, 4 days per week** (16 hours per week).
 
 Each day represents a complete, self-contained unit of work:
-1. Every engineer branches off from the active weekly parent branch created by Sanaullah.
-2. The engineer implements the day's assigned deliverables from [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md).
-3. The engineer tests locally, creates atomic commits, and submits a Pull Request targeting the active weekly parent branch using the project template.
-4. The engineer assigns **Sanaullah** as the required reviewer.
-5. **Once Sanaullah has reviewed, approved, and merged the PR into the weekly branch, the day is officially concluded.**
+1. Work on the active weekly parent branch cut from `main`.
+2. Implement the day's 4-hour deliverables from [docs/smart_notification_implementation_plan.md](docs/smart_notification_implementation_plan.md).
+3. Test locally (`npm test`, `npx tsc --noEmit`, `npm run build`), create atomic commits, and push to the weekly parent branch.
+4. At the end of the week, open a Pull Request from the weekly parent branch targeting `main` using the project PR template and merge once all checks pass.
 
 ---
 
@@ -35,34 +30,28 @@ Each day represents a complete, self-contained unit of work:
 ```
 main (Production Ready)
   ▲
-  │ (Weekly Milestone PR merged by Sanaullah)
+  │ (Weekly Milestone PR)
   │
-feat/w5-phase4-organizer-saved-launch (Weekly Parent Branch set up by Sanaullah)
-  ├── feat/uzair-w5-d9-organizer-shell (Daily feature branch by Uzair)
-  └── feat/hardik-w5-d9-saved-hub (Daily feature branch by Hardik)
+feat/w1-smart-notifications-foundation (Week 1 Parent Branch)
+feat/w2-promotions-banners-admin       (Week 2 Parent Branch)
+feat/w3-social-discovery-release       (Week 3 Parent Branch)
 ```
 
 ### Branch Hierarchy
 
 1. **Production Branch (`main`)**:
    - Always deployable. Protected against direct commits.
-   - Sanaullah merges the completed weekly parent branch into `main` at the end of each milestone.
+   - Completed weekly parent branches are merged into `main` at the end of each milestone via PR.
 
-2. **Weekly Parent Branches (Set up by Sanaullah)**:
-   - Created at the start of each phase:
-     - Week 1: `feat/v1-phase0-schema` [Completed]
-     - Week 2: `feat/v1-phase1-location-event-creation` [Completed]
-     - Week 3: `feat/w3-phase2-public-event-attendance` [Completed]
-     - Week 4: `feat/w4-phase3-campaigns-discover` [Completed]
-     - Week 5: `feat/w5-phase4-organizer-saved-launch` [Active]
+2. **Weekly Parent Branches**:
+   - Cut from `main` at the start of each week:
+     - Smart Notifications Week 1: `feat/w1-smart-notifications-foundation`
+     - Smart Notifications Week 2: `feat/w2-promotions-banners-admin`
+     - Smart Notifications Week 3: `feat/w3-social-discovery-release`
 
-3. **Daily Engineer Branches (Created by Uzair & Hardik)**:
-   - Always cut from the current active weekly parent branch.
-   - Naming convention:
-     `feat/<engineer>-w<week>-d<day>-<short-description>`
-   - Examples:
-     - `feat/uzair-w5-d9-organizer-shell`
-     - `feat/hardik-w5-d9-saved-hub`
+3. **Optional Daily Feature Branches**:
+   - If splitting a day's work into a separate branch, cut from the active weekly parent branch using:
+     `feat/w<week>-d<day>-<short-description>`
      - `feat/uzair-w5-d10-people-tab`
      - `feat/hardik-w5-d10-lifecycle-notifications`
 
@@ -128,15 +117,13 @@ git push -u origin feat/uzair-w5-d9-organizer-shell
 
 Open a Pull Request on GitHub:
 - **Base branch**: The active weekly branch set up in advance by Sanaullah (e.g. `feat/w5-phase4-organizer-saved-launch`). Do NOT target `main` directly.
-- **Compare branch**: Your daily branch (e.g. `feat/uzair-w5-d9-organizer-shell`).
-- **Title format**: `feat(w5-d9): build organizer dashboard layout and shell`
+- **Compare branch**: The active weekly parent branch (e.g. `feat/w2-promotions-banners-admin`).
+- **Title format**: `feat(w2): featured events, promotional banners & admin console`
 - **Description**: Fill out the Pull Request template completely ([.github/pull_request_template.md](.github/pull_request_template.md)).
-- **Reviewer**: Assign **Sanaullah** as the required reviewer.
 
-### Step 7: Review, Merge & Day Conclusion
-- Sanaullah will review your code, verify the build, run milestone test suites, and leave feedback or merge your branch into the weekly parent branch.
-- **Once Sanaullah merges your PR, your day is officially concluded.**
-- Delete your local and remote feature branch after the merge to keep the repository clean.
+### Step 7: Review, Merge & Milestone Conclusion
+- Verify all checks pass (`npm test`, `npx tsc --noEmit`, `npm run build`, and `verify:sn-*`).
+- Merge the weekly parent branch into `main` and clean up stale branches.
 
 ---
 
@@ -172,9 +159,9 @@ Remember the constraints defined in Section 36 of the Development Brief:
 
 ---
 
-## 5. Getting Help & Contact
+## 5. Reference Specifications
 
-If you encounter blockers or need clarification on API contracts during your 4-hour session:
-1. Message in the team channel or sync with Sanaullah.
-2. Refer to the reference specification in [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md).
+When clarifying API contracts or database schemas during a 4-hour session:
+1. Refer to [docs/smart_notification_implementation_plan.md](docs/smart_notification_implementation_plan.md) for the active smart notification roadmap.
+2. Refer to [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md) for the V1 architectural baseline.
 3. Check the relevant migration in `supabase/migrations/` for database schema details.
