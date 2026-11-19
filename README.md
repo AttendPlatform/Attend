@@ -274,21 +274,19 @@ npm run build
 
 ## Contributing and Daily Development Workflow
 
-Development follows an accelerated 5-week progression roadmap executed by a 3-person team (Sanaullah as Tech Lead, Uzair and Hardik as Software Engineers) working 4 hours per day, 4 days per week.
+Development follows a focused solo engineering cadence of **4 hours per day, 4 days per week** (16 hours per week) across weekly parent branches.
 
 Detailed workflows, branch naming conventions, quality requirements, and daily operating procedures are documented in:
 - [CONTRIBUTING.md](CONTRIBUTING.md): Daily development protocol, branching strategy, and PR instructions
-- [docs/smart_notification_implementation_plan.md](docs/smart_notification_implementation_plan.md): 2-week smart notification and engagement implementation plan
+- [docs/smart_notification_implementation_plan.md](docs/smart_notification_implementation_plan.md): Smart notification and engagement implementation plan (Week 1 completed; Weeks 2-3 scheduled at 4 hours/day, 4 days/week)
 - [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md): Complete phase-by-phase architectural roadmap and day-by-day objectives
 - [.github/pull_request_template.md](.github/pull_request_template.md): Standard Pull Request description template
 
 ### Daily Workflow Summary
-1. Synchronize with the active weekly parent branch set up by Sanaullah (e.g. `feat/w1-smart-notifications-foundation`).
-2. Create your daily feature branch (`feat/<name>-w<week>-d<day>-<feature>`).
-3. Implement the daily assignment from the implementation plan with clean atomic commits.
-4. Pass all verification checks (`npm test`, `npx tsc --noEmit`, `npm run build`).
-5. Open a Pull Request targeting the active weekly parent branch using the PR template and request review from Sanaullah.
-6. Once Sanaullah reviews and merges the PR into the weekly parent branch, the day is officially concluded.
+1. Work from the active weekly parent branch cut from `main` (e.g. `feat/w1-smart-notifications-foundation`, `feat/w2-promotions-banners-admin`).
+2. Implement the day's 4-hour deliverables with clean, atomic commits following Conventional Commits.
+3. Pass all verification checks (`npm test`, `npx tsc --noEmit`, `npm run build`, and relevant `verify:sn-*` suites).
+4. At the end of each week, open a Pull Request targeting `main` using the PR template and merge once all checks pass.
 
 ## License
 

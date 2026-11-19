@@ -1,14 +1,11 @@
-# Attend: Smart Notification & Engagement System - Architecture Audit & 2-Week Implementation Plan
+# Attend: Smart Notification & Engagement System - Architecture Audit & Implementation Plan
 
 > **Based on**: *Attend - Smart Notification & Engagement System (Updated Product & Technical Brief)*  
 > **Reference Plan**: [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md)  
 > **Contribution Guide**: [CONTRIBUTING.md](CONTRIBUTING.md)  
-> **Cadence**: 4 hours/day · 4 days/week per developer (16 hours/week per person · 48 person-hours/week · 96 person-hours total)  
-> **Team Structure**: 3 People  
-> - **Sanaullah (Tech Lead & Project Supervisor)**: Owns weekly parent branches, Supabase schema migrations, SQL RPCs, RLS security policies, shared TypeScript contracts in `src/types/`, automated verification test suites (`scripts/smart-notifications/week*/verify-sn-*.ts`), daily PR reviews/merges, and production release sign-off.  
-> - **Uzair (Software Engineer - Frontend, Visual UX, Admin & Privacy Interfaces)**: Owns notification state/UI fixes, Pinterest-style visual event popups, popup queue & interruption guards, abandoned-action recovery UI, Admin Promotions & Controls console, Home/Discover banner & featured placements, and Contact Discovery/Privacy interfaces.  
-> - **Hardik (Software Engineer - Smart Engine, Domain Services, Push & Matching)**: Owns unified notification engine dispatch, scheduled & timezone quiet-hours processor, abandoned-action tracking & reminder dispatcher, rich Web Push service worker, Featured Events & Banner services, and HMAC server-side contact matching.  
-> **Timeline**: 2 Weeks · 8 Working Days (Week 1: Days 1-4 · Week 2: Days 5-8)
+> **Cadence**: 4 hours/day · 4 days/week (16 hours/week · Solo Engineering Execution)  
+> **Ownership**: Single-engineer full-stack execution across weekly parent branches (`feat/w1-*`, `feat/w2-*`, `feat/w3-*`), Supabase schema migrations, SQL RPCs, RLS policies, domain services, UI/UX components, and automated verification suites (`scripts/smart-notifications/week*/verify-sn-*.ts`).  
+> **Timeline**: Week 1 (Days 1-4, Completed) · Week 2 (Days 5-8, 16 hours) · Week 3 (Days 9-12, 16 hours)
 
 ---
 
@@ -111,54 +108,47 @@ Every existing file, table, and database function in the repository has been aud
 
 ---
 
-## 3. Team Operating Model, Branching Strategy & 4-Hour Daily Routine
+## 3. Operating Model, Branching Strategy & 4-Hour Daily Routine
 
 All work strictly follows the workflow defined in [CONTRIBUTING.md](CONTRIBUTING.md):
 
 ```
 main (Production Ready - Protected)
   ▲
-  │ (Weekly Milestone PR merged by Sanaullah at end of Week 1 & Week 2)
+  │ (Weekly Milestone PR merged at end of each week)
   │
-feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaullah)
-  ├── Sanaullah commits DB migrations, SQL RPCs, RLS policies & shared src/types/* directly here
-  ├── feat/uzair-w1-d1-notification-state-types     ──► PR -> Reviewed & Merged by Sanaullah
-  ├── feat/hardik-w1-d1-unified-smart-engine        ──► PR -> Reviewed & Merged by Sanaullah
-  ├── feat/uzair-w1-d2-quiet-hours-settings-ui      ──► PR -> Reviewed & Merged by Sanaullah
-  ├── feat/hardik-w1-d2-scheduled-delivery-worker   ──► PR -> Reviewed & Merged by Sanaullah
-  ├── feat/uzair-w1-d3-abandoned-recovery-ui        ──► PR -> Reviewed & Merged by Sanaullah
-  ├── feat/hardik-w1-d3-abandoned-action-service    ──► PR -> Reviewed & Merged by Sanaullah
-  ├── feat/uzair-w1-d4-pinterest-visual-popups      ──► PR -> Reviewed & Merged by Sanaullah
-  └── feat/hardik-w1-d4-rich-push-service-worker    ──► PR -> Reviewed & Merged by Sanaullah
+feat/w1-smart-notifications-foundation (Week 1 Parent Branch - Completed)
+feat/w2-promotions-banners-admin       (Week 2 Parent Branch - 16 hours, Days 5-8)
+feat/w3-social-discovery-release       (Week 3 Parent Branch - 16 hours, Days 9-12)
 ```
 
-### Why This Eliminates Dependency Bottlenecks
-- **Sanaullah (Tech Lead)** lands the database migrations, SQL RPC signatures, and shared TypeScript contracts (`src/types/notifications.ts`, `src/types/promotions.ts`, `src/types/social.ts`) directly on the active weekly parent branch at the start of each milestone/day.
-- **Uzair (Frontend/UI)** and **Hardik (Backend/Services)** pull the weekly parent branch at Hour `0:00` and build in parallel against identical, pre-verified TypeScript interfaces without blocking each other or creating competing data structures.
+### Solo 4-Hour Daily Execution Model
+- Each weekly parent branch is cut from `main` at the start of the week.
+- Each working day is scoped to **4 hours** of focused, end-to-end work (schema/contracts, service logic, UI integration, and verification) with atomic commits pushed directly to the active weekly parent branch (or short-lived daily sub-branches merged into it).
+- At the end of Day 4 of each week, the weekly parent branch is verified with `npm test`, `npx tsc --noEmit`, and `npm run build` before merging into `main`.
 
-### Daily 4-Hour Session Schedule (4 Days/Week · 16 Hours/Week per Person)
+### Daily 4-Hour Session Schedule (4 Days/Week · 16 Hours/Week)
 
-| Time | Duration | Activity | Participants |
-| :--- | :--- | :--- | :--- |
-| **0:00 - 0:20** | 20 mins | **Daily Sync & Deliverable Review**: Review previous day's merged state and pull latest weekly parent branch. | Sanaullah, Uzair, Hardik |
-| **0:20 - 0:40** | 20 mins | **Contract Handshake & Branch Creation**: Confirm shared types in `src/types/` and DB RPC contracts; Uzair and Hardik create their daily feature branches (`feat/<engineer>-w<week>-d<day>-<slug>`). | Sanaullah, Uzair, Hardik |
-| **0:40 - 3:15** | 2 hrs 35m | **Focused Implementation**: Uzair builds UI/UX deliverables; Hardik builds services/engine deliverables; Sanaullah implements SQL RPCs, RLS policies, security guards, and the daily verification script (`scripts/smart-notifications/week*/verify-sn-w*-d*.ts`). | Sanaullah, Uzair, Hardik |
-| **3:15 - 3:45** | 30 mins | **Verification, PR & Code Review**: Uzair and Hardik run `npm test`, `npx tsc --noEmit`, and `npm run build`, push atomic commits, and open PRs targeting the weekly parent branch with **Sanaullah** as reviewer. Sanaullah reviews and merges. | Uzair & Hardik (PRs) · Sanaullah (Review/Merge) |
-| **3:45 - 4:00** | 15 mins | **End-of-Day Checkpoint**: Sanaullah runs the daily verification suite on the updated weekly parent branch and logs completion. | Sanaullah |
+| Time | Duration | Activity |
+| :--- | :--- | :--- |
+| **0:00 - 0:20** | 20 mins | **Checkpoint & Contract Review**: Review previous day's commits, verify DB/type contracts, and confirm the day's 4-hour scope. |
+| **0:20 - 3:20** | 3 hrs | **Focused Implementation**: Build schema/RPCs, domain services, and UI deliverables in atomic, single-purpose commits. |
+| **3:20 - 3:45** | 25 mins | **Verification & Build Check**: Run `npm test`, `npx tsc --noEmit`, `npm run build`, and daily verification scripts (`scripts/smart-notifications/week*/verify-sn-*.ts`). |
+| **3:45 - 4:00** | 15 mins | **End-of-Day Checkpoint**: Push verified commits to the weekly parent branch and update plan checkboxes. |
 
 ---
 
 ## 4. Week 1 Roadmap: Notification Foundation, Abandoned Recovery & Visual Popups
 
-> **Weekly Parent Branch**: `feat/w1-smart-notifications-foundation` (Created by **Sanaullah** from `main`)  
-> **Weekly Capacity**: 48 person-hours (4 days × 4 hours × 3 developers)  
+> **Weekly Parent Branch**: `feat/w1-smart-notifications-foundation` (Cut from `main`) [DONE]  
+> **Status**: Completed  
 > **Week 1 Goal**: Unify and harden the central smart notification engine (relationship-based eligibility, deduplication, frequency caps, timezone-aware quiet hours, and scheduled notification promotion), ship non-invasive abandoned-action recovery (organizer drafts + incomplete attendee registrations), and launch Pinterest-style visual event popups across in-app and Web Push.
 
 ---
 
 ### Day 1 (4 Hours/Dev) - Schema Foundation, Shared Contracts & Unified Smart Engine
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`)
+#### Schema & Shared Contracts [DONE]
 1. **Create Weekly Parent Branch** [DONE]:
    ```bash
    git checkout main && git pull origin main
@@ -186,12 +176,9 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
    - Define `NotificationStatus = "unread" | "read" | "scheduled" | "sent" | "suppressed" | "expired" | "dismissed"`.
    - Define `NotificationPresentationFormat`, `NotificationPriority`, `SmartNotificationInput`, `VisualNotificationPayload`, and `AbandonedActionRecord`.
 4. **Author Day 1 Verification Suite** [DONE]: Create `scripts/smart-notifications/week1/verify-sn-w1-d1.ts` verifying schema additions, shared contracts, status filtering, and removal of the unsafe raw-insert fallback.
-5. **Review & Merge**: Review and merge Uzair's and Hardik's Day 1 PRs into `feat/w1-smart-notifications-foundation`.
+5. **Day 1 Integration** [DONE]: Integrate Day 1 state, UI, and smart engine deliverables into `feat/w1-smart-notifications-foundation`.
 
-#### Uzair (Software Engineer) - 4 Hours
-- **Branch**: `feat/uzair-w1-d1-notification-state-types`
-- **Target Base**: `feat/w1-smart-notifications-foundation`
-- **PR Title**: `feat(w1-d1): align notification store and UI with full lifecycle statuses`
+#### Notification State & UI Alignment [DONE]
 - **Deliverables**:
   1. Update [src/stores/useNotificationsStore.ts](src/stores/useNotificationsStore.ts):
      - Fix Realtime `INSERT` handler: Only prepend to `notifications`, increment `unreadCount`, or queue `latestNotification` when `payload.new.status === "unread" || payload.new.status === "sent"`. Ignore rows inserted with `status = "scheduled"`, `"suppressed"`, `"expired"`, or `"dismissed"`.
@@ -202,10 +189,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
      - Add category filter pills (`All`, `Events`, `Campaigns`, `Reminders`, `Social`) on `/notifications` and priority indicator badges (`urgent`, `high`).
      - Preserve `Mark all read` functionality intact (do not add any `Clear notifications` button).
 
-#### Hardik (Software Engineer) - 4 Hours
-- **Branch**: `feat/hardik-w1-d1-unified-smart-engine`
-- **Target Base**: `feat/w1-smart-notifications-foundation`
-- **PR Title**: `feat(w1-d1): unify notification dispatch through central smart engine`
+#### Unified Smart Engine Dispatch [DONE]
 - **Deliverables**:
   1. Centralize [src/lib/notifications/engine.ts](src/lib/notifications/engine.ts):
      - Export `dispatchSmartNotification(params: SmartNotificationInput)` as the single unified server-side dispatch pipeline.
@@ -219,7 +203,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 
 ### Day 2 (4 Hours/Dev) - Timezone Quiet Hours, Frequency Caps & Scheduled Delivery
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`) [DONE]
+#### Schema & Shared Contracts [DONE] [DONE]
 1. **Upgrade Notification Engine SQL RPCs** (`supabase/migrations/20261110110000_smart_notifications_day2.sql`) [DONE]:
    - Upgrade `public.process_smart_notification()` and `public.create_notification_for_user()` [DONE]:
      - **Preference Check**: Map `p_category` to `notification_preferences` columns (`event_reminders`, `new_events`, `trending_events`, `campaign_activity`, `campaign_milestones`, `recommendations`, `campaign_insights`, `abandoned_reminders_enabled`, `social_notifications_enabled`). Allow `p_priority = 'urgent'` transactional notifications (`event_cancelled`, `registration_receipt`) to deliver in-app regardless of marketing toggles [DONE].
@@ -230,12 +214,9 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
      - Atomically transitions rows with `status = 'scheduled'` and `scheduled_for <= now()` (where `expires_at IS NULL OR expires_at > now()`) to `status = 'unread'` and `sent_at = now()`, returning the promoted records for push dispatch [DONE].
    - Update `public.get_my_notifications()` and `public.get_unread_notification_count()` so only `status IN ('unread', 'read', 'sent')` rows are returned to the client [DONE].
 2. **Author Day 2 Verification Suite** [DONE]: Create `scripts/smart-notifications/week1/verify-sn-w1-d2.ts` testing preference toggles, deduplication idempotency, daily frequency caps, overnight timezone quiet hours (`Africa/Lagos`), and scheduled notification promotion [DONE].
-3. **Review & Merge**: Review and merge Uzair's and Hardik's Day 2 PRs.
+3. **Day 2 Integration** [DONE]: Integrate Day 2 settings UI and scheduled delivery worker into `feat/w1-smart-notifications-foundation`.
 
-#### Uzair (Software Engineer) - 4 Hours
-- **Branch**: `feat/uzair-w1-d2-quiet-hours-settings-ui`
-- **Target Base**: `feat/w1-smart-notifications-foundation`
-- **PR Title**: `feat(w1-d2): add timezone detection and smart frequency controls to notification settings`
+#### Quiet Hours & Frequency Settings UI [DONE]
 - **Deliverables**:
   1. Upgrade [src/app/settings/notifications/page.tsx](src/app/settings/notifications/page.tsx):
      - Auto-detect user's IANA timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Lagos"` and add a **Time zone** selector inside the **Quiet hours** card (`Africa/Lagos (WAT)`, `Africa/Accra`, `Africa/Nairobi`, `Europe/London`, `America/New_York`, `UTC`, plus detected local timezone).
@@ -244,10 +225,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
      - Add **Daily smart notification limit** selector (`3 per day`, `5 per day (Recommended)`, `10 per day`) under **Delivery**.
      - Replace blocking `window.alert()` calls with accessible `toast.error()` and `toast.success()` notifications.
 
-#### Hardik (Software Engineer) - 4 Hours
-- **Branch**: `feat/hardik-w1-d2-scheduled-delivery-worker`
-- **Target Base**: `feat/w1-smart-notifications-foundation`
-- **PR Title**: `feat(w1-d2): implement scheduled notification promotion and event reminder dispatcher`
+#### Scheduled Delivery & Event Reminder Worker [DONE]
 - **Deliverables**:
   1. Create `src/lib/notifications/scheduler.ts` and `src/app/api/notifications/cron/route.ts`:
      - `processDueScheduledNotifications()`: Calls `promote_scheduled_notifications()`, iterates promoted notifications, and invokes `sendPushNotification()` for users with `push_enabled = true`. Also runs `expire_old_notifications()`.
@@ -259,7 +237,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 
 ### Day 3 (4 Hours/Dev) - Intelligent Abandoned-Action Recovery
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`) [DONE]
+#### Schema & Shared Contracts [DONE] [DONE]
 1. **Build Abandoned-Action Eligibility & Anti-Surveillance Guard** (`src/lib/notifications/recovery-rules.ts`) [DONE]:
    - **Anti-Surveillance Copy Validator** (`validateRecoveryCopy(title, message)`): Programmatically blocks any message containing surveillance phrasing (*"noticed you left"*, *"stopped halfway"*, *"saw you browsing"*, *"inactive for"*, *"watching"*). Enforces product-oriented copy [DONE]:
      - Event Draft: *"Your event draft is saved"* / *"You started creating an event but haven't finished. Pick up where you left off."* (`CTA: Continue editing`) [DONE]
@@ -272,12 +250,9 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
    - **Registration & Payment Verification Rule** [DONE]:
      - Before sending an `incomplete_registration` reminder, verify against live tables: (a) user does NOT have an active row in `event_participants` (`attending`, `registered`, `ticketed`), (b) event `status === 'published'` and `start_at > now()`, (c) registration capacity is not full, and (d) if `participation_model === 'paid'`, verify `draft_payload.payment_status` is explicitly `'failed'` or `'expired'` (never prompt a user with a `'pending'` or `'completed'` payment to pay again) [DONE].
 2. **Author Day 3 Verification Suite** [DONE]: Create `scripts/smart-notifications/week1/verify-sn-w1-d3.ts` testing empty-form rejection, 24h delay enforcement, payment status verification, completion auto-suppression, and anti-surveillance copy validation [DONE].
-3. **Review & Merge**: Review and merge Uzair's and Hardik's Day 3 PRs.
+3. **Day 3 Integration** [DONE]: Integrate Day 3 recovery UI and abandoned-action service into `feat/w1-smart-notifications-foundation`.
 
-#### Uzair (Software Engineer) - 4 Hours
-- **Branch**: `feat/uzair-w1-d3-abandoned-recovery-ui`
-- **Target Base**: `feat/w1-smart-notifications-foundation`
-- **PR Title**: `feat(w1-d3): add draft recovery banners and resume state for event creation and registration`
+#### Abandoned-Action Recovery UI [DONE]
 - **Deliverables**:
   1. Upgrade [src/app/create/page.tsx](src/app/create/page.tsx):
      - When an organizer enters a meaningful draft (non-empty `title` + `categoryId` on Step 1 and advances to Step 2, or clicks `"Save draft"`), call `saveAbandonedActionAction({ actionType: "event_draft", ... })`. Do NOT trigger for an empty or untouched form.
@@ -290,10 +265,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
   3. Build `src/components/notifications/RecoveryBannerCard.tsx`:
      - Reusable card displayed on `/notifications` and `/dashboard/events/[id]` showing saved drafts/incomplete actions with `[ Continue editing ]` / `[ Complete registration ]` and a `[ Dismiss ]` control that silences reminders without deleting the underlying draft.
 
-#### Hardik (Software Engineer) - 4 Hours
-- **Branch**: `feat/hardik-w1-d3-abandoned-action-service`
-- **Target Base**: `feat/w1-smart-notifications-foundation`
-- **PR Title**: `feat(w1-d3): build abandoned-action state tracking and 24h recovery dispatcher`
+#### Abandoned-Action Service & 24h Dispatcher [DONE]
 - **Deliverables**:
   1. Build `src/services/abandoned-actions.service.ts` and `src/app/actions/abandoned-actions.ts`:
      - `upsertAbandonedAction()`: Validates meaningful progress (rejects empty forms), upserts into `abandoned_actions`, and resets `status = 'active'` and `last_progressed_at = now()`.
@@ -305,7 +277,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 
 ### Day 4 (4 Hours/Dev) - Pinterest-Style Visual Event Popups, Rich Push & Week 1 Milestone Merge
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w1-smart-notifications-foundation`)
+#### Schema & Shared Contracts [DONE]
 1. **Audit Visual Notification Security, Accessibility & Queue Precedence** (`src/lib/notifications/visual-rules.ts`) [DONE]:
    - Verify image URL sanitization (allow HTTPS URLs and local `/images/` or Supabase storage paths; fallback cleanly on load error) [DONE].
    - Verify priority ordering in the popup queue (`urgent` and `high` transactional notifications take precedence over `normal`/`low` visual recommendations) [DONE].
@@ -313,14 +285,11 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
    - Create `scripts/smart-notifications/week1/verify-sn-milestone1.ts` (and register `verify:sn-m1` in [package.json](package.json)) [DONE].
    - Verify all Week 1 checkpoints: bell, dropdown, notification center, preferences, quiet hours, scheduled promotion, event lifecycle notifications, campaign analytics preservation (`track_campaign_event`), abandoned-action recovery, Pinterest visual popups, and rich Web Push [DONE].
 3. **Merge Week 1 Milestone to `main`**:
-   - Review and merge Uzair's and Hardik's Day 4 PRs into `feat/w1-smart-notifications-foundation`.
+   - Integrate Day 4 visual popup UI and rich push service worker into `feat/w1-smart-notifications-foundation` [DONE].
    - Run `npm test && npx tsc --noEmit && npm run build`.
    - Merge `feat/w1-smart-notifications-foundation` into `main`.
 
-#### Uzair (Software Engineer) - 4 Hours
-- **Branch**: `feat/uzair-w1-d4-pinterest-visual-popups`
-- **Target Base**: `feat/w1-smart-notifications-foundation`
-- **PR Title**: `feat(w1-d4): build Pinterest-style visual event popup with queue and interruption guards`
+#### Pinterest-Style Visual Popups & Queue Guards [DONE]
 - **Deliverables**:
   1. Upgrade [src/components/notifications/NotificationToast.tsx](src/components/notifications/NotificationToast.tsx) to support Pinterest-Style Visual Popups:
      - Render visual layout when `notification.presentation_format === "image_popup" || notification.presentation_format === "featured_event" || Boolean(notification.metadata?.image_url)`:
@@ -334,10 +303,7 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
      - **Context-Aware Interruption Guard**: Do NOT display low/normal-priority visual popups while the user is on `/create`, editing a campaign on `/campaign/[slug]`, or while any modal (`[role="dialog"]`, `[role="alertdialog"]` such as `RegistrationModal`) is open. Hold queued visual popups until the user returns to a browsing route (`/`, `/discover`, `/saved`, `/events/[id]`).
      - **Dismissal Suppression**: When a user dismisses a visual popup, record `dismiss` via `recordNotificationInteraction()` and suppress the same recommendation for 7 days.
 
-#### Hardik (Software Engineer) - 4 Hours
-- **Branch**: `feat/hardik-w1-d4-rich-push-service-worker`
-- **Target Base**: `feat/w1-smart-notifications-foundation`
-- **PR Title**: `feat(w1-d4): extend push payload and service worker for rich image notifications`
+#### Rich Web Push & Service Worker [DONE]
 - **Deliverables**:
   1. Upgrade [src/lib/notifications/engine.ts](src/lib/notifications/engine.ts) and [src/services/notifications.service.ts](src/services/notifications.service.ts):
      - Build `dispatchVisualEventNotification(params)` that enriches notifications with event metadata (`image_url: event.cover_image`, `short_description`, `start_at`, `city`, `venue_name`, `why_recommended`, `presentation_format: "image_popup"`).
@@ -362,228 +328,147 @@ feat/w1-smart-notifications-foundation (Weekly Parent Branch created by Sanaulla
 
 ---
 
-## 5. Week 2 Roadmap: Featured Events, Promotional Banners, Social Discovery & Admin Controls
+## 5. Week 2 Roadmap: Featured Events, Promotional Banners & Admin Console
 
-> **Weekly Parent Branch**: `feat/w2-promotions-social-engagement` (Created by **Sanaullah** from updated `main`)  
-> **Weekly Capacity**: 48 person-hours (4 days × 4 hours × 3 developers)  
-> **Week 2 Goal**: Deliver platform-admin Featured Events and Home/Discover Promotional Banners (with decoupled impression/click analytics), launch explicit opt-in Contact Discovery with HMAC-SHA256 matching and granular attendance privacy controls (`Public`, `Connections`, `Private`), add Admin Social/Recovery/Broadcast controls, and complete full acceptance QA and release sign-off.
+> **Weekly Parent Branch**: `feat/w2-promotions-banners-admin` (Cut from updated `main`)  
+> **Weekly Capacity**: 16 hours (4 days × 4 hours/day)  
+> **Week 2 Goal**: Deliver platform-admin authorization, Featured Events (service, audience targeting, admin console, and Home/Discover showcase), and Promotional Banners (decoupled impression/click analytics, responsive Home/Discover slots, admin banner manager, and trigger/broadcast controls).
 
 ---
 
-### Day 5 (4 Hours/Dev) - Platform-Admin Auth & Featured Events Promotion System
+### Day 5 (4 Hours) - Platform-Admin Auth, Promotions Schema & Contracts
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w2-promotions-social-engagement`)
-1. **Create Week 2 Parent Branch**:
+1. **Create Week 2 Parent Branch** (15 mins):
    ```bash
    git checkout main && git pull origin main
-   git checkout -b feat/w2-promotions-social-engagement
-   git push -u origin feat/w2-promotions-social-engagement
+   git checkout -b feat/w2-promotions-banners-admin
+   git push -u origin feat/w2-promotions-banners-admin
    ```
-2. **Author Week 2 Database Migration** (`supabase/migrations/20261117100000_promotions_and_social_discovery.sql`):
+2. **Author Week 2 Database Migration** (`supabase/migrations/20261117100000_promotions_and_social_discovery.sql`) (1.5 hrs):
    - **Platform-Admin Authorization & Audit Trail**:
      - Add `is_platform_admin BOOLEAN NOT NULL DEFAULT false` to `public.profiles`.
      - Create `public.is_platform_admin()` (`SECURITY DEFINER` SQL function returning `true` only if `profiles.is_platform_admin = true` for `auth.uid()`).
      - Create `public.admin_audit_logs` (`id`, `admin_id`, `action`, `target_type`, `target_id`, `metadata`, `created_at`) and `public.admin_notification_settings` (`key TEXT PRIMARY KEY`, `value JSONB`, `updated_by`, `updated_at`) seeded with default config for social triggers, abandoned-action delays (`24h`, `72h`), and broadcast approval rules.
    - **Featured Events Table (`public.featured_events`)**:
-     - Columns: `id UUID PRIMARY KEY`, `event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE`, `priority TEXT NOT NULL DEFAULT 'standard'` (`'standard' | 'high_priority' | 'campaign_level'`), `promotional_message TEXT`, `promotional_image_url TEXT`, `target_audience JSONB NOT NULL DEFAULT '{}'::jsonb` (`cities`, `category_ids`, `audience_groups`: `['interest_match', 'location_match', 'category_followers', 'organizer_followers', 'similar_event_attendees', 'organizers']`), `notification_channels TEXT[] DEFAULT ARRAY['in_app', 'push']`, `notification_mode TEXT NOT NULL DEFAULT 'platform_only'` (`'platform_only' | 'selected_audience' | 'broad_announcement' | 'scheduled_campaign'`), `scheduled_notification_at TIMESTAMPTZ`, `start_at TIMESTAMPTZ NOT NULL`, `end_at TIMESTAMPTZ NOT NULL`, `status TEXT NOT NULL DEFAULT 'active'` (`'scheduled' | 'active' | 'paused' | 'expired' | 'removed'`), `views_count INT NOT NULL DEFAULT 0`, `clicks_count INT NOT NULL DEFAULT 0`, `saves_count INT NOT NULL DEFAULT 0`, `registrations_count INT NOT NULL DEFAULT 0`, `created_by UUID REFERENCES profiles(id)`, `created_at TIMESTAMPTZ`, `updated_at TIMESTAMPTZ`.
-     - RLS: Public `SELECT` for active featured rows (`status = 'active' AND start_at <= now() AND end_at > now()`); `ALL` write/admin read operations restricted to `public.is_platform_admin()`.
-   - **Promotional Banners Table (`public.promotional_banners`) & `public.banner_analytics`** (created in Week 2 migration so Day 6 has zero DB wait):
-     - Matches brief Section 4 schema (`id`, `title`, `description`, `image_url`, `mobile_image_url`, `desktop_image_url`, `cta_label`, `destination_url`, `placement` [`'home' | 'discover' | 'both'`], `slot_type` [`'featured_event_banner' | 'attend_announcement' | 'major_campaign' | 'category_promotion' | 'location_campaign' | 'platform_promotion'`], `priority INT DEFAULT 1`, `targeting_rules JSONB`, `start_at`, `end_at`, `status` [`'draft' | 'published' | 'paused' | 'archived'`], `impressions_count INT DEFAULT 0`, `clicks_count INT DEFAULT 0`, `created_by`, `created_at`, `updated_at`).
-   - **Social Discovery & Privacy Schema** (created in Week 2 migration for Day 7):
+     - Columns: `id UUID PRIMARY KEY`, `event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE`, `priority TEXT NOT NULL DEFAULT 'standard'` (`'standard' | 'high_priority' | 'campaign_level'`), `promotional_message TEXT`, `promotional_image_url TEXT`, `target_audience JSONB NOT NULL DEFAULT '{}'::jsonb`, `notification_channels TEXT[] DEFAULT ARRAY['in_app', 'push']`, `notification_mode TEXT NOT NULL DEFAULT 'platform_only'` (`'platform_only' | 'selected_audience' | 'broad_announcement' | 'scheduled_campaign'`), `scheduled_notification_at TIMESTAMPTZ`, `start_at TIMESTAMPTZ NOT NULL`, `end_at TIMESTAMPTZ NOT NULL`, `status TEXT NOT NULL DEFAULT 'active'`, `views_count INT NOT NULL DEFAULT 0`, `clicks_count INT NOT NULL DEFAULT 0`, `saves_count INT NOT NULL DEFAULT 0`, `registrations_count INT NOT NULL DEFAULT 0`, `created_by UUID REFERENCES profiles(id)`, `created_at TIMESTAMPTZ`, `updated_at TIMESTAMPTZ`.
+     - RLS: Public `SELECT` for active featured rows (`status = 'active' AND start_at <= now() AND end_at > now()`); write/admin read operations restricted to `public.is_platform_admin()`.
+   - **Promotional Banners Table (`public.promotional_banners`) & `public.banner_analytics`**:
+     - Columns: `id`, `title`, `description`, `image_url`, `mobile_image_url`, `desktop_image_url`, `cta_label`, `destination_url`, `placement` (`'home' | 'discover' | 'both'`), `slot_type`, `priority INT DEFAULT 1`, `targeting_rules JSONB`, `start_at`, `end_at`, `status` (`'draft' | 'published' | 'paused' | 'archived'`), `impressions_count INT DEFAULT 0`, `clicks_count INT DEFAULT 0`, `created_by`, `created_at`, `updated_at`.
+   - **Social Discovery & Privacy Schema** (provisioned cleanly for Week 3):
      - Extend `public.profiles`: `attendance_visibility TEXT NOT NULL DEFAULT 'public'` (`'public' | 'connections' | 'private'`), `allow_social_notifications BOOLEAN NOT NULL DEFAULT true`, `allow_social_recommendations BOOLEAN NOT NULL DEFAULT true`, `allow_contact_discovery BOOLEAN NOT NULL DEFAULT false`, `contact_discovery_consented_at TIMESTAMPTZ`.
-     - Create `public.user_contact_identifiers` (`id`, `user_id`, `identifier_type` [`'phone' | 'email'`], `hmac_hash TEXT UNIQUE`, `created_at`) and `public.user_connections` (`id`, `user_id`, `connected_user_id`, `relationship_type` [`'contact' | 'following'`], `is_blocked BOOLEAN DEFAULT false`, `created_at`, UNIQUE `(user_id, connected_user_id)`).
-     - Update `public.public_event_attendees` view so only users with `COALESCE(p.attendance_visibility, 'public') = 'public'` appear in public attendee stacks!
-3. **Publish Shared TypeScript Contracts & Admin Server Guard**:
+     - Create `public.user_contact_identifiers` and `public.user_connections`, and update `public.public_event_attendees` view so only `COALESCE(p.attendance_visibility, 'public') = 'public'` users appear in public attendee stacks.
+3. **Publish Shared Contracts, Admin Guard & Day 5 Verification** (2 hrs 15m):
    - Create `src/types/promotions.ts`, `src/types/social.ts`, and `src/lib/auth/admin.ts` (`requirePlatformAdmin()`, `isPlatformAdmin()`).
-4. **Author Day 5 Verification Suite**: Create `scripts/smart-notifications/week2/verify-sn-w2-d5.ts` and review/merge Day 5 PRs.
-
-#### Uzair (Software Engineer) - 4 Hours
-- **Branch**: `feat/uzair-w2-d5-featured-events-admin-ui`
-- **Target Base**: `feat/w2-promotions-social-engagement`
-- **PR Title**: `feat(w2-d5): build admin featured events console and Home/Discover featured showcase`
-- **Deliverables**:
-  1. Build Platform-Admin Console shell at `src/app/admin/promotions/page.tsx` and `src/components/admin/FeaturedEventsManager.tsx`:
-     - 4-Tab Admin Navigation: `[ Featured Events ]`, `[ Promotional Banners ]`, `[ Recovery & Social Controls ]`, `[ Broadcasts & Analytics ]`.
-     - **Featured Events Manager**:
-       - Select published event, set start and end dates, choose priority (`Standard Featured`, `High-Priority Featured`, `Campaign-Level Promotion`), choose channels (`In-App`, `Web Push`, `Both`), add custom promotional message, and upload/select promotional image.
-       - Select recipient audience groups (`Interest match`, `Relevant locations`, `Category followers`, `Organizer followers`, `Similar event attendees`, `Relevant organizers`).
-       - Choose delivery behaviour: `Feature on platform only` (zero notifications sent), `Feature and notify selected audience`, `Feature and send broader announcement`, or `Feature and schedule promotional campaign`.
-       - Interactive **Notification Preview Card** before publishing + active featured table showing `Views`, `Saves`, `Registrations`, `CTR`, and `[ Remove Featured Status ]`.
-  2. Build `src/components/home/FeaturedEventsSection.tsx` and integrate into [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx):
-     - Displays active featured events ordered by promotional priority (`campaign_level` -> `high_priority` -> `standard`) with a `"Featured on Attend"` badge, independent of whether the viewer received a notification.
-
-#### Hardik (Software Engineer) - 4 Hours
-- **Branch**: `feat/hardik-w2-d5-featured-events-service`
-- **Target Base**: `feat/w2-promotions-social-engagement`
-- **PR Title**: `feat(w2-d5): implement featured events service, audience targeting, and notification dispatch`
-- **Deliverables**:
-  1. Build `src/services/promotions.service.ts` and `src/app/actions/promotions.ts`:
-     - Enforce `requirePlatformAdmin()` on all admin mutations and record every action in `admin_audit_logs`.
-     - Implement `featureEvent()`, `removeFeaturedEvent()`, and `getActiveFeaturedEvents(placement, viewerContext)` (evaluating event relevance, viewer city, category interest, and active `[start_at, end_at]` schedule).
-     - Implement `dispatchFeaturedEventCampaign(featuredEventId)`:
-       - When `notification_mode === 'platform_only'`, skip notification dispatch completely.
-       - When notifying an audience, resolve matching recipients in batches of 100 (`recipient_batches`), exclude users who already registered or were already exposed to the same event recently, and dispatch `"Featured on Attend"` visual notifications via `dispatchVisualEventNotification()` (with `scheduledFor` if `notification_mode === 'scheduled_campaign'`).
-     - Implement `recordFeaturedEventMetric(featuredEventId, metric: 'view' | 'click' | 'save' | 'registration')` for conversion tracking by placement and audience.
+   - Create `scripts/smart-notifications/week2/verify-sn-w2-d5.ts` verifying admin guard, RLS boundaries, and promotions schema.
 
 ---
 
-### Day 6 (4 Hours/Dev) - Admin Promotional Banners & Broadcast/Trigger Controls
+### Day 6 (4 Hours) - Featured Events Service, Admin Console & Public Showcase
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w2-promotions-social-engagement`)
-1. **Implement Decoupled Banner Analytics RPC & URL/Media Validation**:
-   - Create `public.record_banner_interaction(p_banner_id UUID, p_interaction_type TEXT, p_placement TEXT, p_audience_segment TEXT)` SQL RPC that increments `promotional_banners.impressions_count` or `clicks_count` and logs to `banner_analytics` (strictly separate from `notifications` and `campaign_analytics`).
+1. **Build Featured Events Domain Service & Server Actions** (`src/services/promotions.service.ts`, `src/app/actions/promotions.ts`) (2 hrs):
+   - Enforce `requirePlatformAdmin()` on all admin mutations and record every action in `admin_audit_logs`.
+   - Implement `featureEvent()`, `removeFeaturedEvent()`, and `getActiveFeaturedEvents(placement, viewerContext)`.
+   - Implement `dispatchFeaturedEventCampaign(featuredEventId)`:
+     - Skip notification dispatch when `notification_mode === 'platform_only'`.
+     - Batch matching recipients in chunks of 100, exclude already-registered or recently exposed users, and dispatch `"Featured on Attend"` visual notifications via `dispatchVisualEventNotification()`.
+   - Implement `recordFeaturedEventMetric(featuredEventId, metric: 'view' | 'click' | 'save' | 'registration')`.
+2. **Build Admin Featured Events Console & Home/Discover Showcase** (2 hrs):
+   - Build `src/app/admin/promotions/page.tsx` shell (4 tabs: `Featured Events`, `Promotional Banners`, `Recovery & Social Controls`, `Broadcasts & Analytics`) and `src/components/admin/FeaturedEventsManager.tsx`.
+   - Build `src/components/home/FeaturedEventsSection.tsx` and integrate into [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx) ordered by priority (`campaign_level` -> `high_priority` -> `standard`).
+
+---
+
+### Day 7 (4 Hours) - Promotional Banners, Decoupled Analytics & Slots
+
+1. **Decoupled Banner Analytics RPC & Validation** (1 hr):
+   - Create `public.record_banner_interaction(p_banner_id UUID, p_interaction_type TEXT, p_placement TEXT, p_audience_segment TEXT)` SQL RPC (increments `impressions_count` / `clicks_count` and logs to `banner_analytics`, strictly separate from `notifications` and `campaign_analytics`).
    - Create `src/lib/validations/promotions.ts` validating responsive image URLs, schedule ranges (`end_at > start_at`), and safe destination URLs.
-2. **Author Day 6 Verification Suite**: Create `scripts/smart-notifications/week2/verify-sn-w2-d6.ts` testing banner creation, schedule expiry filtering, priority ordering, decoupled impression/click tracking, and admin trigger/broadcast configuration.
-3. **Review & Merge**: Review and merge Uzair's and Hardik's Day 6 PRs.
-
-#### Uzair (Software Engineer) - 4 Hours
-- **Branch**: `feat/uzair-w2-d6-promotional-banners-ui`
-- **Target Base**: `feat/w2-promotions-social-engagement`
-- **PR Title**: `feat(w2-d6): build admin banner manager, trigger controls, and Home/Discover banner slots`
-- **Deliverables**:
-  1. Build `src/components/admin/BannerManagementTab.tsx` and `src/components/admin/AdminControlsAndBroadcastTab.tsx` in `/admin/promotions`:
-     - **Banner Manager**: Create/edit banner with headline (`title`), short description, CTA label, destination URL, desktop & mobile image uploads/URLs, placement (`Home`, `Discover`, `Both`), slot category (`Featured Event Banner`, `Attend Announcement`, `Major Event Campaign`, `Category Promotion`, `Location Campaign`, `Platform Promotion`), display priority, target audience (cities/categories), and start/expiry dates.
-     - Responsive preview toggle (`Desktop` vs `Mobile`), status actions (`Publish`, `Pause`, `Archive`), and `Impressions` / `Clicks` / `Conversion` metrics.
-     - **Recovery, Social & Broadcast Controls Tab** (Brief Section 10):
-       - Enable/disable abandoned-action recovery triggers, configure reminder delays (`24h`, `72h`) and max reminders, and edit message templates in `notification_templates`.
-       - Enable/disable social notification triggers and inspect reported/blocked social triggers.
-       - Send or schedule platform announcements / featured broadcasts with test preview and approval confirmation.
-  2. Build `src/components/promotions/PromotionalBannerSlot.tsx` and integrate into predefined slots on [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx):
-     - Renders responsive `<picture>` (`desktop_image_url` on `md+`, `mobile_image_url` on mobile, with graceful fallback), priority carousel/stack when multiple banners are active, session frequency cap so the same banner is not shown excessively, and non-obstructive dismiss button.
-
-#### Hardik (Software Engineer) - 4 Hours
-- **Branch**: `feat/hardik-w2-d6-banner-service-analytics`
-- **Target Base**: `feat/w2-promotions-social-engagement`
-- **PR Title**: `feat(w2-d6): implement promotional banner CRUD, targeting filter, and admin broadcast services`
-- **Deliverables**:
-  1. Extend `src/services/promotions.service.ts` and `src/app/actions/promotions.ts`:
-     - Implement `createPromotionalBanner()`, `updatePromotionalBanner()`, `updateBannerStatus()`, and `getActiveBannersForPlacement(placement: "home" | "discover", viewerContext)`:
-       - Filters `status = 'published'`, `start_at <= now()`, `end_at IS NULL OR end_at > now()`, matches `placement IN (slot, 'both')`, evaluates city/category `targeting_rules`, and orders by `priority DESC, created_at DESC`.
-     - Implement `trackBannerImpressionAction()` and `trackBannerClickAction()` invoking `record_banner_interaction` RPC.
-     - Implement `updateAdminNotificationSettings()`, `updateNotificationTemplate()`, and idempotent chunked `dispatchAdminBroadcast()` (processing recipients in safe batches and checking `email_enabled` provider availability before marking email delivery complete).
+2. **Promotional Banner CRUD & Targeting Service** (1.5 hrs):
+   - Extend `src/services/promotions.service.ts` and `src/app/actions/promotions.ts` with `createPromotionalBanner()`, `updatePromotionalBanner()`, `updateBannerStatus()`, `getActiveBannersForPlacement(placement, viewerContext)`, `trackBannerImpressionAction()`, and `trackBannerClickAction()`.
+3. **Build `PromotionalBannerSlot.tsx` & Integrate** (1.5 hrs):
+   - Render responsive `<picture>` (`desktop_image_url` on `md+`, `mobile_image_url` on mobile), priority ordering, session frequency cap, and non-obstructive dismiss button on [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx).
 
 ---
 
-### Day 7 (4 Hours/Dev) - Privacy-Conscious Social Discovery & Friend-Attending Notifications
+### Day 8 (4 Hours) - Admin Banner/Broadcast Controls & Week 2 Milestone Merge
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w2-promotions-social-engagement`)
-1. **Build Protected Server-Side Contact Matching & Privacy Enforcement**:
-   - Create `src/lib/security/contact-hmac.ts`:
-     - Phone normalization (`normalizePhoneToE164(phone, defaultCountryCode = '+234')`): strips formatting, converts local Nigerian numbers (`080...`, `081...`, `070...`, `090...`, `091...`) to `+234...`, and validates international E.164 format.
-     - Email normalization (`normalizeEmail(email)`): trims and lowercases.
-     - Protected Identifier Hashing (`computeContactHmac(normalizedIdentifier)`): computes `HMAC-SHA256(normalizedIdentifier, process.env.CONTACT_MATCH_PEPPER)` strictly on the server so predictable phone numbers cannot be reversed via rainbow tables.
-   - Create `public.match_user_contacts(p_hmac_hashes TEXT[])` (`SECURITY DEFINER` RPC):
-     - Enforces rate limiting (max 5 sync calls/hour per user) and batch size cap (max 500 hashes per call).
-     - Matches input HMAC hashes only against users where `profiles.allow_contact_discovery = true` and `user_id != auth.uid()`.
-     - Upserts matched connections into `public.user_connections` and returns only safe public profile fields (`id`, `display_name`, `username`, `avatar_url`). Raw contact lists are never persisted.
-2. **Author Day 7 Verification Suite**: Create `scripts/smart-notifications/week2/verify-sn-w2-d7.ts` testing E.164 normalization, HMAC pepper hashing, opt-in consent gating, `Public`/`Connections`/`Private` attendance visibility rules, and friend-attending notifications.
-3. **Review & Merge**: Review and merge Uzair's and Hardik's Day 7 PRs.
-
-#### Uzair (Software Engineer) - 4 Hours
-- **Branch**: `feat/uzair-w2-d7-social-discovery-privacy-ui`
-- **Target Base**: `feat/w2-promotions-social-engagement`
-- **PR Title**: `feat(w2-d7): build opt-in contact discovery flow, privacy controls, and friend-attending badges`
-- **Deliverables**:
-  1. Upgrade [src/app/settings/notifications/page.tsx](src/app/settings/notifications/page.tsx) with a comprehensive **Privacy & Social Discovery** section (Brief Section 5.4):
-     - **Attendance Visibility Selector**:
-       - `Public attendance` (`public`): Visible on event pages and to connections.
-       - `Visible to connections` (`connections`): Hidden from public strangers; visible only to your matched contacts/followed users.
-       - `Private attendance` (`private`): Completely private; never shown in attendee stacks or social recommendations.
-     - **4 Granular Privacy Controls**:
-       1. Who can see your attended events (`attendance_visibility`).
-       2. Whether your attendance can generate notifications to contacts (`allow_social_notifications`).
-       3. Whether you appear in social event recommendations (`allow_social_recommendations`).
-       4. Whether you can be discovered through contact matching (`allow_contact_discovery`).
-     - **Revoke & Disconnect Control**: `[ Disconnect Contact Discovery & Remove Synced Matches ]` button with instant confirmation.
-  2. Build `src/components/social/ContactDiscoveryModal.tsx` and `src/components/social/FriendsAttendingBadge.tsx`:
-     - **Explicit Opt-In Consent Flow**: Explains clearly what contact access does, how identifiers are protected, and how to disconnect at any time before requesting permission. Never requests permission silently.
-     - Supports native mobile `navigator.contacts.select(['tel', 'email'], { multiple: true })` when available, plus a clean phone/email input & CSV/vCard import option on desktop browsers.
-     - **In-App Social Discovery Placements** (Brief Section 5.5): Render `FriendsAttendingBadge` (*"Your friend [Name] is attending"* or *"3 people in your network are attending"*) on [src/app/events/[id]/page.tsx](src/app/events/[id]/page.tsx), [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx), and [src/components/HomeDiscover.tsx](src/components/HomeDiscover.tsx).
-
-#### Hardik (Software Engineer) - 4 Hours
-- **Branch**: `feat/hardik-w2-d7-contact-matching-service`
-- **Target Base**: `feat/w2-promotions-social-engagement`
-- **PR Title**: `feat(w2-d7): implement HMAC contact matching service and friend-attending notifications`
-- **Deliverables**:
-  1. Build `src/services/social-discovery.service.ts` and `src/app/actions/social.ts`:
-     - `optInAndRegisterOwnContactIdentifiers()`: Records explicit user consent (`allow_contact_discovery = true`, `contact_discovery_consented_at = now()`) and stores HMAC-SHA256 hashes of the user's own verified email and optional phone number in `user_contact_identifiers`.
-     - `syncUserContactsAction(rawContacts)`: Verifies active consent, normalizes phones/emails and computes HMACs in server memory, calls `match_user_contacts`, immediately discards raw contacts, and returns matched connections.
-     - `disconnectContactDiscoveryAction()`: Sets `allow_contact_discovery = false` and deletes the user's rows from `user_contact_identifiers` and `user_connections`.
-     - `getSocialAttendanceForEvents(viewerId, eventIds)`: Queries `event_participants` joined with `user_connections` and `profiles`, strictly filtering `ep.status IN ('attending', 'registered', 'ticketed')`, `p.attendance_visibility IN ('public', 'connections')`, `p.allow_social_recommendations = true`, and `uc.is_blocked = false`.
-  2. Connect Social Attendance Notifications in [src/services/attendance.service.ts](src/services/attendance.service.ts) (`rsvpEvent`):
-     - When a user RSVPs or registers for a published event, if their profile has `attendance_visibility IN ('public', 'connections')` and `allow_social_notifications = true` (and the admin social trigger is enabled), notify connected users via `dispatchVisualEventNotification()`:
-       - Single contact: *"Your friend [Name] is attending [Event Title]."*
-       - Multiple contacts (when >= 3 contacts are attending): *"3 people in your network are attending [Event Title]."*
+1. **Build Admin Banner & Broadcast/Trigger Tabs** (2 hrs):
+   - Build `src/components/admin/BannerManagementTab.tsx` (create/edit banners, desktop/mobile preview toggle, status actions, impressions/clicks/conversion metrics).
+   - Build `src/components/admin/AdminControlsAndBroadcastTab.tsx` (recovery trigger toggles and delays, template editor, social trigger toggles, and chunked `dispatchAdminBroadcast()` with test preview and approval confirmation).
+2. **Day 6-8 Verification & Week 2 Milestone Merge** (2 hrs):
+   - Author `scripts/smart-notifications/week2/verify-sn-w2-d6.ts` testing banner scheduling, priority ordering, decoupled analytics, and admin broadcast/trigger controls.
+   - Run `npm test && npx tsc --noEmit && npm run build` and merge `feat/w2-promotions-banners-admin` into `main`.
 
 ---
 
-### Day 8 (4 Hours/Dev) - End-to-End Integration, Acceptance QA & Final Release
+## 6. Week 3 Roadmap: Privacy-Conscious Social Discovery & Final Release
 
-#### Sanaullah (Tech Lead) - 4 Hours (On `feat/w2-promotions-social-engagement`)
-1. **Author Comprehensive Milestone 2 Verification Suite**:
-   - Create `scripts/smart-notifications/week2/verify-sn-milestone2.ts` covering all 10 mandatory verification areas from the brief and register `verify:sn-m1` and `verify:sn-m2` in [package.json](package.json) `npm test`.
-2. **Execute Non-Negotiable Security & Regression Audit**:
-   - Verify both `track_campaign_event` overloads and `campaign_analytics` are 100% untouched.
-   - Verify `Mark all read` is intact and no `Clear notifications` button exists.
-   - Verify all new database tables have RLS enabled and unauthorized access is blocked.
-   - Verify zero em dashes (`U+2014`) across the entire repository.
-3. **Final Release Merge to `main`**:
-   - Review and merge Uzair's and Hardik's Day 8 PRs into `feat/w2-promotions-social-engagement`.
-   - Run full verification: `npm test && npx tsc --noEmit && npm run build`.
-   - Open and merge the final Weekly Milestone PR from `feat/w2-promotions-social-engagement` into `main`.
-
-#### Uzair (Software Engineer) - 4 Hours
-- **Branch**: `test/uzair-w2-d8-frontend-accessibility-qa`
-- **Target Base**: `feat/w2-promotions-social-engagement`
-- **PR Title**: `test(w2-d8): complete frontend QA, responsive polish, and accessibility verification`
-- **Deliverables**:
-  1. End-to-end Frontend & Accessibility QA:
-     - Verify `NotificationToast` Pinterest visual popups on desktop and mobile viewports, image fallback rendering, keyboard `Escape` dismissal, and `aria-live="polite"`.
-     - Verify Home and Discover `PromotionalBannerSlot`, `FeaturedEventsSection`, and `FriendsAttendingBadge` placements do not obstruct navigation or `MobileEventActionBar`.
-     - Verify `/admin/promotions` tabs (`Featured Events`, `Promotional Banners`, `Recovery & Social Controls`, `Broadcasts & Analytics`) and non-admin redirect protection.
-     - Author automated UI verification suite `scripts/smart-notifications/week2/verify-sn-w2-d8-ui.ts`.
-
-#### Hardik (Software Engineer) - 4 Hours
-- **Branch**: `test/hardik-w2-d8-backend-delivery-qa`
-- **Target Base**: `feat/w2-promotions-social-engagement`
-- **PR Title**: `test(w2-d8): complete backend engine, idempotency, and privacy boundary verification`
-- **Deliverables**:
-  1. End-to-end Backend, Idempotency & Privacy QA:
-     - Verify idempotency across scheduled notifications, event reminders, abandoned-action recovery, and featured/broadcast campaigns (re-running dispatchers creates zero duplicates).
-     - Verify that users with `attendance_visibility = 'private'` never appear in `public_event_attendees`, `FriendsAttendingBadge`, or friend-attending notifications.
-     - Verify conversion and engagement metrics (impressions, clicks, dismissals, draft resumptions, recovery completions, contact matches) are accurately recorded.
-     - Author automated backend verification suite `scripts/smart-notifications/week2/verify-sn-w2-d8-services.ts`.
+> **Weekly Parent Branch**: `feat/w3-social-discovery-release` (Cut from updated `main`)  
+> **Weekly Capacity**: 16 hours (4 days × 4 hours/day)  
+> **Week 3 Goal**: Launch explicit opt-in Contact Discovery with server-side HMAC-SHA256 matching, granular attendance privacy controls (`Public`, `Connections`, `Private`), friend-attending badges and notifications, and complete full acceptance QA and release sign-off.
 
 ---
 
-## 6. Complete Branching & Pull Request Matrix
+### Day 9 (4 Hours) - HMAC Contact Matching, RPC & Social Discovery Service
 
-| Week | Day | Developer | Branch Name | Target Base Branch | Pull Request Title |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **W1** | **Parent** | **Sanaullah** | `feat/w1-smart-notifications-foundation` | `main` | `feat(w1): smart notification foundation, recovery & visual popups` |
-| **W1** | **Day 1** | **Uzair** | `feat/uzair-w1-d1-notification-state-types` | `feat/w1-smart-notifications-foundation` | `feat(w1-d1): align notification store and UI with full lifecycle statuses` |
-| **W1** | **Day 1** | **Hardik** | `feat/hardik-w1-d1-unified-smart-engine` | `feat/w1-smart-notifications-foundation` | `feat(w1-d1): unify notification dispatch through central smart engine` |
-| **W1** | **Day 2** | **Uzair** | `feat/uzair-w1-d2-quiet-hours-settings-ui` | `feat/w1-smart-notifications-foundation` | `feat(w1-d2): add timezone detection and smart frequency controls to notification settings` |
-| **W1** | **Day 2** | **Hardik** | `feat/hardik-w1-d2-scheduled-delivery-worker` | `feat/w1-smart-notifications-foundation` | `feat(w1-d2): implement scheduled notification promotion and event reminder dispatcher` |
-| **W1** | **Day 3** | **Uzair** | `feat/uzair-w1-d3-abandoned-recovery-ui` | `feat/w1-smart-notifications-foundation` | `feat(w1-d3): add draft recovery banners and resume state for event creation and registration` |
-| **W1** | **Day 3** | **Hardik** | `feat/hardik-w1-d3-abandoned-action-service` | `feat/w1-smart-notifications-foundation` | `feat(w1-d3): build abandoned-action state tracking and 24h recovery dispatcher` |
-| **W1** | **Day 4** | **Uzair** | `feat/uzair-w1-d4-pinterest-visual-popups` | `feat/w1-smart-notifications-foundation` | `feat(w1-d4): build Pinterest-style visual event popup with queue and interruption guards` |
-| **W1** | **Day 4** | **Hardik** | `feat/hardik-w1-d4-rich-push-service-worker` | `feat/w1-smart-notifications-foundation` | `feat(w1-d4): extend push payload and service worker for rich image notifications` |
-| **W2** | **Parent** | **Sanaullah** | `feat/w2-promotions-social-engagement` | `main` | `feat(w2): featured events, promotional banners & social discovery` |
-| **W2** | **Day 5** | **Uzair** | `feat/uzair-w2-d5-featured-events-admin-ui` | `feat/w2-promotions-social-engagement` | `feat(w2-d5): build admin featured events console and Home/Discover featured showcase` |
-| **W2** | **Day 5** | **Hardik** | `feat/hardik-w2-d5-featured-events-service` | `feat/w2-promotions-social-engagement` | `feat(w2-d5): implement featured events service, audience targeting, and notification dispatch` |
-| **W2** | **Day 6** | **Uzair** | `feat/uzair-w2-d6-promotional-banners-ui` | `feat/w2-promotions-social-engagement` | `feat(w2-d6): build admin banner manager, trigger controls, and Home/Discover banner slots` |
-| **W2** | **Day 6** | **Hardik** | `feat/hardik-w2-d6-banner-service-analytics` | `feat/w2-promotions-social-engagement` | `feat(w2-d6): implement promotional banner CRUD, targeting filter, and admin broadcast services` |
-| **W2** | **Day 7** | **Uzair** | `feat/uzair-w2-d7-social-discovery-privacy-ui` | `feat/w2-promotions-social-engagement` | `feat(w2-d7): build opt-in contact discovery flow, privacy controls, and friend-attending badges` |
-| **W2** | **Day 7** | **Hardik** | `feat/hardik-w2-d7-contact-matching-service` | `feat/w2-promotions-social-engagement` | `feat(w2-d7): implement HMAC contact matching service and friend-attending notifications` |
-| **W2** | **Day 8** | **Uzair** | `test/uzair-w2-d8-frontend-accessibility-qa` | `feat/w2-promotions-social-engagement` | `test(w2-d8): complete frontend QA, responsive polish, and accessibility verification` |
-| **W2** | **Day 8** | **Hardik** | `test/hardik-w2-d8-backend-delivery-qa` | `feat/w2-promotions-social-engagement` | `test(w2-d8): complete backend engine, idempotency, and privacy boundary verification` |
+1. **Create Week 3 Parent Branch & Protected Contact Matching** (2 hrs):
+   - Cut `feat/w3-social-discovery-release` from `main`.
+   - Create `src/lib/security/contact-hmac.ts`: `normalizePhoneToE164(phone, defaultCountryCode = '+234')`, `normalizeEmail(email)`, and `computeContactHmac(normalizedIdentifier)` using `HMAC-SHA256` with server-only `CONTACT_MATCH_PEPPER`.
+   - Create `public.match_user_contacts(p_hmac_hashes TEXT[])` (`SECURITY DEFINER` RPC) enforcing rate limiting (max 5 sync calls/hour), batch cap (500 hashes), and `profiles.allow_contact_discovery = true` consent gating without storing raw contact lists.
+2. **Build Social Discovery Service & Server Actions** (2 hrs):
+   - Create `src/services/social-discovery.service.ts` and `src/app/actions/social.ts`:
+     - `optInAndRegisterOwnContactIdentifiers()`
+     - `syncUserContactsAction(rawContacts)`
+     - `disconnectContactDiscoveryAction()`
+     - `getSocialAttendanceForEvents(viewerId, eventIds)`
 
 ---
 
-## 7. Mandatory Verification & Final Acceptance Matrix
+### Day 10 (4 Hours) - Privacy Controls UI, Contact Discovery & Friend Badges
 
-Before any daily PR or weekly milestone branch is merged, all 3 standard checks plus the 10 focused verification areas must pass:
+1. **Upgrade Privacy & Social Discovery Settings UI** (1.5 hrs):
+   - Upgrade [src/app/settings/notifications/page.tsx](src/app/settings/notifications/page.tsx) with the **Privacy & Social Discovery** section: `attendance_visibility` (`public`, `connections`, `private`), `allow_social_notifications`, `allow_social_recommendations`, `allow_contact_discovery`, and `[ Disconnect Contact Discovery & Remove Synced Matches ]`.
+2. **Build Contact Discovery Modal, Friend Badges & RSVP Triggers** (2.5 hrs):
+   - Build `src/components/social/ContactDiscoveryModal.tsx` (explicit consent explanation, native Contact Picker API with desktop input/CSV fallback) and `src/components/social/FriendsAttendingBadge.tsx` on [src/app/events/[id]/page.tsx](src/app/events/[id]/page.tsx), [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx), and [src/components/HomeDiscover.tsx](src/components/HomeDiscover.tsx).
+   - Connect friend-attending notifications in [src/services/attendance.service.ts](src/services/attendance.service.ts) (`rsvpEvent`) respecting `attendance_visibility` and `allow_social_notifications`.
+
+---
+
+### Day 11 (4 Hours) - End-to-End Integration, Privacy & Accessibility QA
+
+1. **Day 9-10 Verification & Privacy Boundary QA** (2 hrs):
+   - Author `scripts/smart-notifications/week3/verify-sn-w3-d9.ts` testing E.164 normalization, HMAC pepper hashing, opt-in consent gating, `Public`/`Connections`/`Private` visibility isolation, and friend-attending notifications.
+   - Verify `attendance_visibility = 'private'` never leaks into `public_event_attendees`, `FriendsAttendingBadge`, or social notifications.
+2. **Frontend Accessibility, Responsive & Idempotency QA** (2 hrs):
+   - Verify `NotificationToast` desktop/mobile positioning, image fallbacks, keyboard `Escape` dismissal, `PromotionalBannerSlot`, `FeaturedEventsSection`, `FriendsAttendingBadge`, and `/admin/promotions` non-admin protection.
+   - Verify idempotency across scheduled notifications, reminders, abandoned recovery, and featured/broadcast dispatches.
+
+---
+
+### Day 12 (4 Hours) - Milestone 2 Verification, Regression Audit & Final Release
+
+1. **Author Milestone 2 Verification Suite** (2 hrs):
+   - Create `scripts/smart-notifications/week3/verify-sn-milestone2.ts` covering all 10 mandatory verification areas and register `verify:sn-m1` and `verify:sn-m2` in [package.json](package.json).
+2. **Security, Regression Audit & Final Merge to `main`** (2 hrs):
+   - Verify both `track_campaign_event` overloads and `campaign_analytics` remain 100% untouched.
+   - Verify `Mark all read` is intact, all new tables enforce RLS, and zero em dashes (`U+2014`) exist in the repository.
+   - Run `npm test && npx tsc --noEmit && npm run build` and merge `feat/w3-social-discovery-release` into `main`.
+
+---
+
+## 7. Complete Branching & Pull Request Matrix
+
+| Week | Day | Branch Name | Target Base Branch | Pull Request Title |
+| :--- | :--- | :--- | :--- | :--- |
+| **W1** | **Days 1-4** | `feat/w1-smart-notifications-foundation` | `main` | `feat(w1): smart notification foundation, recovery & visual popups` |
+| **W2** | **Days 5-8** | `feat/w2-promotions-banners-admin` | `main` | `feat(w2): featured events, promotional banners & admin console` |
+| **W3** | **Days 9-12** | `feat/w3-social-discovery-release` | `main` | `feat(w3): privacy-conscious social discovery & final release` |
+
+---
+
+## 8. Mandatory Verification & Final Acceptance Matrix
+
+Before any weekly milestone branch is merged, all 3 standard checks plus the focused verification areas must pass:
 
 ```bash
 npm test
@@ -591,25 +476,25 @@ npx tsc --noEmit
 npm run build
 ```
 
-### Mapping of All 10 Mandatory Verification Areas & Final Acceptance Criteria
+### Mapping of All Mandatory Verification Areas & Final Acceptance Criteria
 
-| # | Verification Area | Acceptance Requirement | Implementing Day | Responsible Owner(s) | Automated Verification Script |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | **Smart Notification Preferences** | Category toggles, daily frequency caps, and unified account relationship eligibility (attendee vs organizer vs campaign owner) work accurately without raw-insert bypass. | Week 1 · Days 1-2 | Sanaullah, Uzair & Hardik | `scripts/smart-notifications/week1/verify-sn-w1-d1.ts` & `scripts/smart-notifications/week1/verify-sn-w1-d2.ts` |
-| **2** | **Notification Deduplication** | Duplicate triggers with identical `dedupe_key` in `notifications` or `notification_events` are suppressed idempotently on both server and client. | Week 1 · Days 1-2 | Sanaullah & Hardik | `scripts/smart-notifications/week1/verify-sn-w1-d2.ts` |
-| **3** | **Quiet Hours & Scheduled Delivery** | Non-urgent notifications during user's local timezone quiet hours (`Africa/Lagos` default) are held as `status = 'scheduled'`, hidden from realtime unread UI, and promoted when due. | Week 1 · Day 2 | Sanaullah, Uzair & Hardik | `scripts/smart-notifications/week1/verify-sn-w1-d2.ts` |
-| **4** | **Event Lifecycle Notifications** | Registration receipts, event date/venue updates, 24h/2h event reminders, campaign creations, and urgent event cancellations dispatch through the central engine. | Week 1 · Days 1-2 | Hardik & Sanaullah | `scripts/smart-notifications/week1/verify-sn-w1-d1.ts` & `scripts/smart-notifications/week1/verify-sn-w1-d2.ts` |
-| **5** | **Abandoned-Action Suppression** | Meaningful unfinished event/campaign drafts and registrations trigger product-oriented 24h reminders, verify payment/registration state, and auto-suppress on resume/completion/delete. | Week 1 · Day 3 | Sanaullah, Uzair & Hardik | `scripts/smart-notifications/week1/verify-sn-w1-d3.ts` |
-| **6** | **Image Notification Rendering** | Pinterest-style visual popups render cover image, graceful fallback when image is missing, `Date · City`, recommendation reason, CTA, single-popup FIFO queue, and active-flow interruption guard. | Week 1 · Day 4 | Uzair & Sanaullah | `scripts/smart-notifications/week1/verify-sn-milestone1.ts` |
-| **7** | **Push Delivery & Click Navigation** | Existing `send-push` pipeline and `worker/index.ts` render event cover images in browser push notifications and enforce same-origin click navigation. | Week 1 · Day 4 | Hardik | `scripts/smart-notifications/week1/verify-sn-milestone1.ts` |
-| **8** | **Featured-Event Scheduling & Audience Rules** | Platform admin can feature/unfeature events, set priority & schedule, and choose `platform_only` placement independently of targeted audience notifications. | Week 2 · Day 5 | Sanaullah, Uzair & Hardik | `scripts/smart-notifications/week2/verify-sn-w2-d5.ts` |
-| **9** | **Banner Visibility & Analytics** | Admin can publish responsive banners to Home, Discover, or both; expired/paused banners hide automatically; banner impressions and clicks are tracked separately from notifications. | Week 2 · Day 6 | Sanaullah, Uzair & Hardik | `scripts/smart-notifications/week2/verify-sn-w2-d6.ts` |
-| **10** | **Contact Matching & Attendance Privacy** | Explicit user opt-in before contact matching; server-side HMAC-SHA256 matching without storing raw address books; `Public`, `Connections`, and `Private` attendance visibility strictly enforced. | Week 2 · Day 7 | Sanaullah, Uzair & Hardik | `scripts/smart-notifications/week2/verify-sn-w2-d7.ts` |
-| **11** | **Non-Negotiable Regression Guard** | Existing bell, dropdown, `Mark all read`, event/campaign flows, and both `track_campaign_event` overloads in `campaign_analytics` pass with zero regressions. | Week 2 · Day 8 | All (Sign-off by Sanaullah) | `scripts/smart-notifications/week2/verify-sn-milestone2.ts` & `npm test` |
+| # | Verification Area | Acceptance Requirement | Implementing Day | Automated Verification Script |
+| :--- | :--- | :--- | :--- | :--- |
+| **1** | **Smart Notification Preferences** | Category toggles, daily frequency caps, and unified account relationship eligibility work accurately without raw-insert bypass. | Week 1 · Days 1-2 | `scripts/smart-notifications/week1/verify-sn-w1-d1.ts` & `scripts/smart-notifications/week1/verify-sn-w1-d2.ts` |
+| **2** | **Notification Deduplication** | Duplicate triggers with identical `dedupe_key` in `notifications` or `notification_events` are suppressed idempotently on both server and client. | Week 1 · Days 1-2 | `scripts/smart-notifications/week1/verify-sn-w1-d2.ts` |
+| **3** | **Quiet Hours & Scheduled Delivery** | Non-urgent notifications during user's local timezone quiet hours (`Africa/Lagos` default) are held as `status = 'scheduled'`, hidden from realtime unread UI, and promoted when due. | Week 1 · Day 2 | `scripts/smart-notifications/week1/verify-sn-w1-d2.ts` |
+| **4** | **Event Lifecycle Notifications** | Registration receipts, event date/venue updates, 24h/2h event reminders, campaign creations, and urgent event cancellations dispatch through the central engine. | Week 1 · Days 1-2 | `scripts/smart-notifications/week1/verify-sn-w1-d1.ts` & `scripts/smart-notifications/week1/verify-sn-w1-d2-worker.ts` |
+| **5** | **Abandoned-Action Suppression** | Meaningful unfinished event/campaign drafts and registrations trigger product-oriented 24h reminders, verify payment/registration state, and auto-suppress on resume/completion/delete. | Week 1 · Day 3 | `scripts/smart-notifications/week1/verify-sn-w1-d3.ts` |
+| **6** | **Image Notification Rendering** | Pinterest-style visual popups render cover image, graceful fallback when image is missing, `Date · City`, recommendation reason, CTA, single-popup FIFO queue, and active-flow interruption guard. | Week 1 · Day 4 | `scripts/smart-notifications/week1/verify-sn-milestone1.ts` |
+| **7** | **Push Delivery & Click Navigation** | Existing `send-push` pipeline and `worker/index.ts` render event cover images in browser push notifications and enforce same-origin click navigation. | Week 1 · Day 4 | `scripts/smart-notifications/week1/verify-sn-milestone1.ts` |
+| **8** | **Featured-Event Scheduling & Audience Rules** | Platform admin can feature/unfeature events, set priority & schedule, and choose `platform_only` placement independently of targeted audience notifications. | Week 2 · Days 5-6 | `scripts/smart-notifications/week2/verify-sn-w2-d5.ts` |
+| **9** | **Banner Visibility & Analytics** | Admin can publish responsive banners to Home, Discover, or both; expired/paused banners hide automatically; banner impressions and clicks are tracked separately from notifications. | Week 2 · Days 7-8 | `scripts/smart-notifications/week2/verify-sn-w2-d6.ts` |
+| **10** | **Contact Matching & Attendance Privacy** | Explicit user opt-in before contact matching; server-side HMAC-SHA256 matching without storing raw address books; `Public`, `Connections`, and `Private` attendance visibility strictly enforced. | Week 3 · Days 9-10 | `scripts/smart-notifications/week3/verify-sn-w3-d9.ts` |
+| **11** | **Non-Negotiable Regression Guard** | Existing bell, dropdown, `Mark all read`, event/campaign flows, and both `track_campaign_event` overloads in `campaign_analytics` pass with zero regressions. | Week 3 · Days 11-12 | `scripts/smart-notifications/week3/verify-sn-milestone2.ts` & `npm test` |
 
 ---
 
-## 8. Non-Negotiable Engineering Guardrails & Scope Control
+## 9. Non-Negotiable Engineering Guardrails & Scope Control
 
 1. **Preserve Campaign Analytics**: Never modify `campaign_analytics` or either `track_campaign_event` overload.
 2. **Preserve Notification Controls**: Keep `Mark all read` functional; never add a `Clear notifications` action.

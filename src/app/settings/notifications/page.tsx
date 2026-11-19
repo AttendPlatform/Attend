@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import {
   subscribeToPush,
   unsubscribeFromPush,
@@ -15,12 +16,39 @@ interface NotificationPreferences {
   campaign_milestones: boolean;
   recommendations: boolean;
   campaign_insights: boolean;
+  abandoned_reminders_enabled: boolean;
+  social_notifications_enabled: boolean;
   push_enabled: boolean;
   email_enabled: boolean;
   smart_notifications: boolean;
+  max_daily_notifications: number;
   quiet_hours_enabled: boolean;
   quiet_hours_start: string | null;
   quiet_hours_end: string | null;
+  timezone: string;
+}
+
+const PRESET_TIMEZONES = [
+  { value: "Africa/Lagos", label: "Africa/Lagos (WAT)" },
+  { value: "Africa/Accra", label: "Africa/Accra" },
+  { value: "Africa/Nairobi", label: "Africa/Nairobi" },
+  { value: "Europe/London", label: "Europe/London" },
+  { value: "America/New_York", label: "America/New_York" },
+  { value: "UTC", label: "UTC" },
+];
+
+const DAILY_LIMIT_OPTIONS = [
+  { value: 3, label: "3 per day" },
+  { value: 5, label: "5 per day (Recommended)" },
+  { value: 10, label: "10 per day" },
+];
+
+function detectLocalTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Lagos";
+  } catch {
+    return "Africa/Lagos";
+  }
 }
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -31,12 +59,16 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   campaign_milestones: true,
   recommendations: true,
   campaign_insights: true,
+  abandoned_reminders_enabled: true,
+  social_notifications_enabled: true,
   push_enabled: false,
   email_enabled: false,
   smart_notifications: true,
+  max_daily_notifications: 5,
   quiet_hours_enabled: false,
   quiet_hours_start: "22:00",
   quiet_hours_end: "07:00",
+  timezone: "Africa/Lagos",
 };
 
 interface ToggleRowProps {
@@ -90,12 +122,40 @@ function ToggleRow({
 
 export default function NotificationSettingsPage() {
   const supabase = createClient();
+  const detectedTimezone = useMemo(() => detectLocalTimezone(), []);
 
-  const [preferences, setPreferences] =
-    useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+  const [preferences, setPreferences] = useState<NotificationPreferences>(() => ({
+    ...DEFAULT_PREFERENCES,
+    timezone: detectLocalTimezone(),
+  }));
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const timezoneOptions = useMemo(() => {
+    const hasDetected = PRESET_TIMEZONES.some(
+      (tz) => tz.value === detectedTimezone
+    );
+    const base = hasDetected
+      ? PRESET_TIMEZONES
+      : [
+          {
+            value: detectedTimezone,
+            label: `${detectedTimezone} (Detected)`,
+          },
+          ...PRESET_TIMEZONES,
+        ];
+    if (
+      preferences.timezone &&
+      !base.some((tz) => tz.value === preferences.timezone)
+    ) {
+      return [
+        { value: preferences.timezone, label: preferences.timezone },
+        ...base,
+      ];
+    }
+    return base;
+  }, [detectedTimezone, preferences.timezone]);
 
   useEffect(() => {
     let active = true;
@@ -123,12 +183,16 @@ export default function NotificationSettingsPage() {
               campaign_milestones,
               recommendations,
               campaign_insights,
+              abandoned_reminders_enabled,
+              social_notifications_enabled,
               push_enabled,
               email_enabled,
               smart_notifications,
+              max_daily_notifications,
               quiet_hours_enabled,
               quiet_hours_start,
-              quiet_hours_end
+              quiet_hours_end,
+              timezone
             `
           )
           .eq("user_id", user.id)
@@ -148,12 +212,18 @@ export default function NotificationSettingsPage() {
             campaign_milestones: data.campaign_milestones,
             recommendations: data.recommendations,
             campaign_insights: data.campaign_insights,
+            abandoned_reminders_enabled:
+              data.abandoned_reminders_enabled ?? true,
+            social_notifications_enabled:
+              data.social_notifications_enabled ?? true,
             push_enabled: data.push_enabled,
             email_enabled: data.email_enabled,
             smart_notifications: data.smart_notifications,
+            max_daily_notifications: data.max_daily_notifications ?? 5,
             quiet_hours_enabled: data.quiet_hours_enabled,
             quiet_hours_start: data.quiet_hours_start,
             quiet_hours_end: data.quiet_hours_end,
+            timezone: data.timezone || detectedTimezone,
           });
         }
       } catch (error) {
@@ -174,7 +244,7 @@ export default function NotificationSettingsPage() {
     return () => {
       active = false;
     };
-  }, [supabase]);
+  }, [supabase, detectedTimezone]);
 
   const persistPreferences = async (
     nextPreferences: NotificationPreferences
@@ -205,16 +275,38 @@ export default function NotificationSettingsPage() {
     if (error) {
       throw error;
     }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const { error: extendedError } = await supabase
+        .from("notification_preferences")
+        .update({
+          timezone: nextPreferences.timezone,
+          abandoned_reminders_enabled:
+            nextPreferences.abandoned_reminders_enabled,
+          social_notifications_enabled:
+            nextPreferences.social_notifications_enabled,
+          max_daily_notifications: nextPreferences.max_daily_notifications,
+        })
+        .eq("user_id", user.id);
+
+      if (extendedError) {
+        throw extendedError;
+      }
+    }
   };
 
-  const updateBooleanPreference = async (
-    key: keyof NotificationPreferences,
-    value: boolean
+  const applyPreferenceUpdate = async <K extends keyof NotificationPreferences>(
+    key: K,
+    value: NotificationPreferences[K],
+    successMessage?: string
   ) => {
     if (saving) return;
 
     const previousPreferences = preferences;
-
     const nextPreferences: NotificationPreferences = {
       ...preferences,
       [key]: value,
@@ -225,51 +317,16 @@ export default function NotificationSettingsPage() {
 
     try {
       await persistPreferences(nextPreferences);
+      if (successMessage) {
+        toast.success(successMessage);
+      }
     } catch (error) {
       console.error(
-        `[Attend Notifications] Failed to save "${key}":`,
+        `[Attend Notifications] Failed to save "${String(key)}":`,
         error
       );
-
       setPreferences(previousPreferences);
-
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Unable to save notification setting."
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const updateTimePreference = async (
-    key: "quiet_hours_start" | "quiet_hours_end",
-    value: string
-  ) => {
-    if (saving) return;
-
-    const previousPreferences = preferences;
-
-    const nextPreferences: NotificationPreferences = {
-      ...preferences,
-      [key]: value || null,
-    };
-
-    setPreferences(nextPreferences);
-    setSaving(true);
-
-    try {
-      await persistPreferences(nextPreferences);
-    } catch (error) {
-      console.error(
-        `[Attend Notifications] Failed to save "${key}":`,
-        error
-      );
-
-      setPreferences(previousPreferences);
-
-      alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Unable to save notification setting."
@@ -283,33 +340,27 @@ export default function NotificationSettingsPage() {
     if (saving) return;
 
     const previousPreferences = preferences;
-
     setSaving(true);
 
     try {
       if (value) {
         await subscribeToPush();
-
-        const nextPreferences: NotificationPreferences = {
-          ...preferences,
-          push_enabled: true,
-        };
-
-        setPreferences(nextPreferences);
-
-        await persistPreferences(nextPreferences);
       } else {
         await unsubscribeFromPush();
-
-        const nextPreferences: NotificationPreferences = {
-          ...preferences,
-          push_enabled: false,
-        };
-
-        setPreferences(nextPreferences);
-
-        await persistPreferences(nextPreferences);
       }
+
+      const nextPreferences: NotificationPreferences = {
+        ...preferences,
+        push_enabled: value,
+      };
+
+      setPreferences(nextPreferences);
+      await persistPreferences(nextPreferences);
+      toast.success(
+        value
+          ? "Push notifications enabled."
+          : "Push notifications disabled."
+      );
     } catch (error) {
       console.error(
         "[Attend Notifications] Push notification preference error:",
@@ -317,8 +368,7 @@ export default function NotificationSettingsPage() {
       );
 
       setPreferences(previousPreferences);
-
-      alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Unable to update push notifications."
@@ -381,7 +431,7 @@ export default function NotificationSettingsPage() {
                 checked={preferences.event_reminders}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("event_reminders", value)
+                  applyPreferenceUpdate("event_reminders", value)
                 }
               />
 
@@ -391,7 +441,7 @@ export default function NotificationSettingsPage() {
                 checked={preferences.new_events}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("new_events", value)
+                  applyPreferenceUpdate("new_events", value)
                 }
               />
 
@@ -401,7 +451,7 @@ export default function NotificationSettingsPage() {
                 checked={preferences.trending_events}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("trending_events", value)
+                  applyPreferenceUpdate("trending_events", value)
                 }
               />
 
@@ -411,7 +461,27 @@ export default function NotificationSettingsPage() {
                 checked={preferences.recommendations}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("recommendations", value)
+                  applyPreferenceUpdate("recommendations", value)
+                }
+              />
+
+              <ToggleRow
+                title="Saved draft & registration reminders"
+                description="Receive a helpful reminder when you have an unfinished event draft or registration so you can pick up where you left off."
+                checked={preferences.abandoned_reminders_enabled}
+                disabled={saving}
+                onChange={(value) =>
+                  applyPreferenceUpdate("abandoned_reminders_enabled", value)
+                }
+              />
+
+              <ToggleRow
+                title="Friends & social activity"
+                description="Receive updates when friends or people in your network are attending events."
+                checked={preferences.social_notifications_enabled}
+                disabled={saving}
+                onChange={(value) =>
+                  applyPreferenceUpdate("social_notifications_enabled", value)
                 }
               />
             </div>
@@ -436,7 +506,7 @@ export default function NotificationSettingsPage() {
                 checked={preferences.campaign_activity}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("campaign_activity", value)
+                  applyPreferenceUpdate("campaign_activity", value)
                 }
               />
 
@@ -446,7 +516,7 @@ export default function NotificationSettingsPage() {
                 checked={preferences.campaign_milestones}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("campaign_milestones", value)
+                  applyPreferenceUpdate("campaign_milestones", value)
                 }
               />
 
@@ -456,7 +526,7 @@ export default function NotificationSettingsPage() {
                 checked={preferences.campaign_insights}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("campaign_insights", value)
+                  applyPreferenceUpdate("campaign_insights", value)
                 }
               />
             </div>
@@ -489,7 +559,7 @@ export default function NotificationSettingsPage() {
                 checked={preferences.email_enabled}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("email_enabled", value)
+                  applyPreferenceUpdate("email_enabled", value)
                 }
               />
 
@@ -499,9 +569,43 @@ export default function NotificationSettingsPage() {
                 checked={preferences.smart_notifications}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("smart_notifications", value)
+                  applyPreferenceUpdate("smart_notifications", value)
                 }
               />
+
+              <div className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                <div className="min-w-0 flex-1">
+                  <label
+                    htmlFor="daily-notification-limit"
+                    className="text-sm font-semibold text-neutral-900"
+                  >
+                    Daily smart notification limit
+                  </label>
+                  <p className="mt-1 max-w-2xl text-sm leading-6 text-neutral-500">
+                    Cap non-urgent smart notifications delivered in any 24-hour window.
+                  </p>
+                </div>
+
+                <select
+                  id="daily-notification-limit"
+                  value={preferences.max_daily_notifications}
+                  disabled={saving}
+                  onChange={(event) =>
+                    applyPreferenceUpdate(
+                      "max_daily_notifications",
+                      Number(event.target.value),
+                      "Daily notification limit updated."
+                    )
+                  }
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:bg-neutral-50 sm:w-56"
+                >
+                  {DAILY_LIMIT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </section>
 
@@ -524,9 +628,42 @@ export default function NotificationSettingsPage() {
                 checked={preferences.quiet_hours_enabled}
                 disabled={saving}
                 onChange={(value) =>
-                  updateBooleanPreference("quiet_hours_enabled", value)
+                  applyPreferenceUpdate("quiet_hours_enabled", value)
                 }
               />
+
+              <div className="border-t border-neutral-100 py-5">
+                <label
+                  htmlFor="quiet-hours-timezone"
+                  className="block text-sm font-semibold text-neutral-900"
+                >
+                  Time zone
+                </label>
+
+                <p className="mt-1 text-xs text-neutral-500">
+                  Quiet hours are evaluated in this time zone.
+                </p>
+
+                <select
+                  id="quiet-hours-timezone"
+                  value={preferences.timezone}
+                  disabled={saving}
+                  onChange={(event) =>
+                    applyPreferenceUpdate(
+                      "timezone",
+                      event.target.value,
+                      "Time zone updated."
+                    )
+                  }
+                  className="mt-3 block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:bg-neutral-50 sm:max-w-xs"
+                >
+                  {timezoneOptions.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {preferences.quiet_hours_enabled && (
                 <div className="grid gap-5 border-t border-neutral-100 py-5 sm:grid-cols-2">
@@ -548,9 +685,9 @@ export default function NotificationSettingsPage() {
                       value={preferences.quiet_hours_start ?? ""}
                       disabled={saving}
                       onChange={(event) =>
-                        updateTimePreference(
+                        applyPreferenceUpdate(
                           "quiet_hours_start",
-                          event.target.value
+                          event.target.value || null
                         )
                       }
                       className="mt-3 block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:bg-neutral-50"
@@ -575,9 +712,9 @@ export default function NotificationSettingsPage() {
                       value={preferences.quiet_hours_end ?? ""}
                       disabled={saving}
                       onChange={(event) =>
-                        updateTimePreference(
+                        applyPreferenceUpdate(
                           "quiet_hours_end",
-                          event.target.value
+                          event.target.value || null
                         )
                       }
                       className="mt-3 block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:bg-neutral-50"

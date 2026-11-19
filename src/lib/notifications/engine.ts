@@ -1,5 +1,14 @@
+import "server-only";
+
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
+import type {
+  Notification,
+  RecipientEligibilityContext,
+  SmartNotificationInput,
+  VisualNotificationPayload,
+} from "@/types/notifications";
+import { sanitizeNotificationImageUrl } from "./visual-rules";
 
 type CampaignActivity = {
   campaignId: string;
@@ -13,122 +22,288 @@ type CampaignActivity = {
   participants: number;
 };
 
-type CreatedNotification = {
-  id?: string | null;
-  user_id?: string | null;
-  type?: string | null;
-  category?: string | null;
-  title?: string | null;
-  message?: string | null;
-  action_url?: string | null;
-  action_label?: string | null;
-  event_id?: string | null;
-  campaign_id?: string | null;
-  metadata?: Json | null;
-  dedupe_key?: string | null;
-  priority?: string | null;
+type CreatedNotification = Pick<
+  Notification,
+  | "id"
+  | "user_id"
+  | "type"
+  | "category"
+  | "title"
+  | "message"
+  | "action_url"
+  | "action_label"
+  | "event_id"
+  | "campaign_id"
+  | "metadata"
+  | "dedupe_key"
+  | "priority"
+  | "status"
+> & {
+  status: Notification["status"];
 };
 
+type SmartDispatchInput = SmartNotificationInput & {
+  recipientContext?: RecipientEligibilityContext;
+  supabaseClient?: SupabaseServerClient;
+};
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
 const MILESTONES = [10, 25, 50, 100, 250, 500, 1000];
+const ACTIVE_PARTICIPANT_STATUSES = ["attending", "registered", "ticketed", "attended"] as const;
 
 function toJson(value: Record<string, unknown>): Json {
   return value as Json;
 }
 
-function parseCreatedNotification(
-  value: unknown
-): CreatedNotification | null {
-  if (!value) {
-    return null;
-  }
+function parseCreatedNotification(value: unknown): CreatedNotification | null {
+  let candidate = value;
 
-  if (typeof value === "string") {
+  if (typeof candidate === "string") {
     try {
-      const parsed = JSON.parse(value);
-
-      if (parsed && typeof parsed === "object") {
-        return parsed as CreatedNotification;
-      }
-
-      return null;
+      candidate = JSON.parse(candidate) as unknown;
     } catch {
       return null;
     }
   }
 
-  if (typeof value === "object") {
-    return value as CreatedNotification;
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.id !== "string" || typeof record.user_id !== "string") {
+    return null;
+  }
+
+  const allowedStatuses: Notification["status"][] = [
+    "unread", "read", "scheduled", "sent", "suppressed", "expired", "dismissed",
+  ];
+  if (typeof record.status !== "string" || !allowedStatuses.includes(record.status as Notification["status"])) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    user_id: record.user_id,
+    type: typeof record.type === "string" ? record.type : null,
+    category: typeof record.category === "string" ? record.category : null,
+    title: typeof record.title === "string" ? record.title : "",
+    message: typeof record.message === "string" ? record.message : null,
+    action_url: typeof record.action_url === "string" ? record.action_url : null,
+    action_label: typeof record.action_label === "string" ? record.action_label : null,
+    event_id: typeof record.event_id === "string" ? record.event_id : null,
+    campaign_id: typeof record.campaign_id === "string" ? record.campaign_id : null,
+    metadata: (record.metadata ?? {}) as Record<string, unknown>,
+    dedupe_key: typeof record.dedupe_key === "string" ? record.dedupe_key : null,
+    priority: record.priority === "low" || record.priority === "normal" || record.priority === "high" || record.priority === "urgent"
+      ? record.priority
+      : "normal",
+    status: record.status as Notification["status"],
+  };
+}
+
+/**
+ * Fails closed: a notification with an event/campaign relationship is only
+ * dispatched when the recipient still has the corresponding live relationship.
+ * System notifications without a relationship context do not require one.
+ */
+export async function verifyRecipientEligibility(
+  supabase: SupabaseServerClient,
+  userId: string,
+  context: RecipientEligibilityContext
+): Promise<boolean> {
+  if (!userId || context.userId !== userId) {
+    return false;
+  }
+
+  switch (context.roleRequired) {
+    case "attendee":
+    case "registrant":
+    case "ticket_holder": {
+      if (!context.eventId) return false;
+
+      const participantQuery = supabase
+        .from("event_participants")
+        .select("user_id")
+        .eq("event_id", context.eventId)
+        .eq("user_id", userId);
+
+      const relationshipQuery =
+        context.roleRequired === "attendee"
+          ? participantQuery
+          : participantQuery.eq("participation_type", context.roleRequired);
+
+      const { data, error } = await relationshipQuery.in(
+        "status",
+        [...ACTIVE_PARTICIPANT_STATUSES]
+      );
+
+      return !error && Boolean(data?.length);
+    }
+
+    case "organizer": {
+      if (!context.eventId) return false;
+
+      const [eventResult, organizerResult] = await Promise.all([
+        supabase
+          .from("events")
+          .select("creator_id")
+          .eq("id", context.eventId)
+          .maybeSingle(),
+        supabase
+          .from("event_organizers")
+          .select("user_id")
+          .eq("event_id", context.eventId)
+          .eq("user_id", userId)
+          .maybeSingle(),
+      ]);
+
+      if (eventResult.error || organizerResult.error) return false;
+      return eventResult.data?.creator_id === userId || Boolean(organizerResult.data);
+    }
+
+    case "campaign_creator": {
+      if (!context.campaignId) return false;
+
+      const { data, error } = await supabase
+        .from("campaigns")
+        .select("creator_id")
+        .eq("id", context.campaignId)
+        .maybeSingle();
+
+      return !error && data?.creator_id === userId;
+    }
+
+    default:
+      return false;
+  }
+}
+
+function inferRecipientContext(
+  params: SmartNotificationInput
+): RecipientEligibilityContext | null {
+  const type = params.type.toLowerCase();
+  const category = params.category.toLowerCase();
+
+  if (category === "recommendations" || params.presentationFormat === "image_popup") {
+    return null;
+  }
+
+  if (type === "campaign_created" && params.eventId) {
+    return {
+      userId: params.userId,
+      eventId: params.eventId,
+      roleRequired: "organizer",
+    };
+  }
+
+  if (params.campaignId && (
+    type.includes("campaign") ||
+    category.startsWith("campaign_") ||
+    category === "campaign_activity" ||
+    category === "campaign_milestones" ||
+    category === "campaign_insights"
+  )) {
+    return {
+      userId: params.userId,
+      campaignId: params.campaignId,
+      roleRequired: "campaign_creator",
+    };
+  }
+
+  if (params.eventId) {
+    return {
+      userId: params.userId,
+      eventId: params.eventId,
+      roleRequired: "attendee",
+    };
   }
 
   return null;
 }
 
 async function sendPushNotification(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseServerClient,
   notification: CreatedNotification
-) {
-  if (!notification.user_id) {
+): Promise<void> {
+  // A scheduled, suppressed, expired, or dismissed row must never trigger push.
+  if (
+    !notification.user_id ||
+    (notification.status !== "unread" && notification.status !== "sent")
+  ) {
     return;
   }
 
-  const { data: preferences, error: preferencesError } = await supabase
+  const { data: preferences, error } = await supabase
     .from("notification_preferences")
     .select("push_enabled")
     .eq("user_id", notification.user_id)
     .maybeSingle();
 
-  if (preferencesError) {
-    console.error(
-      "Failed to fetch push notification preferences:",
-      preferencesError
-    );
+  if (error) {
+    console.error("Failed to fetch push notification preferences:", error);
     return;
   }
 
-  if (!preferences?.push_enabled) {
-    return;
-  }
+  if (!preferences?.push_enabled) return;
+
+  const metadata = notification.metadata ?? {};
+  const rawImage =
+    typeof metadata.image_url === "string" ? metadata.image_url : null;
+  const sanitizedImage = sanitizeNotificationImageUrl(rawImage);
 
   try {
-    const { error } = await supabase.functions.invoke("send-push", {
+    const { error: pushError } = await supabase.functions.invoke("send-push", {
       body: {
         title: notification.title ?? "Attend",
         body: notification.message ?? "",
         url: notification.action_url ?? "/notifications",
-        tag: notification.id
-          ? `notification-${notification.id}`
-          : "attend-notification",
+        tag: notification.id ? `notification-${notification.id}` : "attend-notification",
+        notificationId: notification.id,
+        eventId: notification.event_id ?? undefined,
+        actionLabel: notification.action_label ?? undefined,
+        ...(sanitizedImage ? { image: sanitizedImage } : {}),
       },
     });
 
-    if (error) {
-      console.error("Failed to send push notification:", error);
+    if (pushError) {
+      console.error("Failed to send push notification:", pushError);
     }
   } catch (error) {
     console.error("Push notification error:", error);
   }
 }
 
-async function createNotification(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  params: {
-    userId: string;
-    type: string;
-    category: string;
-    title: string;
-    message: string;
-    actionUrl?: string | null;
-    actionLabel?: string | null;
-    eventId?: string | null;
-    campaignId?: string | null;
-    metadata?: Record<string, unknown>;
-    dedupeKey?: string | null;
-    priority?: "low" | "normal" | "high" | "urgent";
-  }
+/**
+ * The only application-level entry point for creating smart notifications.
+ * Preferences, deduplication, frequency caps, and quiet hours remain enforced
+ * transactionally by create_notification_for_user in Postgres.
+ */
+export async function dispatchSmartNotification(
+  params: SmartDispatchInput
 ): Promise<CreatedNotification | null> {
-  const { data, error } = await supabase.rpc(
-  "create_notification_for_user",
-  {
+  if (!params.userId || !params.type || !params.category || !params.title) {
+    return null;
+  }
+
+  const supabase = params.supabaseClient ?? (await createClient());
+  const context = params.recipientContext ?? inferRecipientContext(params);
+
+  if (context && !(await verifyRecipientEligibility(supabase, params.userId, context))) {
+    return null;
+  }
+
+  const metadata: Record<string, unknown> = {
+    ...(params.metadata ?? {}),
+    ...(params.presentationFormat ? { presentation_format: params.presentationFormat } : {}),
+    ...(params.imageUrl ? { image_url: params.imageUrl } : {}),
+    ...(params.imageAlt ? { image_alt: params.imageAlt } : {}),
+    ...(params.whyRecommended ? { why_recommended: params.whyRecommended } : {}),
+    ...(params.scheduledFor ? { scheduled_for: params.scheduledFor } : {}),
+  };
+
+  const { data, error } = await supabase.rpc("create_notification_for_user", {
     p_user_id: params.userId,
     p_type: params.type,
     p_category: params.category,
@@ -138,21 +313,19 @@ async function createNotification(
     p_action_label: params.actionLabel ?? undefined,
     p_event_id: params.eventId ?? undefined,
     p_campaign_id: params.campaignId ?? undefined,
-    p_metadata: params.metadata
-      ? toJson(params.metadata)
-      : undefined,
+    p_metadata: Object.keys(metadata).length ? toJson(metadata) : undefined,
     p_dedupe_key: params.dedupeKey ?? undefined,
     p_priority: params.priority ?? "normal",
-  }
-);
+  });
 
   if (error) {
-    console.error("Failed to create notification:", error);
+    // Deliberately do not fall back to a raw notifications INSERT. Doing so
+    // would bypass database-owned preference, deduplication, and timing rules.
+    console.error("Failed to dispatch smart notification:", error);
     return null;
   }
 
   const notification = parseCreatedNotification(data);
-
   if (notification) {
     await sendPushNotification(supabase, notification);
   }
@@ -160,159 +333,153 @@ async function createNotification(
   return notification;
 }
 
-export async function processCampaignActivity(
-  activity: CampaignActivity
-) {
-  const supabase = await createClient();
+export async function dispatchVisualEventNotification(
+  params: VisualNotificationPayload
+): Promise<CreatedNotification[]> {
+  if (!params.eventId || !params.eventTitle || params.recipientUserIds.length === 0) {
+    return [];
+  }
+
+  const uniqueRecipients = Array.from(new Set(params.recipientUserIds.filter(Boolean)));
+  const sanitizedCover = sanitizeNotificationImageUrl(params.coverImage);
+  const whyRecommended =
+    params.whyRecommended ?? "You might be interested in this event";
+  const actionLabel = params.actionLabel ?? "View event";
+  const message =
+    params.shortDescription?.trim() ||
+    `${whyRecommended}: ${params.eventTitle}`;
 
   const results: CreatedNotification[] = [];
 
-  // ------------------------------------------------------------
-  // 1. First generation
-  // ------------------------------------------------------------
+  for (const userId of uniqueRecipients) {
+    const dispatched = await dispatchSmartNotification({
+      userId,
+      type: "event_recommendation",
+      category: "recommendations",
+      presentationFormat: "image_popup",
+      priority: params.priority ?? "normal",
+      title: params.eventTitle,
+      message,
+      actionUrl: params.actionUrl,
+      actionLabel,
+      eventId: params.eventId,
+      imageUrl: sanitizedCover,
+      imageAlt: params.eventTitle,
+      whyRecommended,
+      dedupeKey: `${params.dedupeKeyPrefix}-${userId}`,
+      metadata: {
+        event_id: params.eventId,
+        short_description: params.shortDescription ?? null,
+        start_at: params.startAt ?? null,
+        city: params.city ?? null,
+        venue_name: params.venueName ?? null,
+        image_url: sanitizedCover,
+        why_recommended: whyRecommended,
+        presentation_format: "image_popup",
+      },
+    });
+
+    if (dispatched) {
+      results.push(dispatched);
+    }
+  }
+
+  return results;
+}
+
+export async function processCampaignActivity(activity: CampaignActivity) {
+  const results: CreatedNotification[] = [];
+
+  const dispatch = async (
+    type: string,
+    title: string,
+    message: string,
+    metric: string,
+    value: number,
+    actionLabel: string,
+    dedupeKey: string
+  ) => {
+    const notification = await dispatchSmartNotification({
+      userId: activity.creatorId,
+      type,
+      category: type === "campaign_generation" ? "campaign_activity" : "campaign_milestones",
+      title,
+      message,
+      actionUrl: `/campaign/${activity.campaignId}`,
+      actionLabel,
+      eventId: activity.eventId ?? null,
+      campaignId: activity.campaignId,
+      metadata: { [metric]: value, metric, campaign_name: activity.campaignName },
+      dedupeKey,
+      priority: "normal",
+      recipientContext: {
+        userId: activity.creatorId,
+        campaignId: activity.campaignId,
+        roleRequired: "campaign_creator",
+      },
+    });
+
+    if (notification) results.push(notification);
+  };
 
   if (activity.generations === 1) {
-    const notification = await createNotification(supabase, {
-      userId: activity.creatorId,
-      type: "campaign_generation",
-      category: "campaign_activity",
-      title: "Your campaign got its first generation",
-      message: `"${activity.campaignName}" has received its first generated version.`,
-      actionUrl: `/campaign/${activity.campaignId}`,
-      actionLabel: "View campaign",
-      eventId: activity.eventId ?? null,
-      campaignId: activity.campaignId,
-      metadata: {
-        generations: activity.generations,
-        campaign_name: activity.campaignName,
-      },
-      dedupeKey: `campaign-${activity.campaignId}-first-generation`,
-      priority: "normal",
-    });
-
-    if (notification) {
-      results.push(notification);
-    }
+    await dispatch(
+      "campaign_generation",
+      "Your campaign got its first generation",
+      `"${activity.campaignName}" has received its first generated version.`,
+      "generations",
+      1,
+      "View campaign",
+      `campaign-${activity.campaignId}-first-generation`
+    );
   }
-
-  // ------------------------------------------------------------
-  // 2. First 10 generations
-  // ------------------------------------------------------------
 
   if (activity.generations === 10) {
-    const notification = await createNotification(supabase, {
-      userId: activity.creatorId,
-      type: "campaign_milestone",
-      category: "campaign_milestones",
-      title: "10 people generated your campaign",
-      message: `"${activity.campaignName}" has reached 10 generations.`,
-      actionUrl: `/campaign/${activity.campaignId}`,
-      actionLabel: "View campaign",
-      eventId: activity.eventId ?? null,
-      campaignId: activity.campaignId,
-      metadata: {
-        milestone: 10,
-        metric: "generations",
-        campaign_name: activity.campaignName,
-      },
-      dedupeKey: `campaign-${activity.campaignId}-generations-10`,
-      priority: "normal",
-    });
-
-    if (notification) {
-      results.push(notification);
-    }
+    await dispatch(
+      "campaign_milestone",
+      "10 people generated your campaign",
+      `"${activity.campaignName}" has reached 10 generations.`,
+      "generations",
+      10,
+      "View campaign",
+      `campaign-${activity.campaignId}-generations-10`
+    );
   }
-
-  // ------------------------------------------------------------
-  // 3. Traffic milestones
-  // ------------------------------------------------------------
 
   if (MILESTONES.includes(activity.views)) {
-    const notification = await createNotification(supabase, {
-      userId: activity.creatorId,
-      type: "campaign_milestone",
-      category: "campaign_milestones",
-      title: `${activity.views} people viewed your campaign`,
-      message: `"${activity.campaignName}" has reached ${activity.views} views.`,
-      actionUrl: `/campaign/${activity.campaignId}`,
-      actionLabel: "View analytics",
-      eventId: activity.eventId ?? null,
-      campaignId: activity.campaignId,
-      metadata: {
-        milestone: activity.views,
-        metric: "views",
-        campaign_name: activity.campaignName,
-      },
-      dedupeKey: `campaign-${activity.campaignId}-views-${activity.views}`,
-      priority: "normal",
-    });
-
-    if (notification) {
-      results.push(notification);
-    }
+    await dispatch(
+      "campaign_milestone",
+      `${activity.views} people viewed your campaign`,
+      `"${activity.campaignName}" has reached ${activity.views} views.`,
+      "views",
+      activity.views,
+      "View analytics",
+      `campaign-${activity.campaignId}-views-${activity.views}`
+    );
   }
 
-  // ------------------------------------------------------------
-  // 4. Share milestones
-  // ------------------------------------------------------------
-
-  const shareMilestones = [5, 10, 25, 50, 100];
-
-  if (shareMilestones.includes(activity.shares)) {
-    const notification = await createNotification(supabase, {
-      userId: activity.creatorId,
-      type: "campaign_milestone",
-      category: "campaign_milestones",
-      title: `${activity.shares} people shared your campaign`,
-      message: `"${activity.campaignName}" has been shared ${activity.shares} times.`,
-      actionUrl: `/campaign/${activity.campaignId}`,
-      actionLabel: "View analytics",
-      eventId: activity.eventId ?? null,
-      campaignId: activity.campaignId,
-      metadata: {
-        milestone: activity.shares,
-        metric: "shares",
-        campaign_name: activity.campaignName,
-      },
-      dedupeKey: `campaign-${activity.campaignId}-shares-${activity.shares}`,
-      priority: "normal",
-    });
-
-    if (notification) {
-      results.push(notification);
-    }
+  if ([5, 10, 25, 50, 100].includes(activity.shares)) {
+    await dispatch(
+      "campaign_milestone",
+      `${activity.shares} people shared your campaign`,
+      `"${activity.campaignName}" has been shared ${activity.shares} times.`,
+      "shares",
+      activity.shares,
+      "View analytics",
+      `campaign-${activity.campaignId}-shares-${activity.shares}`
+    );
   }
 
-  // ------------------------------------------------------------
-  // 5. Download milestones
-  // ------------------------------------------------------------
-
-  const downloadMilestones = [10, 25, 50, 100];
-
-  if (downloadMilestones.includes(activity.downloads)) {
-    const notification = await createNotification(supabase, {
-      userId: activity.creatorId,
-      type: "campaign_milestone",
-      category: "campaign_milestones",
-      title: `${activity.downloads} people downloaded your campaign`,
-      message: `"${activity.campaignName}" has been downloaded ${activity.downloads} times.`,
-      actionUrl: `/campaign/${activity.campaignId}`,
-      actionLabel: "View analytics",
-      eventId: activity.eventId ?? null,
-      campaignId: activity.campaignId,
-      metadata: {
-        milestone: activity.downloads,
-        metric: "downloads",
-        campaign_name: activity.campaignName,
-      },
-      dedupeKey: `campaign-${activity.campaignId}-downloads-${activity.downloads}`,
-      priority: "normal",
-    });
-
-    if (notification) {
-      results.push(notification);
-    }
+  if ([10, 25, 50, 100].includes(activity.downloads)) {
+    await dispatch(
+      "campaign_milestone",
+      `${activity.downloads} people downloaded your campaign`,
+      `"${activity.campaignName}" has been downloaded ${activity.downloads} times.`,
+      "downloads",
+      activity.downloads,
+      "View analytics",
+      `campaign-${activity.campaignId}-downloads-${activity.downloads}`
+    );
   }
 
   return results;

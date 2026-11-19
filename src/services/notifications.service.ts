@@ -1,7 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Json } from "@/lib/supabase/database.types";
+import {
+  dispatchSmartNotification,
+  dispatchVisualEventNotification,
+} from "@/lib/notifications/engine";
+import type { RecipientEligibilityContext } from "@/types/notifications";
 import type {
   EventUpdatedNotificationPayload,
   CampaignCreatedNotificationPayload,
@@ -15,11 +19,7 @@ export interface LifecycleNotificationResult {
   recipientIds: string[];
 }
 
-function toJson(value: Record<string, unknown>): Json {
-  return value as Json;
-}
-
-export async function createNotificationRecord(params: {
+async function createNotificationRecord(params: {
   userId: string;
   type: string;
   category: string;
@@ -32,56 +32,10 @@ export async function createNotificationRecord(params: {
   metadata?: Record<string, unknown>;
   dedupeKey?: string | null;
   priority?: "low" | "normal" | "high" | "urgent";
+  recipientContext: RecipientEligibilityContext;
 }): Promise<boolean> {
-  const supabase = await createClient();
-
-  try {
-    const { error: rpcError } = await supabase.rpc(
-      "create_notification_for_user",
-      {
-        p_user_id: params.userId,
-        p_type: params.type,
-        p_category: params.category,
-        p_title: params.title,
-        p_message: params.message,
-        p_action_url: params.actionUrl ?? undefined,
-        p_action_label: params.actionLabel ?? undefined,
-        p_event_id: params.eventId ?? undefined,
-        p_campaign_id: params.campaignId ?? undefined,
-        p_metadata: params.metadata ? toJson(params.metadata) : undefined,
-        p_dedupe_key: params.dedupeKey ?? undefined,
-        p_priority: params.priority ?? "normal",
-      }
-    );
-
-    if (!rpcError) {
-      return true;
-    }
-
-    const { error: insertError } = await supabase.from("notifications").insert({
-      user_id: params.userId,
-      type: params.type,
-      category: params.category,
-      title: params.title,
-      message: params.message,
-      action_url: params.actionUrl ?? null,
-      action_label: params.actionLabel ?? null,
-      event_id: params.eventId ?? null,
-      campaign_id: params.campaignId ?? null,
-      metadata: params.metadata ? toJson(params.metadata) : {},
-      priority: params.priority ?? "normal",
-    });
-
-    if (insertError) {
-      console.error("Failed to insert notification record:", insertError);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Notification creation exception:", error);
-    return false;
-  }
+  const notification = await dispatchSmartNotification(params);
+  return notification !== null;
 }
 
 export async function dispatchDateOrVenueChangeNotification(
@@ -137,6 +91,7 @@ export async function dispatchDateOrVenueChangeNotification(
         new_venue: payload.newVenue,
       },
       dedupeKey: `event-${payload.eventId}-update-${payload.newStartAt || ""}-${payload.newVenue || ""}-${userId}`,
+      recipientContext: { userId, eventId: payload.eventId, roleRequired: "attendee" },
     });
 
     if (success) {
@@ -212,6 +167,7 @@ export async function dispatchCampaignCreatedNotification(
         creator_id: payload.creatorId,
       },
       dedupeKey: `campaign-${payload.campaignId}-created-${userId}`,
+      recipientContext: { userId, eventId: payload.eventId, roleRequired: "organizer" },
     });
 
     if (success) {
@@ -247,6 +203,7 @@ export async function dispatchRegistrationReceiptNotification(
       status: payload.status,
     },
     dedupeKey: `receipt-${payload.eventId}-${payload.userId}`,
+    recipientContext: { userId: payload.userId, eventId: payload.eventId, roleRequired: "attendee" },
   });
 }
 
@@ -297,6 +254,7 @@ export async function dispatchEventCancelledNotification(
         reason: payload.reason || null,
       },
       dedupeKey: `event-${payload.eventId}-cancelled-${userId}`,
+      recipientContext: { userId, eventId: payload.eventId, roleRequired: "attendee" },
     });
 
     if (success) {
@@ -309,6 +267,80 @@ export async function dispatchEventCancelledNotification(
     dispatchedCount,
     recipientIds,
   };
+}
+
+export interface VisualEventRecommendationInput {
+  eventId: string;
+  eventTitle: string;
+  coverImage?: string | null;
+  shortDescription?: string | null;
+  startAt?: string | null;
+  city?: string | null;
+  venueName?: string | null;
+  recipientUserIds: string[];
+}
+
+async function dispatchVisualRecommendationTrigger(
+  input: VisualEventRecommendationInput,
+  whyRecommended: string,
+  dedupePrefix: string
+): Promise<LifecycleNotificationResult> {
+  const recipientIds = Array.from(new Set(input.recipientUserIds.filter(Boolean)));
+  if (!input.eventId || !input.eventTitle || recipientIds.length === 0) {
+    return { success: true, dispatchedCount: 0, recipientIds: [] };
+  }
+
+  const dispatched = await dispatchVisualEventNotification({
+    eventId: input.eventId,
+    eventTitle: input.eventTitle,
+    coverImage: input.coverImage,
+    shortDescription: input.shortDescription,
+    startAt: input.startAt,
+    city: input.city,
+    venueName: input.venueName,
+    actionUrl: `/events/${input.eventId}`,
+    actionLabel: "View event",
+    whyRecommended,
+    recipientUserIds: recipientIds,
+    dedupeKeyPrefix: `${dedupePrefix}-${input.eventId}`,
+    priority: "normal",
+  });
+
+  return {
+    success: true,
+    dispatchedCount: dispatched.length,
+    recipientIds,
+  };
+}
+
+export async function dispatchSavedEventApproachingVisualNotification(
+  input: VisualEventRecommendationInput
+): Promise<LifecycleNotificationResult> {
+  return dispatchVisualRecommendationTrigger(
+    input,
+    "An event you saved is approaching",
+    "visual-saved-approaching"
+  );
+}
+
+export async function dispatchFollowedOrganizerEventVisualNotification(
+  input: VisualEventRecommendationInput
+): Promise<LifecycleNotificationResult> {
+  return dispatchVisualRecommendationTrigger(
+    input,
+    "An organizer you follow published a new event",
+    "visual-organizer-new"
+  );
+}
+
+export async function dispatchInterestMatchEventVisualNotification(
+  input: VisualEventRecommendationInput
+): Promise<LifecycleNotificationResult> {
+  return dispatchVisualRecommendationTrigger(
+    input,
+    "An event matching your interests is now available",
+    "visual-interest-match"
+  );
 }
 
 

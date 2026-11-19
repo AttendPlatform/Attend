@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import {
   X,
   Loader2,
@@ -18,6 +18,11 @@ import {
   validateRegistrationPayload,
 } from "@/lib/validations/registration";
 import { submitRegistrationAction } from "@/app/actions/attendance";
+import {
+  completeAbandonedActionAction,
+  getActiveAbandonedActionsAction,
+  saveAbandonedActionAction,
+} from "@/app/actions/abandoned-actions";
 import { useEventAttendance } from "./EventAttendanceProvider";
 
 export interface RegistrationModalProps {
@@ -57,8 +62,9 @@ export default function RegistrationModal(props: RegistrationModalProps) {
   const [isSuccess, setIsSuccess] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  // Reset or initialize state on open
+  // Reset or initialize state on open and hydrate any saved progress
   useEffect(() => {
+    let active = true;
     if (isOpen) {
       setName(initialName);
       setEmail(initialEmail);
@@ -70,24 +76,77 @@ export default function RegistrationModal(props: RegistrationModalProps) {
       setGeneralError(null);
       setIsSuccess(false);
       document.body.style.overflow = "hidden";
+
+      if (eventId) {
+        void getActiveAbandonedActionsAction().then((res) => {
+          if (!active || !res.ok) return;
+          const saved = res.actions.find(
+            (item) =>
+              item.action_type === "incomplete_registration" &&
+              item.event_id === eventId
+          );
+          if (!saved?.draft_payload) return;
+
+          const p = saved.draft_payload;
+          if (typeof p.phone === "string" && p.phone) setPhone(p.phone);
+          if (typeof p.organization === "string" && p.organization) {
+            setOrganization(p.organization);
+          }
+          if (typeof p.job_title === "string" && p.job_title) {
+            setJobTitle(p.job_title);
+          }
+          if (p.answers && typeof p.answers === "object" && !Array.isArray(p.answers)) {
+            setAnswers(p.answers as Record<string, unknown>);
+          }
+        });
+      }
     } else {
       document.body.style.overflow = "";
     }
     return () => {
+      active = false;
       document.body.style.overflow = "";
     };
-  }, [isOpen, initialName, initialEmail]);
+  }, [isOpen, eventId, initialName, initialEmail]);
+
+  const handleClose = useCallback(() => {
+    if (!isSuccess && eventId) {
+      const hasCustomAnswers = Object.values(answers).some(
+        (v) => v !== "" && v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0)
+      );
+      if (
+        phone.trim() ||
+        organization.trim() ||
+        jobTitle.trim() ||
+        hasCustomAnswers
+      ) {
+        void saveAbandonedActionAction({
+          actionType: "incomplete_registration",
+          eventId,
+          draftTitle: eventTitle,
+          draftPayload: {
+            phone: phone.trim(),
+            organization: organization.trim(),
+            job_title: jobTitle.trim(),
+            answers,
+          },
+          resumeUrl: `/events/${eventId}?resumeRegistration=1`,
+        });
+      }
+    }
+    onClose();
+  }, [isSuccess, eventId, eventTitle, phone, organization, jobTitle, answers, onClose]);
 
   // Escape key handler
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape" && isOpen && !pending) {
-        onClose();
+        handleClose();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, pending, onClose]);
+  }, [isOpen, pending, handleClose]);
 
   if (!isOpen) return null;
 
@@ -156,6 +215,12 @@ export default function RegistrationModal(props: RegistrationModalProps) {
       }
 
       setIsSuccess(true);
+      if (eventId) {
+        void completeAbandonedActionAction({
+          actionType: "incomplete_registration",
+          eventId,
+        });
+      }
       if (onSuccess) {
         onSuccess();
       }
@@ -170,7 +235,7 @@ export default function RegistrationModal(props: RegistrationModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-neutral-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget && !pending) {
-          onClose();
+          handleClose();
         }
       }}
     >
@@ -179,7 +244,7 @@ export default function RegistrationModal(props: RegistrationModalProps) {
         <div className="relative shrink-0 border-b border-neutral-100 bg-gradient-to-r from-violet-50 via-white to-violet-50/50 p-5 sm:p-6">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={pending}
             className="absolute right-5 top-5 rounded-full p-1.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-50"
             aria-label="Close modal"

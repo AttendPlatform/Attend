@@ -66,3 +66,57 @@ export async function markAllNotificationsRead(): Promise<number> {
 
   return Number(data ?? 0);
 }
+
+export type NotificationInteractionType = "impression" | "click" | "dismiss";
+
+export async function dismissNotification(
+  notificationId: string
+): Promise<boolean> {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({
+      status: "dismissed",
+      dismissed_at: new Date().toISOString(),
+    })
+    .eq("id", notificationId);
+
+  if (error) {
+    console.error("Failed to dismiss notification:", error);
+    return false;
+  }
+
+  // Record dismiss event asynchronously
+  recordNotificationInteraction(notificationId, "dismiss").catch(() => {});
+
+  return true;
+}
+
+export async function recordNotificationInteraction(
+  notificationId: string,
+  eventType: NotificationInteractionType,
+  metadata?: Record<string, unknown>
+): Promise<string | null> {
+  const supabase = createClient();
+
+  try {
+    const { data, error } = await supabase.rpc("record_notification_event", {
+      p_event_type: eventType,
+      p_metadata: {
+        notification_id: notificationId,
+        ...metadata,
+      },
+    });
+
+    if (error) {
+      console.warn("Failed to record notification interaction:", error);
+      return null;
+    }
+
+    return data ?? null;
+  } catch (err) {
+    console.warn("Failed to record notification interaction:", err);
+    return null;
+  }
+}
