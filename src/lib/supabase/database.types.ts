@@ -14,6 +14,270 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
+      admin_notification_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      banner_analytics: {
+        Row: {
+          banner_id: string
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          placement: string
+          user_id: string | null
+        }
+        Insert: {
+          banner_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          placement: string
+          user_id?: string | null
+        }
+        Update: {
+          banner_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          placement?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      featured_events: {
+        Row: {
+          clicks_count: number
+          created_at: string
+          created_by: string | null
+          end_at: string
+          event_id: string
+          id: string
+          notification_channels: string[]
+          notification_mode: string
+          priority: string
+          promotional_image_url: string | null
+          promotional_message: string | null
+          registrations_count: number
+          saves_count: number
+          scheduled_notification_at: string | null
+          start_at: string
+          status: string
+          target_audience: Json
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          clicks_count?: number
+          created_at?: string
+          created_by?: string | null
+          end_at: string
+          event_id: string
+          id?: string
+          notification_channels?: string[]
+          notification_mode?: string
+          priority?: string
+          promotional_image_url?: string | null
+          promotional_message?: string | null
+          registrations_count?: number
+          saves_count?: number
+          scheduled_notification_at?: string | null
+          start_at: string
+          status?: string
+          target_audience?: Json
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          clicks_count?: number
+          created_at?: string
+          created_by?: string | null
+          end_at?: string
+          event_id?: string
+          id?: string
+          notification_channels?: string[]
+          notification_mode?: string
+          priority?: string
+          promotional_image_url?: string | null
+          promotional_message?: string | null
+          registrations_count?: number
+          saves_count?: number
+          scheduled_notification_at?: string | null
+          start_at?: string
+          status?: string
+          target_audience?: Json
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: []
+      }
+      promotional_banners: {
+        Row: {
+          clicks_count: number
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          description: string | null
+          desktop_image_url: string | null
+          destination_url: string
+          end_at: string
+          id: string
+          image_url: string
+          impressions_count: number
+          mobile_image_url: string | null
+          placement: string
+          priority: number
+          slot_type: string
+          start_at: string
+          status: string
+          targeting_rules: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          clicks_count?: number
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          description?: string | null
+          desktop_image_url?: string | null
+          destination_url: string
+          end_at: string
+          id?: string
+          image_url: string
+          impressions_count?: number
+          mobile_image_url?: string | null
+          placement?: string
+          priority?: number
+          slot_type?: string
+          start_at: string
+          status?: string
+          targeting_rules?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          clicks_count?: number
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          description?: string | null
+          desktop_image_url?: string | null
+          destination_url?: string
+          end_at?: string
+          id?: string
+          image_url?: string
+          impressions_count?: number
+          mobile_image_url?: string | null
+          placement?: string
+          priority?: number
+          slot_type?: string
+          start_at?: string
+          status?: string
+          targeting_rules?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_connections: {
+        Row: {
+          connected_user_id: string
+          created_at: string
+          id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          connected_user_id: string
+          created_at?: string
+          id?: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          connected_user_id?: string
+          created_at?: string
+          id?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_contact_identifiers: {
+        Row: {
+          created_at: string
+          id: string
+          identifier_hash: string
+          identifier_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          identifier_hash: string
+          identifier_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          identifier_hash?: string
+          identifier_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       abandoned_actions: {
         Row: {
           action_type: string
@@ -822,15 +1086,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          allow_contact_discovery: boolean
+          allow_social_notifications: boolean
+          allow_social_recommendations: boolean
+          attendance_visibility: string
           avatar_url: string | null
           bio: string | null
           city: string | null
+          contact_discovery_consented_at: string | null
           country: string | null
           cover_url: string | null
           created_at: string
           display_name: string | null
           full_name: string | null
           id: string
+          is_platform_admin: boolean
           location: string | null
           name: string | null
           state: string | null
@@ -840,15 +1110,21 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          allow_contact_discovery?: boolean
+          allow_social_notifications?: boolean
+          allow_social_recommendations?: boolean
+          attendance_visibility?: string
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
+          contact_discovery_consented_at?: string | null
           country?: string | null
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
           full_name?: string | null
           id: string
+          is_platform_admin?: boolean
           location?: string | null
           name?: string | null
           state?: string | null
@@ -858,15 +1134,21 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          allow_contact_discovery?: boolean
+          allow_social_notifications?: boolean
+          allow_social_recommendations?: boolean
+          attendance_visibility?: string
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
+          contact_discovery_consented_at?: string | null
           country?: string | null
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
           full_name?: string | null
           id?: string
+          is_platform_admin?: boolean
           location?: string | null
           name?: string | null
           state?: string | null
@@ -1089,6 +1371,10 @@ export type Database = {
       }
     }
     Functions: {
+      is_platform_admin: {
+        Args: never
+        Returns: boolean
+      }
       create_my_notification: {
         Args: {
           p_action_label?: string
