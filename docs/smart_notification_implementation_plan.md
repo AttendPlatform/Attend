@@ -336,15 +336,15 @@ feat/w3-social-discovery-release       (Week 3 Parent Branch - 16 hours, Days 9-
 
 ---
 
-### Day 5 (4 Hours) - Platform-Admin Auth, Promotions Schema & Contracts
+### Day 5 (4 Hours) - Platform-Admin Auth, Promotions Schema & Contracts [DONE]
 
-1. **Create Week 2 Parent Branch** (15 mins):
+1. **Create Week 2 Parent Branch** (15 mins) [DONE]:
    ```bash
    git checkout main && git pull origin main
    git checkout -b feat/w2-promotions-banners-admin
    git push -u origin feat/w2-promotions-banners-admin
    ```
-2. **Author Week 2 Database Migration** (`supabase/migrations/20261117100000_promotions_and_social_discovery.sql`) (1.5 hrs):
+2. **Author Week 2 Database Migration** (`supabase/migrations/20261117100000_promotions_and_social_discovery.sql`) (1.5 hrs) [DONE]:
    - **Platform-Admin Authorization & Audit Trail**:
      - Add `is_platform_admin BOOLEAN NOT NULL DEFAULT false` to `public.profiles`.
      - Create `public.is_platform_admin()` (`SECURITY DEFINER` SQL function returning `true` only if `profiles.is_platform_admin = true` for `auth.uid()`).
@@ -357,7 +357,7 @@ feat/w3-social-discovery-release       (Week 3 Parent Branch - 16 hours, Days 9-
    - **Social Discovery & Privacy Schema** (provisioned cleanly for Week 3):
      - Extend `public.profiles`: `attendance_visibility TEXT NOT NULL DEFAULT 'public'` (`'public' | 'connections' | 'private'`), `allow_social_notifications BOOLEAN NOT NULL DEFAULT true`, `allow_social_recommendations BOOLEAN NOT NULL DEFAULT true`, `allow_contact_discovery BOOLEAN NOT NULL DEFAULT false`, `contact_discovery_consented_at TIMESTAMPTZ`.
      - Create `public.user_contact_identifiers` and `public.user_connections`, and update `public.public_event_attendees` view so only `COALESCE(p.attendance_visibility, 'public') = 'public'` users appear in public attendee stacks.
-3. **Publish Shared Contracts, Admin Guard & Day 5 Verification** (2 hrs 15m):
+3. **Publish Shared Contracts, Admin Guard & Day 5 Verification** (2 hrs 15m) [DONE]:
    - Create `src/types/promotions.ts`, `src/types/social.ts`, and `src/lib/auth/admin.ts` (`requirePlatformAdmin()`, `isPlatformAdmin()`).
    - Create `scripts/smart-notifications/week2/verify-sn-w2-d5.ts` verifying admin guard, RLS boundaries, and promotions schema.
 
