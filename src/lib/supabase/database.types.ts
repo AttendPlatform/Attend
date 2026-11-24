@@ -14,6 +14,346 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
+      admin_notification_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      banner_analytics: {
+        Row: {
+          banner_id: string
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          placement: string
+          user_id: string | null
+        }
+        Insert: {
+          banner_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          placement: string
+          user_id?: string | null
+        }
+        Update: {
+          banner_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          placement?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      featured_events: {
+        Row: {
+          clicks_count: number
+          created_at: string
+          created_by: string | null
+          end_at: string
+          event_id: string
+          id: string
+          notification_channels: string[]
+          notification_mode: string
+          priority: string
+          promotional_image_url: string | null
+          promotional_message: string | null
+          registrations_count: number
+          saves_count: number
+          scheduled_notification_at: string | null
+          start_at: string
+          status: string
+          target_audience: Json
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          clicks_count?: number
+          created_at?: string
+          created_by?: string | null
+          end_at: string
+          event_id: string
+          id?: string
+          notification_channels?: string[]
+          notification_mode?: string
+          priority?: string
+          promotional_image_url?: string | null
+          promotional_message?: string | null
+          registrations_count?: number
+          saves_count?: number
+          scheduled_notification_at?: string | null
+          start_at: string
+          status?: string
+          target_audience?: Json
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          clicks_count?: number
+          created_at?: string
+          created_by?: string | null
+          end_at?: string
+          event_id?: string
+          id?: string
+          notification_channels?: string[]
+          notification_mode?: string
+          priority?: string
+          promotional_image_url?: string | null
+          promotional_message?: string | null
+          registrations_count?: number
+          saves_count?: number
+          scheduled_notification_at?: string | null
+          start_at?: string
+          status?: string
+          target_audience?: Json
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: []
+      }
+      promotional_banners: {
+        Row: {
+          clicks_count: number
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          description: string | null
+          desktop_image_url: string | null
+          destination_url: string
+          end_at: string
+          id: string
+          image_url: string
+          impressions_count: number
+          mobile_image_url: string | null
+          placement: string
+          priority: number
+          slot_type: string
+          start_at: string
+          status: string
+          targeting_rules: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          clicks_count?: number
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          description?: string | null
+          desktop_image_url?: string | null
+          destination_url: string
+          end_at: string
+          id?: string
+          image_url: string
+          impressions_count?: number
+          mobile_image_url?: string | null
+          placement?: string
+          priority?: number
+          slot_type?: string
+          start_at: string
+          status?: string
+          targeting_rules?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          clicks_count?: number
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          description?: string | null
+          desktop_image_url?: string | null
+          destination_url?: string
+          end_at?: string
+          id?: string
+          image_url?: string
+          impressions_count?: number
+          mobile_image_url?: string | null
+          placement?: string
+          priority?: number
+          slot_type?: string
+          start_at?: string
+          status?: string
+          targeting_rules?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_connections: {
+        Row: {
+          connected_user_id: string
+          created_at: string
+          id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          connected_user_id: string
+          created_at?: string
+          id?: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          connected_user_id?: string
+          created_at?: string
+          id?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_contact_identifiers: {
+        Row: {
+          created_at: string
+          id: string
+          identifier_hash: string
+          identifier_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          identifier_hash: string
+          identifier_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          identifier_hash?: string
+          identifier_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      abandoned_actions: {
+        Row: {
+          action_type: string
+          campaign_id: string | null
+          created_at: string
+          draft_payload: Json
+          draft_title: string | null
+          event_id: string | null
+          id: string
+          last_progressed_at: string
+          last_reminded_at: string | null
+          recovered_at: string | null
+          reminder_stage: number
+          resume_url: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          campaign_id?: string | null
+          created_at?: string
+          draft_payload?: Json
+          draft_title?: string | null
+          event_id?: string | null
+          id?: string
+          last_progressed_at?: string
+          last_reminded_at?: string | null
+          recovered_at?: string | null
+          reminder_stage?: number
+          resume_url: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          campaign_id?: string | null
+          created_at?: string
+          draft_payload?: Json
+          draft_title?: string | null
+          event_id?: string | null
+          id?: string
+          last_progressed_at?: string
+          last_reminded_at?: string | null
+          recovered_at?: string | null
+          reminder_stage?: number
+          resume_url?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abandoned_actions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abandoned_actions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abandoned_actions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_events: {
         Row: {
           campaign_id: string | null
@@ -534,12 +874,14 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          abandoned_reminders_enabled: boolean
           campaign_activity: boolean
           campaign_insights: boolean
           campaign_milestones: boolean
           created_at: string
           email_enabled: boolean
           event_reminders: boolean
+          max_daily_notifications: number
           new_events: boolean
           push_enabled: boolean
           quiet_hours_enabled: boolean
@@ -547,17 +889,21 @@ export type Database = {
           quiet_hours_start: string | null
           recommendations: boolean
           smart_notifications: boolean
+          social_notifications_enabled: boolean
+          timezone: string
           trending_events: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
+          abandoned_reminders_enabled?: boolean
           campaign_activity?: boolean
           campaign_insights?: boolean
           campaign_milestones?: boolean
           created_at?: string
           email_enabled?: boolean
           event_reminders?: boolean
+          max_daily_notifications?: number
           new_events?: boolean
           push_enabled?: boolean
           quiet_hours_enabled?: boolean
@@ -565,17 +911,21 @@ export type Database = {
           quiet_hours_start?: string | null
           recommendations?: boolean
           smart_notifications?: boolean
+          social_notifications_enabled?: boolean
+          timezone?: string
           trending_events?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
+          abandoned_reminders_enabled?: boolean
           campaign_activity?: boolean
           campaign_insights?: boolean
           campaign_milestones?: boolean
           created_at?: string
           email_enabled?: boolean
           event_reminders?: boolean
+          max_daily_notifications?: number
           new_events?: boolean
           push_enabled?: boolean
           quiet_hours_enabled?: boolean
@@ -583,6 +933,8 @@ export type Database = {
           quiet_hours_start?: string | null
           recommendations?: boolean
           smart_notifications?: boolean
+          social_notifications_enabled?: boolean
+          timezone?: string
           trending_events?: boolean
           updated_at?: string
           user_id?: string
@@ -637,21 +989,28 @@ export type Database = {
           created_at: string
           dedupe_key: string | null
           delivery_channel: string | null
+          delivery_error: string | null
+          dismissed_at: string | null
           event_id: string | null
           expires_at: string | null
           id: string
+          image_alt: string | null
+          image_url: string | null
           is_read: boolean
           link: string | null
           message: string | null
           metadata: Json | null
+          presentation_format: string
           priority: string
           read_at: string | null
+          retry_count: number
           scheduled_for: string | null
           sent_at: string | null
           status: string | null
           title: string
           type: string | null
           user_id: string
+          why_recommended: string | null
         }
         Insert: {
           action_label?: string | null
@@ -661,21 +1020,28 @@ export type Database = {
           created_at?: string
           dedupe_key?: string | null
           delivery_channel?: string | null
+          delivery_error?: string | null
+          dismissed_at?: string | null
           event_id?: string | null
           expires_at?: string | null
           id?: string
+          image_alt?: string | null
+          image_url?: string | null
           is_read?: boolean
           link?: string | null
           message?: string | null
           metadata?: Json | null
+          presentation_format?: string
           priority?: string
           read_at?: string | null
+          retry_count?: number
           scheduled_for?: string | null
           sent_at?: string | null
           status?: string | null
           title: string
           type?: string | null
           user_id: string
+          why_recommended?: string | null
         }
         Update: {
           action_label?: string | null
@@ -685,21 +1051,28 @@ export type Database = {
           created_at?: string
           dedupe_key?: string | null
           delivery_channel?: string | null
+          delivery_error?: string | null
+          dismissed_at?: string | null
           event_id?: string | null
           expires_at?: string | null
           id?: string
+          image_alt?: string | null
+          image_url?: string | null
           is_read?: boolean
           link?: string | null
           message?: string | null
           metadata?: Json | null
+          presentation_format?: string
           priority?: string
           read_at?: string | null
+          retry_count?: number
           scheduled_for?: string | null
           sent_at?: string | null
           status?: string | null
           title?: string
           type?: string | null
           user_id?: string
+          why_recommended?: string | null
         }
         Relationships: [
           {
@@ -713,15 +1086,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          allow_contact_discovery: boolean
+          allow_social_notifications: boolean
+          allow_social_recommendations: boolean
+          attendance_visibility: string
           avatar_url: string | null
           bio: string | null
           city: string | null
+          contact_discovery_consented_at: string | null
           country: string | null
           cover_url: string | null
           created_at: string
           display_name: string | null
           full_name: string | null
           id: string
+          is_platform_admin: boolean
           location: string | null
           name: string | null
           state: string | null
@@ -731,15 +1110,21 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          allow_contact_discovery?: boolean
+          allow_social_notifications?: boolean
+          allow_social_recommendations?: boolean
+          attendance_visibility?: string
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
+          contact_discovery_consented_at?: string | null
           country?: string | null
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
           full_name?: string | null
           id: string
+          is_platform_admin?: boolean
           location?: string | null
           name?: string | null
           state?: string | null
@@ -749,15 +1134,21 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          allow_contact_discovery?: boolean
+          allow_social_notifications?: boolean
+          allow_social_recommendations?: boolean
+          attendance_visibility?: string
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
+          contact_discovery_consented_at?: string | null
           country?: string | null
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
           full_name?: string | null
           id?: string
+          is_platform_admin?: boolean
           location?: string | null
           name?: string | null
           state?: string | null
@@ -980,6 +1371,10 @@ export type Database = {
       }
     }
     Functions: {
+      is_platform_admin: {
+        Args: never
+        Returns: boolean
+      }
       create_my_notification: {
         Args: {
           p_action_label?: string
@@ -1080,15 +1475,22 @@ export type Database = {
           category: string
           created_at: string
           delivery_channel: string
+          dismissed_at: string | null
           event_id: string
           id: string
+          image_alt: string | null
+          image_url: string | null
           message: string
           metadata: Json
+          presentation_format: string
           priority: string
           read_at: string
+          scheduled_for: string | null
+          sent_at: string | null
           status: string
           title: string
           type: string
+          why_recommended: string | null
         }[]
       }
       get_unread_notification_count: { Args: never; Returns: number }
@@ -1129,6 +1531,40 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      promote_scheduled_notifications: {
+        Args: never
+        Returns: {
+          action_label: string | null
+          action_url: string | null
+          campaign_id: string | null
+          category: string | null
+          created_at: string
+          dedupe_key: string | null
+          delivery_channel: string | null
+          delivery_error: string | null
+          dismissed_at: string | null
+          event_id: string | null
+          expires_at: string | null
+          id: string
+          image_alt: string | null
+          image_url: string | null
+          is_read: boolean
+          link: string | null
+          message: string | null
+          metadata: Json | null
+          presentation_format: string
+          priority: string
+          read_at: string | null
+          retry_count: number
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          title: string
+          type: string | null
+          user_id: string
+          why_recommended: string | null
+        }[]
       }
       record_notification_event: {
         Args: {

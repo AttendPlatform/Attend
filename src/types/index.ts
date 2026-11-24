@@ -5,3 +5,6 @@ export * from "./campaign-builder";
 export * from "./campaigns";
 export * from "./discover";
 export * from "./dashboard";
+export * from "./notifications";
+export * from "./promotions";
+export * from "./social";

@@ -2,11 +2,10 @@
 <!-- Provide a concise summary of the changes introduced in this pull request and the user or system need they fulfill. -->
 
 ## Roadmap Context
-- **Engineer**: [Uzair / Hardik]
-- **Milestone Phase**: [e.g. Phase 2 - Public Event Destination & Attendance CTAs]
-- **Scheduled Week & Day**: [e.g. Week 3, Day 1]
-- **Target Deliverable**: [e.g. AvatarStack, SaveButton, and ShareButton components]
-- **Implementation Plan Reference**: [docs/v1_implementation_plan.md](docs/v1_implementation_plan.md)
+- **Milestone Phase**: [e.g. Week 1 - Smart Notification Foundation]
+- **Scheduled Week & Day**: [e.g. Week 1, Days 1-4]
+- **Target Deliverable**: [e.g. Unified Smart Engine, Abandoned Recovery & Visual Popups]
+- **Implementation Plan Reference**: [docs/smart_notification_implementation_plan.md](docs/smart_notification_implementation_plan.md)
 
 ## Type of Change
 <!-- Check all options that apply by replacing [ ] with [x] -->
@@ -37,9 +36,8 @@
 
 ## Pre-Review Checklist
 <!-- Confirm each item before tagging for review -->
-- [ ] My branch was cut directly from the active weekly parent branch.
-- [ ] My pull request targets the active weekly parent branch (not `main`).
+- [ ] My branch was cut directly from `main` (for weekly parent branches) or the active weekly parent branch.
+- [ ] My pull request targets `main` (for weekly milestone merges) or the active weekly parent branch.
 - [ ] My code adheres to the project directory structure and clean architecture boundaries.
 - [ ] My commits are atomic, self-contained, and follow the Conventional Commits specification.
 - [ ] Zero em dashes exist in any added or edited code, comments, or documentation.
-- [ ] I have added Sanaullah as the required reviewer.

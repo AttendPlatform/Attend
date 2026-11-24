@@ -190,7 +190,7 @@ async function runWeek5Day1Verification() {
     dashboardTypePath,
     indexTypePath,
     eventsServicePath,
-    resolve(cwd, "scripts/verify-w5-d1.ts"),
+    resolve(cwd, "scripts/v1-phase/week5/verify-w5-d1.ts"),
   ];
 
   let emDashFound = false;

@@ -328,7 +328,7 @@ async function runMilestone3Verification() {
   // 7. Zero em dashes policy
   console.log("\n--- 7. Zero Em Dashes Policy ---");
   const week4Files = [
-    "scripts/verify-milestone3.ts",
+    "scripts/v1-phase/milestones/verify-milestone3.ts",
     "src/types/campaigns.ts",
     "src/types/discover.ts",
     "src/lib/location/bounding-box.ts",

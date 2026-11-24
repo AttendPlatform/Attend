@@ -52,15 +52,16 @@ jobs:
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_YES: "1"
         run: |
           if [ -n "$SUPABASE_DB_URL" ]; then
             echo "Executing dry-run migration check via SUPABASE_DB_URL..."
-            supabase db push --db-url "$SUPABASE_DB_URL" --dry-run --include-all
+            supabase db push --db-url "$SUPABASE_DB_URL" --dry-run --include-all --yes
           elif [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_PROJECT_ID" ] && [ -n "$SUPABASE_DB_PASSWORD" ]; then
             echo "Linking to Supabase project $SUPABASE_PROJECT_ID..."
             supabase link --project-ref "$SUPABASE_PROJECT_ID"
             echo "Executing dry-run migration check via project credentials..."
-            supabase db push --linked --password "$SUPABASE_DB_PASSWORD" --dry-run --include-all
+            supabase db push --remote --password "$SUPABASE_DB_PASSWORD" --dry-run --include-all --yes
           else
             echo "Supabase credentials not available in this environment. Skipping remote dry run."
           fi

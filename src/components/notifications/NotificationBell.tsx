@@ -1,21 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
 
 import { useNotifications } from "@/hooks/useNotifications";
+import { recordNotificationInteraction } from "@/lib/notifications/client";
+import {
+  getNextEligiblePopupNotification,
+  isVisualNotification,
+  VISUAL_POPUP_COOLDOWN_MS,
+} from "@/lib/notifications/visual-rules";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { NotificationToast } from "./NotificationToast";
 
+function hasActiveModalInDom(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.querySelector('[role="dialog"], [role="alertdialog"]') !== null;
+}
+
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const [hasOpenModal, setHasOpenModal] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const pathname = usePathname() || "/";
+  const impressedIdsRef = useRef<Set<string>>(new Set());
 
   const {
     notifications,
     unreadCount,
     loading,
-    latestNotification,
-    dismissLatestNotification,
+    toastQueue,
+    lastVisualPopupAt,
+    dismissedRecommendationAt,
+    markVisualPopupShown,
+    dismissPopupNotification,
     fetchNotifications,
     markRead,
     markAllRead,
@@ -28,28 +47,87 @@ export function NotificationBell() {
   }, [open, fetchNotifications]);
 
   useEffect(() => {
-    if (!latestNotification) {
+    if (typeof document === "undefined") return;
+    const raf = window.requestAnimationFrame(() => {
+      setHasOpenModal(hasActiveModalInDom());
+    });
+
+    const observer = new MutationObserver(() => {
+      setHasOpenModal(hasActiveModalInDom());
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["role"],
+    });
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (toastQueue.length === 0) return;
+
+    const elapsed = lastVisualPopupAt ? Date.now() - lastVisualPopupAt : VISUAL_POPUP_COOLDOWN_MS;
+    const delay =
+      lastVisualPopupAt && elapsed < VISUAL_POPUP_COOLDOWN_MS
+        ? VISUAL_POPUP_COOLDOWN_MS - elapsed + 50
+        : 0;
+
+    const timer = window.setTimeout(() => {
+      setNowMs(Date.now());
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [toastQueue, lastVisualPopupAt, dismissedRecommendationAt, pathname, hasOpenModal]);
+
+  const activePopup = useMemo(
+    () =>
+      getNextEligiblePopupNotification(toastQueue, {
+        pathname,
+        hasOpenModal,
+        nowMs,
+        lastVisualPopupShownAtMs: lastVisualPopupAt,
+        dismissedAtMsByKey: dismissedRecommendationAt,
+      }),
+    [toastQueue, pathname, hasOpenModal, nowMs, lastVisualPopupAt, dismissedRecommendationAt]
+  );
+
+  useEffect(() => {
+    if (!activePopup) {
       return;
     }
 
+    if (
+      isVisualNotification(activePopup) &&
+      !impressedIdsRef.current.has(activePopup.id)
+    ) {
+      impressedIdsRef.current.add(activePopup.id);
+      markVisualPopupShown(activePopup);
+      void recordNotificationInteraction(activePopup.id, "impression");
+    }
+
+    const durationMs = isVisualNotification(activePopup) ? 8000 : 6000;
     const timer = window.setTimeout(() => {
-      dismissLatestNotification();
-    }, 6000);
+      dismissPopupNotification(activePopup, false);
+    }, durationMs);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [
-    latestNotification,
-    dismissLatestNotification,
-  ]);
+  }, [activePopup, markVisualPopupShown, dismissPopupNotification]);
 
   return (
     <>
-      {latestNotification && (
+      {activePopup && (
         <NotificationToast
-          notification={latestNotification}
-          onClose={dismissLatestNotification}
+          key={activePopup.id}
+          notification={activePopup}
+          onClose={() => dismissPopupNotification(activePopup, false)}
+          onDismiss={() => dismissPopupNotification(activePopup, true)}
         />
       )}
 

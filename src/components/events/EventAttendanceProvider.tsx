@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { toggleAttendanceAction } from "@/app/actions/attendance";
+import { completeAbandonedActionAction } from "@/app/actions/abandoned-actions";
 import {
   getGuestIntent,
   clearGuestIntent,
@@ -121,6 +122,11 @@ export function EventAttendanceProvider({
   useEffect(() => {
     if (!isLoggedIn || typeof window === "undefined") return;
 
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("resumeRegistration") === "1" && !isAttending) {
+      setIsRegistrationModalOpen(true);
+    }
+
     const urlIntent = parseGuestIntentFromSearch(window.location.search);
     const storedIntent = getGuestIntent();
     const action =
@@ -154,7 +160,7 @@ export function EventAttendanceProvider({
         });
       }
     }
-  }, [eventId, isLoggedIn, status]);
+  }, [eventId, isAttending, isLoggedIn, status]);
 
   const closeRegistrationModal = useCallback(() => {
     setIsRegistrationModalOpen(false);
@@ -163,7 +169,11 @@ export function EventAttendanceProvider({
   const handleRegistrationSuccess = useCallback(() => {
     setStatus("registered");
     setIsRegistrationModalOpen(false);
-  }, []);
+    void completeAbandonedActionAction({
+      actionType: "incomplete_registration",
+      eventId,
+    });
+  }, [eventId]);
 
   const handleToggleRSVP = useCallback(
     (trigger?: HTMLElement | null) => {
