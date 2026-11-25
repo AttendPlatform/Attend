@@ -67,6 +67,23 @@ function includesQuery(value: string | null | undefined, query: string): boolean
   return Boolean(value?.toLocaleLowerCase().includes(query));
 }
 
+function matchesLocationFilter(
+  eventCity: string | null | undefined,
+  eventState: string | null | undefined,
+  filterLocation: string
+): boolean {
+  const normalizedFilter = filterLocation.trim().toLowerCase();
+  if (normalizedFilter === "fct (abuja)" || normalizedFilter === "abuja") {
+    return (
+      matchesCity(eventCity, "Abuja") ||
+      matchesCity(eventState, "FCT") ||
+      matchesCity(eventState, "Federal Capital Territory") ||
+      matchesCity(eventState, "Abuja")
+    );
+  }
+  return matchesCity(eventCity, filterLocation) || matchesCity(eventState, filterLocation);
+}
+
 function matchesEvent(
   event: DiscoverEvent,
   filters: DiscoverFilters,
@@ -77,7 +94,7 @@ function matchesEvent(
   if (filters.categoryId && event.category_id !== filters.categoryId) return false;
   if (typeof filters.isOnline === "boolean" && event.is_online !== filters.isOnline) return false;
   if (typeof filters.isFree === "boolean" && filters.isFree && event.participation_model && event.participation_model !== "free") return false;
-  if (filters.city && !matchesCity(event.city, filters.city)) return false;
+  if (filters.city && !matchesLocationFilter(event.city, event.state, filters.city)) return false;
   if (boundingBox) {
     if (event.latitude == null || event.longitude == null) return false;
     if (!isWithinBoundingBox({ latitude: event.latitude, longitude: event.longitude }, boundingBox)) {

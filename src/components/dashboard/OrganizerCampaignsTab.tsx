@@ -13,8 +13,15 @@ import {
   Search,
   Loader2,
   AlertCircle,
+  Trash2,
+  AlertTriangle,
+  X,
 } from "lucide-react";
-import { toggleCampaignStatusAction } from "@/app/actions/organizer";
+import {
+  toggleCampaignStatusAction,
+  deleteCampaignAction,
+} from "@/app/actions/organizer";
+import { toast } from "@/hooks/use-toast";
 
 export interface OrganizerCampaignItem {
   id: string;
@@ -40,6 +47,7 @@ export function OrganizerCampaignsTab({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<OrganizerCampaignItem | null>(null);
 
   const filteredCampaigns = campaigns.filter((c) =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase().trim())
@@ -58,6 +66,24 @@ export function OrganizerCampaignsTab({
         );
       } else {
         setErrorMessage(res.error || "Failed to update campaign status.");
+      }
+      setUpdatingId(null);
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget || isPending) return;
+    setUpdatingId(deleteTarget.id);
+    setErrorMessage(null);
+
+    startTransition(async () => {
+      const res = await deleteCampaignAction(eventId, deleteTarget.id);
+      if (res.success) {
+        setCampaigns((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+        setDeleteTarget(null);
+        toast.success("Campaign deleted.");
+      } else {
+        setErrorMessage(res.error || "Failed to delete campaign.");
       }
       setUpdatingId(null);
     });
@@ -191,30 +217,41 @@ export function OrganizerCampaignsTab({
                     </Link>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleToggleStatus(campaign.id, campaign.status)}
-                    disabled={isUpdating}
-                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-                      isPublished
-                        ? "bg-amber-50 text-amber-700 hover:bg-amber-100"
-                        : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                    }`}
-                  >
-                    {isUpdating ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : isPublished ? (
-                      <>
-                        <Pause className="h-3.5 w-3.5" />
-                        <span>Pause</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-3.5 w-3.5" />
-                        <span>Publish</span>
-                      </>
-                    )}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(campaign.id, campaign.status)}
+                      disabled={isUpdating}
+                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+                        isPublished
+                          ? "bg-amber-50 text-amber-700 hover:bg-amber-100"
+                          : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {isUpdating ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : isPublished ? (
+                        <>
+                          <Pause className="h-3.5 w-3.5" />
+                          <span>Pause</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-3.5 w-3.5" />
+                          <span>Publish</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(campaign)}
+                      disabled={isUpdating}
+                      className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                      title="Delete campaign"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete</span>
+                    </button>
                 </div>
               </div>
             );
@@ -245,6 +282,64 @@ export function OrganizerCampaignsTab({
               <PlusCircle className="h-4 w-4" />
               <span>Create First Campaign</span>
             </Link>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => !isPending && setDeleteTarget(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isPending}
+                className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+                aria-label="Close confirmation"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-neutral-900">
+              Delete campaign?
+            </h3>
+            <p className="mt-2 text-sm text-neutral-600">
+              This will permanently delete <span className="font-semibold">{deleteTarget.title}</span>. This action cannot be undone.
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isPending}
+                className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isPending}
+                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+              >
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span>Delete campaign</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

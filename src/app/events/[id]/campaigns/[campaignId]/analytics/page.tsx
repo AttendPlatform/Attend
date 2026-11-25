@@ -108,7 +108,7 @@ function formatTime(dateString: string) {
 
 export default function CampaignAnalyticsPage() {
   const params = useParams<{
-    eventId: string;
+    id: string;
     campaignId: string;
   }>();
 
@@ -264,8 +264,8 @@ export default function CampaignAnalyticsPage() {
         100
       : 0;
 
-  const effectiveEventId = params.eventId && params.eventId !== "undefined" 
-    ? params.eventId 
+  const effectiveEventId = params.id && params.id !== "undefined" 
+    ? params.id 
     : campaign?.event_id;
 
   const backUrl = effectiveEventId 

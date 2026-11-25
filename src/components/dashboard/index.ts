@@ -5,3 +5,5 @@ export * from "./OrganizerTabPlaceholder";
 export * from "./OrganizerPeopleTab";
 export * from "./OrganizerCampaignsTab";
 export * from "./OrganizerSettingsTab";
+export * from "./EventManagementActions";
+export * from "./CampaignManagementActions";

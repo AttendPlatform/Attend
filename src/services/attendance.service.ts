@@ -179,27 +179,67 @@ export async function rsvpEvent(params: {
   registrationData?: Record<string, unknown>;
 }): Promise<EventParticipantRow> {
   const supabase = await createClient();
-  const { eventId, userId, name, participationType = "attendee", registrationData = {} } = params;
+  const {
+    eventId,
+    userId,
+    name,
+    participationType = "attendee",
+    registrationData = {},
+  } = params;
+
+  const nextStatus =
+    participationType === "registrant" ? "registered" : "attending";
+  const payload = {
+    name: name || null,
+    participation_type: participationType,
+    status: nextStatus as EventParticipantRow["status"],
+    registration_data: (registrationData as unknown as Json) ?? {},
+  };
+
+  const existing = await getUserEventAttendance(eventId, userId);
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from("event_participants")
+      .update(payload)
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+    return data;
+  }
 
   const { data, error } = await supabase
     .from("event_participants")
-    .upsert(
-      {
-        event_id: eventId,
-        user_id: userId,
-        name: name || null,
-        participation_type: participationType,
-        status: participationType === "registrant" ? "registered" : "attending",
-        registration_data: (registrationData as unknown as Json) ?? {},
-      },
-      { onConflict: "event_id,user_id" }
-    )
+    .insert({
+      event_id: eventId,
+      user_id: userId,
+      ...payload,
+    })
     .select("*")
     .single();
 
   if (error) {
+    if (error.code === "23505") {
+      const { data: updated, error: updateError } = await supabase
+        .from("event_participants")
+        .update(payload)
+        .eq("event_id", eventId)
+        .eq("user_id", userId)
+        .select("*")
+        .single();
+
+      if (updateError) {
+        throw updateError;
+      }
+      return updated;
+    }
     throw error;
   }
+
   return data;
 }
 

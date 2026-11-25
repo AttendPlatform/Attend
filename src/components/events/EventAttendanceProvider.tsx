@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toggleAttendanceAction } from "@/app/actions/attendance";
 import { completeAbandonedActionAction } from "@/app/actions/abandoned-actions";
+import { invalidateAttendeeCache } from "@/components/ui/AvatarStack";
 import {
   getGuestIntent,
   clearGuestIntent,
@@ -157,10 +158,12 @@ export function EventAttendanceProvider({
             return;
           }
           setStatus(result.status);
+          invalidateAttendeeCache(eventId);
+          router.refresh();
         });
       }
     }
-  }, [eventId, isAttending, isLoggedIn, status]);
+  }, [eventId, isAttending, isLoggedIn, router, status]);
 
   const closeRegistrationModal = useCallback(() => {
     setIsRegistrationModalOpen(false);
@@ -169,11 +172,13 @@ export function EventAttendanceProvider({
   const handleRegistrationSuccess = useCallback(() => {
     setStatus("registered");
     setIsRegistrationModalOpen(false);
+    invalidateAttendeeCache(eventId);
     void completeAbandonedActionAction({
       actionType: "incomplete_registration",
       eventId,
     });
-  }, [eventId]);
+    router.refresh();
+  }, [eventId, router]);
 
   const handleToggleRSVP = useCallback(
     (trigger?: HTMLElement | null) => {
@@ -218,6 +223,8 @@ export function EventAttendanceProvider({
         }
 
         setStatus(result.status);
+        invalidateAttendeeCache(eventId);
+        router.refresh();
       });
     },
     [eventId, isAttending, isLoggedIn, isPending, openCancelModal, openRegistrationModal, participationModel, router, status]
@@ -248,6 +255,8 @@ export function EventAttendanceProvider({
       }
 
       setStatus(result.status);
+      invalidateAttendeeCache(eventId);
+      router.refresh();
     });
   }, [eventId, isPending, router, status]);
 

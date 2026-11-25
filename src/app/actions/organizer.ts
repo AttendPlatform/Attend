@@ -111,6 +111,89 @@ export async function updateEventDetailsAction(
 
   revalidatePath(`/dashboard/events/${eventId}`);
   revalidatePath(`/events/${eventId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/drafts");
+  revalidatePath("/profile");
+  return { success: true };
+}
+
+export async function publishEventAction(
+  eventId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!eventId) return { success: false, error: "Event ID is required." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Authentication required." };
+
+  const access = await getOrganizerAccess(eventId, user.id, supabase);
+  if (!access.isOrganizer) {
+    return { success: false, error: "Unauthorized." };
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({ status: "published", updated_at: new Date().toISOString() })
+    .eq("id", eventId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath(`/dashboard/events/${eventId}`);
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/drafts");
+  revalidatePath("/profile");
+  revalidatePath("/discover");
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function deleteEventAction(
+  eventId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!eventId) return { success: false, error: "Event ID is required." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Authentication required." };
+
+  const { data: existingEvent, error: fetchError } = await supabase
+    .from("events")
+    .select("id, creator_id")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (fetchError || !existingEvent) {
+    return { success: false, error: "Event not found." };
+  }
+
+  if (existingEvent.creator_id !== user.id) {
+    return { success: false, error: "Only the event creator can delete this event." };
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .delete()
+    .eq("id", eventId)
+    .eq("creator_id", user.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/drafts");
+  revalidatePath("/profile");
+  revalidatePath("/discover");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -130,8 +213,20 @@ export async function toggleCampaignStatusAction(
 
   if (!user) return { success: false, error: "Authentication required." };
 
-  const access = await getOrganizerAccess(eventId, user.id, supabase);
-  if (!access.isOrganizer) {
+  const [{ data: campaign }, access] = await Promise.all([
+    supabase
+      .from("campaigns")
+      .select("id, creator_id, event_id")
+      .eq("id", campaignId)
+      .maybeSingle(),
+    getOrganizerAccess(eventId, user.id, supabase),
+  ]);
+
+  if (!campaign) {
+    return { success: false, error: "Campaign not found." };
+  }
+
+  if (!access.isOrganizer && campaign.creator_id !== user.id) {
     return { success: false, error: "Unauthorized." };
   }
 
@@ -146,7 +241,65 @@ export async function toggleCampaignStatusAction(
   }
 
   revalidatePath(`/dashboard/events/${eventId}`);
-  revalidatePath(`/campaigns`);
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/drafts");
+  revalidatePath("/profile");
+  revalidatePath("/discover");
+  return { success: true };
+}
+
+export async function deleteCampaignAction(
+  eventId: string,
+  campaignId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!campaignId) {
+    return { success: false, error: "Campaign ID is required." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Authentication required." };
+
+  const { data: campaign, error: fetchError } = await supabase
+    .from("campaigns")
+    .select("id, creator_id, event_id")
+    .eq("id", campaignId)
+    .maybeSingle();
+
+  if (fetchError || !campaign) {
+    return { success: false, error: "Campaign not found." };
+  }
+
+  const targetEventId = eventId || campaign.event_id;
+  const access = targetEventId
+    ? await getOrganizerAccess(targetEventId, user.id, supabase)
+    : { isOrganizer: false };
+
+  if (campaign.creator_id !== user.id && !access.isOrganizer) {
+    return { success: false, error: "Unauthorized." };
+  }
+
+  const { error } = await supabase
+    .from("campaigns")
+    .delete()
+    .eq("id", campaignId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  if (targetEventId) {
+    revalidatePath(`/dashboard/events/${targetEventId}`);
+    revalidatePath(`/events/${targetEventId}`);
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/drafts");
+  revalidatePath("/profile");
+  revalidatePath("/discover");
   return { success: true };
 }
 

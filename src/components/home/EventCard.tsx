@@ -8,7 +8,15 @@ import {
 import AvatarStack from "@/components/ui/AvatarStack";
 import SaveButton from "@/components/ui/SaveButton";
 
-export function EventCard({ event }: { event: Event | DiscoverEvent }) {
+export function EventCard({
+  event,
+  initialSaved = false,
+  refreshOnToggle = false,
+}: {
+  event: Event | DiscoverEvent;
+  initialSaved?: boolean;
+  refreshOnToggle?: boolean;
+}) {
   const category = "category" in event && event.category ? event.category : getCategory(event as Event);
 
   const formattedDate = event.start_at
@@ -68,6 +76,8 @@ export function EventCard({ event }: { event: Event | DiscoverEvent }) {
           <SaveButton
             targetId={event.id}
             targetType="event"
+            initialSaved={initialSaved}
+            refreshOnToggle={refreshOnToggle}
           />
         </div>
       </div>
