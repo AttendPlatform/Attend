@@ -815,6 +815,16 @@ export default function PublicCampaignPage() {
           has_name: true,
         }
       );
+
+      setCampaign((prev) =>
+        prev
+          ? {
+              ...prev,
+              generations: (prev.generations || 0) + 1,
+              participants: (prev.participants || 0) + 1,
+            }
+          : prev
+      );
     } catch (err: any) {
       console.error(
         "DP generation failed:",
@@ -874,6 +884,15 @@ export default function PublicCampaignPage() {
             page: "public_campaign",
             slug: campaign.slug,
           }
+        );
+
+        setCampaign((prev) =>
+          prev
+            ? {
+                ...prev,
+                downloads: (prev.downloads || 0) + 1,
+              }
+            : prev
         );
       }
     } catch (err) {

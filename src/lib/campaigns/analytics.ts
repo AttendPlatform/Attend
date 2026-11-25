@@ -129,6 +129,22 @@ export async function trackCampaignEvent(
   sharePlatform?: string,
   metadata?: Record<string, unknown>
 ): Promise<void> {
+  let beforeGenerations: number | null = null;
+  let beforeDownloads: number | null = null;
+
+  if (eventType === "generate" || eventType === "download") {
+    const { data: beforeRow } = await supabase
+      .from("campaigns")
+      .select("generations, downloads")
+      .eq("id", campaignId)
+      .maybeSingle();
+
+    if (beforeRow) {
+      beforeGenerations = Number(beforeRow.generations ?? 0);
+      beforeDownloads = Number(beforeRow.downloads ?? 0);
+    }
+  }
+
   const { error } =
     await supabase.rpc(
       "track_campaign_event",
@@ -149,5 +165,60 @@ export async function trackCampaignEvent(
       `Campaign ${eventType} tracking failed:`,
       error
     );
+  }
+
+  if (eventType === "view" && error) {
+    await supabase.rpc("increment_campaign_views", {
+      campaign_uuid: campaignId,
+    });
+    return;
+  }
+
+  if (eventType === "generate") {
+    const { data: afterRow } = await supabase
+      .from("campaigns")
+      .select("generations")
+      .eq("id", campaignId)
+      .maybeSingle();
+
+    const afterGenerations = afterRow ? Number(afterRow.generations ?? 0) : null;
+    if (
+      error ||
+      beforeGenerations === null ||
+      afterGenerations === null ||
+      afterGenerations <= beforeGenerations
+    ) {
+      const { error: incError } = await supabase.rpc(
+        "increment_campaign_generation",
+        { campaign_uuid: campaignId }
+      );
+      if (incError) {
+        console.warn("Campaign generation increment failed:", incError);
+      }
+    }
+  }
+
+  if (eventType === "download") {
+    const { data: afterRow } = await supabase
+      .from("campaigns")
+      .select("downloads")
+      .eq("id", campaignId)
+      .maybeSingle();
+
+    const afterDownloads = afterRow ? Number(afterRow.downloads ?? 0) : null;
+    if (
+      error ||
+      beforeDownloads === null ||
+      afterDownloads === null ||
+      afterDownloads <= beforeDownloads
+    ) {
+      const { error: incError } = await supabase.rpc(
+        "increment_campaign_download",
+        { campaign_uuid: campaignId }
+      );
+      if (incError) {
+        console.warn("Campaign download increment failed:", incError);
+      }
+    }
   }
 }
