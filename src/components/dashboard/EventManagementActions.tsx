@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -37,6 +37,17 @@ export function EventManagementActions({
   const [actionType, setActionType] = useState<"publish" | "delete" | null>(null);
 
   const isDraft = status.toLowerCase() === "draft";
+
+  useEffect(() => {
+    if (!confirmOpen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !isPending) {
+        setConfirmOpen(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [confirmOpen, isPending]);
 
   function handlePublish() {
     if (isPending) return;

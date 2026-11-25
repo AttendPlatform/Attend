@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -41,6 +41,17 @@ export function CampaignManagementActions({
   const [actionType, setActionType] = useState<"status" | "delete" | null>(null);
 
   const isPublished = status.toLowerCase() === "published";
+
+  useEffect(() => {
+    if (!confirmOpen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !isPending) {
+        setConfirmOpen(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [confirmOpen, isPending]);
 
   function handleToggleStatus() {
     if (isPending) return;

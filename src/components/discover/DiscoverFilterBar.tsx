@@ -152,7 +152,9 @@ export function DiscoverFilterBar({
     searchInputRef.current?.blur();
     const trimmed = search.trim() || undefined;
     if (trimmed !== filtersRef.current.search) {
-      onFiltersChange({ ...filtersRef.current, search: trimmed });
+      const nextFilters = { ...filtersRef.current, search: trimmed };
+      filtersRef.current = nextFilters;
+      onFiltersChange(nextFilters);
     }
   }
 
