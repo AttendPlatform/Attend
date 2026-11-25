@@ -7,7 +7,51 @@ import {
   cancelEventAttendance,
   getUserEventAttendance,
 } from "@/services/attendance.service";
+import { dispatchRegistrationReceiptNotification } from "@/services/notifications.service";
 import type { EventParticipationType } from "@/types/attendance";
+
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+  ) {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+}
+
+async function notifyAttendanceConfirmed(params: {
+  eventId: string;
+  userId: string;
+  registrationId: string;
+  status: string;
+}) {
+  try {
+    const supabase = await createClient();
+    const { data: event } = await supabase
+      .from("events")
+      .select("title")
+      .eq("id", params.eventId)
+      .maybeSingle();
+
+    if (!event?.title) return;
+
+    await dispatchRegistrationReceiptNotification({
+      userId: params.userId,
+      eventId: params.eventId,
+      eventTitle: event.title,
+      registrationId: params.registrationId,
+      status: params.status,
+    });
+  } catch (err) {
+    console.error("Failed to dispatch attendance confirmation notification:", err);
+  }
+}
 
 export async function toggleAttendanceAction(
   eventId: string,
@@ -39,21 +83,29 @@ export async function toggleAttendanceAction(
     if (isCurrentlyAttending) {
       await cancelEventAttendance(eventId, user.id);
       if (pathname) revalidatePath(pathname);
+      revalidatePath(`/events/${eventId}`);
       return { status: "cancelled" };
     }
 
-    await rsvpEvent({
+    const participant = await rsvpEvent({
       eventId,
       userId: user.id,
       participationType: "attendee",
     });
 
+    await notifyAttendanceConfirmed({
+      eventId,
+      userId: user.id,
+      registrationId: participant.id,
+      status: participant.status,
+    });
+
     if (pathname) revalidatePath(pathname);
+    revalidatePath(`/events/${eventId}`);
     return { status: "attending" };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to update attendance.";
-    return { error: message };
+    console.error("toggleAttendanceAction failed:", error);
+    return { error: extractErrorMessage(error, "Failed to update attendance.") };
   }
 }
 
@@ -81,7 +133,7 @@ export async function submitRegistrationAction(params: {
   }
 
   try {
-    await rsvpEvent({
+    const participant = await rsvpEvent({
       eventId,
       userId: user.id,
       name,
@@ -89,11 +141,18 @@ export async function submitRegistrationAction(params: {
       registrationData,
     });
 
+    await notifyAttendanceConfirmed({
+      eventId,
+      userId: user.id,
+      registrationId: participant.id,
+      status: participant.status,
+    });
+
     if (pathname) revalidatePath(pathname);
+    revalidatePath(`/events/${eventId}`);
     return { success: true };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to submit registration.";
-    return { error: message };
+    console.error("submitRegistrationAction failed:", error);
+    return { error: extractErrorMessage(error, "Failed to submit registration.") };
   }
 }
