@@ -13,6 +13,7 @@ type Props = {
   targetId: string;
   targetType: SaveTargetType;
   initialSaved?: boolean;
+  refreshOnToggle?: boolean;
   variant?: "default" | "overlay";
   className?: string;
 };
@@ -21,6 +22,7 @@ export default function SaveButton({
   targetId,
   targetType,
   initialSaved = false,
+  refreshOnToggle = false,
   variant = "default",
   className,
 }: Props) {
@@ -66,6 +68,9 @@ export default function SaveButton({
       }
 
       setSaved(result.saved);
+      if (refreshOnToggle) {
+        router.refresh();
+      }
     });
   }
 

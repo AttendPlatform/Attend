@@ -103,7 +103,12 @@ export default async function SavedHubPage({ searchParams }: PageProps) {
             {eventsCount > 0 ? (
               <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {savedEvents.map((event) => (
-                  <EventCard key={(event as unknown as Event).id} event={event as unknown as Event} />
+                  <EventCard
+                    key={(event as unknown as Event).id}
+                    event={event as unknown as Event}
+                    initialSaved={true}
+                    refreshOnToggle={true}
+                  />
                 ))}
               </div>
             ) : (

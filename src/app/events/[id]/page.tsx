@@ -512,8 +512,18 @@ export default async function PublicEventPage({
             Back to Discover
           </Link>
 
-          <div className="ml-auto text-sm font-bold tracking-tight text-violet-700">
-            Attend
+          <div className="ml-auto flex items-center gap-3">
+            {isCreator && (
+              <Link
+                href={`/dashboard/events/${event.id}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3.5 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-100"
+              >
+                Manage event
+              </Link>
+            )}
+            <div className="text-sm font-bold tracking-tight text-violet-700">
+              Attend
+            </div>
           </div>
         </div>
       </header>

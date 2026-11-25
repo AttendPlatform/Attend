@@ -15,6 +15,10 @@ import {
   UserRound,
 } from "lucide-react";
 import { getCurrentUserProfile, getUserEvents, getUserCampaigns } from "@/services";
+import {
+  EventManagementActions,
+  CampaignManagementActions,
+} from "@/components/dashboard";
 
 type Event = {
   id: string;
@@ -433,10 +437,10 @@ export default async function ProfilePage() {
             </div>
 
             <Link
-              href="/events"
+              href="/dashboard#events"
               className="hidden items-center gap-2 text-sm font-semibold text-neutral-900 transition hover:text-violet-600 sm:flex"
             >
-              View all
+              Manage all
 
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -451,27 +455,22 @@ export default async function ProfilePage() {
             <div className="mt-5 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
 
               {events.map((event) => {
-
-                const category =
-                  getCategory(event);
+                const category = getCategory(event);
+                const eventHref =
+                  event.status === "published"
+                    ? `/events/${event.id}`
+                    : `/dashboard/events/${event.id}`;
 
                 return (
-                  <Link
+                  <article
                     key={event.id}
-                    href={`/events/${event.id}`}
-                    className="group block"
+                    className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-neutral-200 bg-white transition duration-300 hover:border-neutral-300 hover:shadow-xl hover:shadow-neutral-100"
                   >
-                    <article className="overflow-hidden rounded-2xl border border-neutral-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-xl hover:shadow-neutral-100">
-
-                      {/* COVER */}
-
+                    <Link href={eventHref} className="block">
                       <div className="relative aspect-[16/9] overflow-hidden bg-neutral-100">
-
                         {event.cover_image ? (
                           <img
-                            src={
-                              event.cover_image
-                            }
+                            src={event.cover_image}
                             alt={event.title}
                             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                           />
@@ -481,27 +480,19 @@ export default async function ProfilePage() {
                           </div>
                         )}
 
-                        {/* STATUS */}
-
                         {event.status && (
                           <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold capitalize text-neutral-700 shadow-sm backdrop-blur">
-                            {event.status ===
-                            "published" ? (
+                            {event.status === "published" ? (
                               <CheckCircle2 className="h-3 w-3 text-green-500" />
                             ) : (
-                              <Clock3 className="h-3 w-3 text-neutral-400" />
+                              <Clock3 className="h-3 w-3 text-amber-500" />
                             )}
-
                             {event.status}
                           </span>
                         )}
-
                       </div>
 
-                      {/* DETAILS */}
-
-                      <div className="p-5">
-
+                      <div className="p-5 pb-3">
                         {category?.name && (
                           <span className="text-xs font-semibold text-violet-600">
                             {category.name}
@@ -513,31 +504,27 @@ export default async function ProfilePage() {
                         </h3>
 
                         <div className="mt-4 space-y-2 text-sm text-neutral-500">
-
                           <div className="flex items-center gap-2">
                             <CalendarDays className="h-4 w-4 shrink-0" />
-
-                            {formatDate(
-                              event.start_at
-                            )}
+                            {formatDate(event.start_at)}
                           </div>
 
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 shrink-0" />
-
-                            <span className="truncate">
-                              {getLocation(
-                                event
-                              )}
-                            </span>
+                            <span className="truncate">{getLocation(event)}</span>
                           </div>
-
                         </div>
-
                       </div>
+                    </Link>
 
-                    </article>
-                  </Link>
+                    <div className="px-5 pb-5">
+                      <EventManagementActions
+                        eventId={event.id}
+                        eventTitle={event.title}
+                        status={event.status || "published"}
+                      />
+                    </div>
+                  </article>
                 );
               })}
 
@@ -571,10 +558,10 @@ export default async function ProfilePage() {
           )}
 
           <Link
-            href="/events"
+            href="/dashboard#events"
             className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-5 py-3 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 sm:hidden"
           >
-            View all events
+            Manage all events
 
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -624,118 +611,87 @@ export default async function ProfilePage() {
 
                 {campaigns.map(
                   (campaign) => (
-                    <Link
+                    <div
                       key={campaign.id}
-                      href={`/events/${campaign.event_id}/campaigns/${campaign.id}`}
-                      className="block transition hover:bg-neutral-50"
+                      className="px-5 py-4 transition hover:bg-neutral-50/70"
                     >
-                      <div className="grid gap-4 px-5 py-4 sm:grid-cols-[1fr_110px_110px_110px_110px] sm:items-center">
-
-                        {/* CAMPAIGN */}
-
-                        <div className="min-w-0">
-
-                          <div className="flex items-center gap-3">
-
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-                              <Sparkles className="h-4 w-4" />
+                      <Link
+                        href={`/events/${campaign.event_id}/campaigns/${campaign.id}`}
+                        className="block"
+                      >
+                        <div className="grid gap-4 sm:grid-cols-[1fr_110px_110px_110px_110px] sm:items-center">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                                <Sparkles className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-neutral-900">
+                                  {campaign.title}
+                                </p>
+                                <p className="mt-0.5 truncate text-xs text-neutral-400">
+                                  Campaign
+                                </p>
+                              </div>
                             </div>
-
-                            <div className="min-w-0">
-
-                              <p className="truncate text-sm font-semibold text-neutral-900">
-                                {campaign.title}
-                              </p>
-
-                              <p className="mt-0.5 truncate text-xs text-neutral-400">
-                                Campaign
-                              </p>
-
-                            </div>
-
                           </div>
 
+                          <div className="flex items-center justify-between sm:block">
+                            <span className="text-[11px] text-neutral-400 sm:hidden">
+                              Status
+                            </span>
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize ${
+                                campaign.status === "published"
+                                  ? "bg-green-50 text-green-700"
+                                  : campaign.status === "paused"
+                                    ? "bg-amber-50 text-amber-700"
+                                    : "bg-neutral-100 text-neutral-600"
+                              }`}
+                            >
+                              {campaign.status}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:block">
+                            <span className="text-[11px] text-neutral-400 sm:hidden">
+                              Views
+                            </span>
+                            <span className="text-sm font-semibold text-neutral-900">
+                              {campaign.views || 0}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:block">
+                            <span className="text-[11px] text-neutral-400 sm:hidden">
+                              Generations
+                            </span>
+                            <span className="text-sm font-semibold text-neutral-900">
+                              {campaign.generations || 0}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:block">
+                            <span className="text-[11px] text-neutral-400 sm:hidden">
+                              Downloads
+                            </span>
+                            <span className="text-sm font-semibold text-neutral-900">
+                              {campaign.downloads || 0}
+                            </span>
+                          </div>
                         </div>
+                      </Link>
 
-                        {/* STATUS */}
-
-                        <div className="flex items-center justify-between sm:block">
-
-                          <span className="text-[11px] text-neutral-400 sm:hidden">
-                            Status
-                          </span>
-
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize ${
-                              campaign.status ===
-                              "published"
-                                ? "bg-green-50 text-green-700"
-                                : campaign.status ===
-                                    "paused"
-                                  ? "bg-amber-50 text-amber-700"
-                                  : "bg-neutral-100 text-neutral-600"
-                            }`}
-                          >
-                            {
-                              campaign.status
-                            }
-                          </span>
-
-                        </div>
-
-                        {/* VIEWS */}
-
-                        <div className="flex items-center justify-between sm:block">
-
-                          <span className="text-[11px] text-neutral-400 sm:hidden">
-                            Views
-                          </span>
-
-                          <span className="text-sm font-semibold text-neutral-900">
-                            {
-                              campaign.views ||
-                              0
-                            }
-                          </span>
-
-                        </div>
-
-                        {/* GENERATIONS */}
-
-                        <div className="flex items-center justify-between sm:block">
-
-                          <span className="text-[11px] text-neutral-400 sm:hidden">
-                            Generations
-                          </span>
-
-                          <span className="text-sm font-semibold text-neutral-900">
-                            {
-                              campaign.generations ||
-                              0
-                            }
-                          </span>
-
-                        </div>
-
-                        {/* DOWNLOADS */}
-
-                        <div className="flex items-center justify-between sm:block">
-
-                          <span className="text-[11px] text-neutral-400 sm:hidden">
-                            Downloads
-                          </span>
-
-                          <span className="text-sm font-semibold text-neutral-900">
-                            {
-                              campaign.downloads ||
-                              0
-                            }
-                          </span>
-
-                        </div>
-
+                      <div className="mt-3 flex justify-end">
+                        <CampaignManagementActions
+                          eventId={campaign.event_id}
+                          campaignId={campaign.id}
+                          campaignTitle={campaign.title}
+                          slug={campaign.slug}
+                          status={campaign.status}
+                        />
                       </div>
-                    </Link>
+                    </div>
                   )
                 )}
 
