@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, ExternalLink, MapPin, Sparkles, Users } from "lucide-react";
 import SaveButton from "@/components/ui/SaveButton";
 import AvatarStack from "@/components/ui/AvatarStack";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import type { Campaign } from "@/types/home";
 import {
   type CampaignCardData,
@@ -69,10 +70,11 @@ export function CampaignCard({
             aria-label={`View campaign ${campaign.title}`}
           >
             {previewImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <OptimizedImage
                 src={previewImage}
                 alt={campaign.title}
+                fill
+                sizes="(max-width: 640px) 112px, 208px"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
             ) : (
@@ -180,10 +182,11 @@ export function CampaignCard({
           aria-hidden="true"
         >
           {previewImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <OptimizedImage
               src={previewImage}
               alt={campaign.title}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (

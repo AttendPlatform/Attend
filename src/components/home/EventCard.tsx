@@ -7,6 +7,7 @@ import {
 } from "@/lib/utils/home-helpers";
 import AvatarStack from "@/components/ui/AvatarStack";
 import SaveButton from "@/components/ui/SaveButton";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 
 export function EventCard({
   event,
@@ -44,10 +45,11 @@ export function EventCard({
         aria-label={`View ${event.title}`}
       >
         {event.cover_image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <OptimizedImage
             src={event.cover_image}
             alt={event.title}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

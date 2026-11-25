@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 
 export type PublicAttendee = {
   user_id: string | null;
@@ -72,6 +73,8 @@ export default function AvatarStack({
     if (!eventId) return;
 
     if (initialAttendees.length > 0) return;
+
+    if (fallbackCount === 0 && !attendeeCache.has(eventId)) return;
 
     if (attendeeCache.has(eventId)) {
       const cached = attendeeCache.get(eventId)!;
@@ -153,10 +156,12 @@ export default function AvatarStack({
                 }`}
               >
                 {attendee.profile_avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <OptimizedImage
                     src={attendee.profile_avatar_url}
                     alt=""
+                    width={28}
+                    height={28}
+                    sizes="28px"
                     className="h-full w-full object-cover"
                   />
                 ) : (

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { compressImageForUpload } from "@/lib/utils/image-compress";
 import { getErrorMessage } from "@/lib/utils/errorHandler";
 
 export default function EditProfilePage() {
@@ -88,13 +89,20 @@ export default function EditProfilePage() {
       setUploading(true);
       if (!e.target.files || e.target.files.length === 0 || !userId) return;
 
-      const file = e.target.files[0];
-      const fileExt = file.name.split(".").pop();
+      const rawFile = e.target.files[0];
+      const file = await compressImageForUpload(rawFile, {
+        maxDimension: bucket === "avatars" ? 512 : 1600,
+        quality: 0.82,
+      });
+      const fileExt = file.name.split(".").pop() || "jpg";
       const filePath = `${userId}-${Math.random()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: "31536000",
+          contentType: file.type,
+        });
 
       if (uploadError) throw uploadError;
 

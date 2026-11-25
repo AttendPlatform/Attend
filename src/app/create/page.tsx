@@ -22,6 +22,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils/errorHandler";
+import { compressImageForUpload } from "@/lib/utils/image-compress";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import {
   ParticipationModelSelector,
@@ -427,15 +428,19 @@ export default function CreateEventPage() {
       let coverUploadFailed = false;
 
       if (cover) {
-        const extension = cover.name.split(".").pop() || "jpg";
+        const compressedCover = await compressImageForUpload(cover, {
+          maxDimension: 1600,
+          quality: 0.82,
+        });
+        const extension = compressedCover.name.split(".").pop() || "jpg";
         const filePath = `${user.id}/${created.id}/cover.${extension}`;
 
         const { error: uploadError } = await supabase.storage
           .from("event-covers")
-          .upload(filePath, cover, {
-            cacheControl: "3600",
+          .upload(filePath, compressedCover, {
+            cacheControl: "31536000",
             upsert: true,
-            contentType: cover.type,
+            contentType: compressedCover.type,
           });
 
         if (uploadError) {
