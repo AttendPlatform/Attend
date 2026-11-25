@@ -17,6 +17,7 @@ import {
 import {
   DATE_FILTER_OPTIONS,
   NIGERIAN_DISCOVER_CITIES,
+  NIGERIAN_STATES,
   type DateFilterOption,
   type DiscoverCategoryItem,
   type DiscoverFilters,
@@ -47,6 +48,7 @@ export function DiscoverFilterBar({
   const [search, setSearch] = useState(filters.search ?? "");
   const [locationError, setLocationError] = useState("");
   const [locating, setLocating] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => setSearch(filters.search ?? ""), [filters.search]);
 
@@ -140,27 +142,48 @@ export function DiscoverFilterBar({
     ? "Near me"
     : filters.isOnline
       ? "Online"
-      : filters.city || "Lagos";
+      : filters.city || "All";
 
   const activeDateOption = DATE_FILTER_OPTIONS.find((opt) => opt.value === filters.dateFilter);
   const dateDisplayLabel = activeDateOption ? activeDateOption.label : "Today";
 
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    searchInputRef.current?.blur();
+    const trimmed = search.trim() || undefined;
+    if (trimmed !== filtersRef.current.search) {
+      onFiltersChange({ ...filtersRef.current, search: trimmed });
+    }
+  }
+
   return (
     <div className="space-y-2.5 sm:space-y-3" aria-busy={isPending}>
-      {/* 1. PILL SEARCH BAR (Figma Discover / Default) */}
-      <div className="relative">
+      <form onSubmit={handleSearchSubmit} className="relative">
         <label className="relative block w-full">
           <span className="sr-only">Search events, campaigns, hosts</span>
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
           <input
+            ref={searchInputRef}
             type="search"
+            enterKeyHint="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search events, campaigns, hosts"
-            className="h-11 sm:h-12 w-full rounded-full border border-neutral-200 bg-white pl-11 pr-5 text-sm shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+            className="h-11 sm:h-12 w-full rounded-full border border-neutral-200 bg-white pl-11 pr-11 text-sm shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
           />
+          {isPending && (
+            <LoaderCircle
+              aria-label="Searching"
+              className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-violet-600"
+            />
+          )}
         </label>
-      </div>
+        {isPending && (
+          <div className="mt-1.5 h-0.5 w-full overflow-hidden rounded-full bg-violet-100">
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-violet-600" />
+          </div>
+        )}
+      </form>
 
       {/* 2. COMPACT FILTER BUTTONS ROW (City ⌵, Date ⌵, Free Toggle) */}
       <div className="flex items-center justify-between gap-2 text-xs">
@@ -181,14 +204,24 @@ export function DiscoverFilterBar({
             </button>
             <select
               value={selectedLocation}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => {
+                searchInputRef.current?.blur();
+                setLocation(e.target.value);
+              }}
               aria-label="Filter by location"
               className="absolute inset-0 cursor-pointer opacity-0"
             >
               <option value="all">All locations</option>
               <option value="near_me">Near me</option>
               <option value="online">Online events</option>
-              <optgroup label="Nigerian cities">
+              <optgroup label="Nigerian States & FCT (A-Z)">
+                {NIGERIAN_STATES.map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Major Cities (A-Z)">
                 {NIGERIAN_DISCOVER_CITIES.map((city) => (
                   <option key={city} value={city}>
                     {city}

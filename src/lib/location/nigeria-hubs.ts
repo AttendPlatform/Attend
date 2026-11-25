@@ -138,6 +138,17 @@ export const NIGERIAN_HUBS: NigerianHub[] = [
     ]
   },
   {
+    name: 'Abakaliki',
+    state: 'Ebonyi',
+    country: 'Nigeria',
+    coordinates: { latitude: 6.3249, longitude: 8.1137 },
+    popularVenues: [
+      'Ecumenical Centre, Abakaliki',
+      'Pa Ngele Oruta Township Stadium',
+      'Ebonyi State Women Development Centre'
+    ]
+  },
+  {
     name: 'Warri',
     state: 'Delta',
     country: 'Nigeria',
