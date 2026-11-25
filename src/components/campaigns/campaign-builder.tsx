@@ -544,13 +544,22 @@ export default function CampaignBuilder({
       return;
     }
 
+    // Saved field coordinates belong to the canvas coordinate
+    // system recorded with that template, which may differ from
+    // the currently loaded artwork dimensions after an image swap.
+    const sourceWidth =
+      Number(config.canvas?.width) || originalWidth;
+
+    const sourceHeight =
+      Number(config.canvas?.height) || originalHeight;
+
     const scaleX =
       size.width /
-      originalWidth;
+      sourceWidth;
 
     const scaleY =
       size.height /
-      originalHeight;
+      sourceHeight;
 
     /*
      * PHOTO
