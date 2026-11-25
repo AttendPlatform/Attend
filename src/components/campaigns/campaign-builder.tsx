@@ -119,6 +119,10 @@ export default function CampaignBuilder({
   const localPreviewUrl =
     useRef<string | null>(null);
 
+  // Preserve the current field layout while a replacement artwork loads.
+  const pendingCanvasConfig =
+    useRef<any>(null);
+
   /*
    * -------------------------------------------------------
    * STATE
@@ -865,15 +869,21 @@ export default function CampaignBuilder({
          * when editing.
          */
 
+        const savedCanvasConfig =
+          pendingCanvasConfig.current ||
+          template?.canvas_config;
+
         if (
           mode === "edit" &&
-          template?.canvas_config
+          savedCanvasConfig
         ) {
           restoreSavedFields(
             canvas,
-            template.canvas_config,
+            savedCanvasConfig,
             size
           );
+
+          pendingCanvasConfig.current = null;
         }
 
         /*
@@ -1016,29 +1026,13 @@ export default function CampaignBuilder({
     }
 
     /*
-     * Changing artwork means
-     * the old field positions may
-     * no longer be valid.
+     * Keep the current photo/name fields when artwork changes.
+     * Their saved coordinates are relative to the old artwork;
+     * restoreSavedFields() scales them to the replacement canvas.
      */
-
-    if (
-      fabricCanvas.current
-    ) {
-      const canvas =
-        fabricCanvas.current;
-
-      canvas
-        .getObjects()
-        .filter(
-          (object: any) =>
-            object?.data?.type
-        )
-        .forEach((object) =>
-          canvas.remove(object)
-        );
-
-      canvas.discardActiveObject();
-      canvas.renderAll();
+    if (fabricCanvas.current) {
+      pendingCanvasConfig.current =
+        buildCanvasConfig();
     }
 
     setSelectedField(null);
