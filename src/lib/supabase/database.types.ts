@@ -1566,6 +1566,13 @@ export type Database = {
           why_recommended: string | null
         }[]
       }
+      record_featured_event_metric: {
+        Args: {
+          p_featured_event_id: string
+          p_metric: string
+        }
+        Returns: boolean
+      }
       record_notification_event: {
         Args: {
           p_campaign_id?: string
