@@ -76,6 +76,13 @@ Attend is an event discovery, participation, and campaign platform. It establish
 - Centralized `safeAuthRedirect` helper (`src/lib/auth/redirect.ts`) enforcing internal relative paths and blocking backslash, control-character, and dot-segment protocol-relative bypasses
 - Public About, Privacy Policy, and Terms of Service pages (`/about`, `/privacy`, `/terms`) with shared `LegalPage` and `Footer` components
 
+### 12. Platform Promotions, Banners & Admin Console (`src/app/admin/promotions`, `src/services/promotions.service.ts`)
+- Role-gated platform admin console (`/admin/promotions`) backed by `requirePlatformAdmin()` and `admin_audit_logs`
+- Featured Events engine with priority tiers (`campaign_level`, `high_priority`, `standard`), audience-targeted visual campaign dispatches, and atomic metric tracking (`view`, `click`, `save`, `registration`)
+- Responsive Home and Discover `PromotionalBannerSlot` components with `<picture>` desktop/mobile assets, session-capped visibility, per-session impression deduplication, image error fallback, and decoupled `banner_analytics` RPC tracking
+- Next.js `unstable_cache` data caching with `updateTag` invalidation, explicit column projections, and SQL-level audience filters to minimize Supabase egress quota usage
+- Admin controls for recovery delays, social triggers, notification templates, and chunked platform broadcasts with preview and approval safeguards
+
 ## Project Directory Structure
 
 ```text
@@ -106,7 +113,8 @@ Attend/
 ├── src/
 │   ├── app/                # Next.js App Router pages and route handlers
 │   │   ├── about/          # Public About page
-│   │   ├── actions/        # Server Actions (organizer.ts)
+│   │   ├── actions/        # Server Actions (attendance, organizer, promotions, saved)
+│   │   ├── admin/          # Platform admin promotions console (/admin/promotions)
 │   │   ├── auth/           # OAuth callback and email confirmation route handlers
 │   │   ├── campaign/       # Public campaign view and share route
 │   │   ├── create/         # Event creation flow with LocationPicker
@@ -129,6 +137,7 @@ Attend/
 │   │   ├── manifest.ts     # PWA Web App Manifest
 │   │   └── page.tsx        # Home landing page with discover feed
 │   ├── components/         # Reusable modular UI components
+│   │   ├── admin/          # FeaturedEventsManager, BannerManagementTab, AdminControlsAndBroadcastTab
 │   │   ├── analytics/      # Tracking and telemetry components
 │   │   ├── campaigns/      # Promotional campaign cards, headers, and builder
 │   │   ├── dashboard/      # OrganizerHeader, OrganizerTabs, Overview, People, Campaigns, Settings
@@ -149,8 +158,10 @@ Attend/
 │   │   ├── location/       # Pluggable location layer and bounding box filters
 │   │   ├── notifications/  # Smart notification engine, recovery rules, visual guards, push, and client
 │   │   ├── supabase/       # Supabase browser, server, and proxy clients
-│   │   └── utils/          # Formatting helpers and error handlers
+│   │   ├── utils/          # Formatting helpers, promotion session storage, and error handlers
+│   │   └── validations/    # Registration and promotions Zod schemas and rules
 │   ├── services/           # Domain services and Server Actions
+│   │   ├── abandoned-actions.service.ts
 │   │   ├── attendance.service.ts
 │   │   ├── campaigns.service.ts
 │   │   ├── discover.service.ts
@@ -158,6 +169,7 @@ Attend/
 │   │   ├── notifications.service.ts
 │   │   ├── organizer.service.ts
 │   │   ├── profile.service.ts
+│   │   ├── promotions.service.ts
 │   │   └── saved.service.ts
 │   ├── stores/             # Client-side Zustand state stores
 │   │   ├── useAuthStore.ts
@@ -187,7 +199,11 @@ Attend/
 │   │   ├── 20261028140000_discover_query_performance_indexes.sql
 │   │   ├── 20261028162857_remote.sql
 │   │   ├── 20261110100000_smart_notifications_foundation.sql
-│   │   └── 20261110110000_smart_notifications_day2.sql
+│   │   ├── 20261110110000_smart_notifications_day2.sql
+│   │   ├── 20261117100000_promotions_and_social_discovery.sql
+│   │   ├── 20261127100000_promotions_featured_metric_rpc.sql
+│   │   ├── 20261127110000_banner_interaction_rpc.sql
+│   │   └── 20261127120000_notification_templates_admin_rls.sql
 │   ├── .gitignore          # Supabase CLI local ignore rules
 │   └── config.toml         # Local development configuration and CLI settings
 ├── worker/                 # Custom PWA service worker
