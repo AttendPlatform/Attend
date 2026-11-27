@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getHomeEvents, getHomeCampaigns } from "@/services";
+import { getActiveFeaturedEvents } from "@/services/promotions.service";
+import { FeaturedEventsSection } from "@/components/home";
 import HomeDiscover from "@/components/HomeDiscover"
 
 type Category = {
@@ -74,9 +76,10 @@ function getCategory(
 }
 
 export default async function Home() {
-  const [eventData, campaignData] = await Promise.all([
+  const [eventData, campaignData, featuredEvents] = await Promise.all([
     getHomeEvents(50),
     getHomeCampaigns(50),
+    getActiveFeaturedEvents("home"),
   ]);
 
   /*
@@ -282,6 +285,8 @@ export default async function Home() {
       {/* =====================================================
           DISCOVERY
           ===================================================== */}
+
+      <FeaturedEventsSection placement="home" initialItems={featuredEvents} />
 
       <HomeDiscover
         events={events}
