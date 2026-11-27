@@ -1566,6 +1566,15 @@ export type Database = {
           why_recommended: string | null
         }[]
       }
+      record_banner_interaction: {
+        Args: {
+          p_audience_segment?: string
+          p_banner_id: string
+          p_interaction_type: string
+          p_placement: string
+        }
+        Returns: boolean
+      }
       record_featured_event_metric: {
         Args: {
           p_featured_event_id: string
