@@ -2,12 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, Sparkles, X } from "lucide-react";
 import {
   getActiveBannersAction,
   trackBannerClickAction,
   trackBannerImpressionAction,
 } from "@/app/actions/promotions";
+import {
+  BANNER_DISMISSED_STORAGE_KEY,
+  BANNER_IMPRESSION_COUNT_KEY,
+  BANNER_TRACKED_IMPRESSIONS_KEY,
+  readPromotionSessionMap,
+  subscribePromotionSessionStorage,
+  writePromotionSessionMap,
+} from "@/lib/utils/promotion-session";
 import {
   isSafeBannerDestinationUrl,
   resolveBannerImages,
@@ -21,45 +29,6 @@ interface PromotionalBannerSlotProps {
   sessionViewCap?: number;
 }
 
-const DISMISSED_STORAGE_KEY = "attend_dismissed_banners_v1";
-const IMPRESSION_COUNT_KEY = "attend_banner_session_views_v1";
-const SESSION_SYNC_EVENT = "attend:banner-session-sync";
-
-function readSessionMap(key: string): Record<string, number> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.sessionStorage.getItem(key);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as Record<string, number>;
-    }
-  } catch {
-    return {};
-  }
-  return {};
-}
-
-function writeSessionMap(key: string, value: Record<string, number>) {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(key, JSON.stringify(value));
-    window.dispatchEvent(new Event(SESSION_SYNC_EVENT));
-  } catch {
-    // Ignore storage quota errors in restricted browsing contexts.
-  }
-}
-
-function subscribeSessionStorage(callback: () => void) {
-  if (typeof window === "undefined") return () => {};
-  window.addEventListener(SESSION_SYNC_EVENT, callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    window.removeEventListener(SESSION_SYNC_EVENT, callback);
-    window.removeEventListener("storage", callback);
-  };
-}
-
 export function PromotionalBannerSlot({
   placement,
   initialBanners,
@@ -68,29 +37,30 @@ export function PromotionalBannerSlot({
   const [fetchedBanners, setFetchedBanners] = useState<PromotionalBannerRecord[]>(
     []
   );
+  const [failedImageIds, setFailedImageIds] = useState<Record<string, boolean>>({});
   const trackedImpressionRef = useRef<Set<string>>(new Set());
 
   const hydrated = useSyncExternalStore(
-    subscribeSessionStorage,
+    subscribePromotionSessionStorage,
     () => true,
     () => false
   );
 
   const dismissedRaw = useSyncExternalStore(
-    subscribeSessionStorage,
+    subscribePromotionSessionStorage,
     () =>
       typeof window === "undefined"
         ? "{}"
-        : window.sessionStorage.getItem(DISMISSED_STORAGE_KEY) ?? "{}",
+        : window.sessionStorage.getItem(BANNER_DISMISSED_STORAGE_KEY) ?? "{}",
     () => "{}"
   );
 
   const sessionViewsRaw = useSyncExternalStore(
-    subscribeSessionStorage,
+    subscribePromotionSessionStorage,
     () =>
       typeof window === "undefined"
         ? "{}"
-        : window.sessionStorage.getItem(IMPRESSION_COUNT_KEY) ?? "{}",
+        : window.sessionStorage.getItem(BANNER_IMPRESSION_COUNT_KEY) ?? "{}",
     () => "{}"
   );
 
@@ -156,16 +126,25 @@ export function PromotionalBannerSlot({
 
   useEffect(() => {
     if (!hydrated || !activeBanner) return;
-    if (trackedImpressionRef.current.has(activeBanner.id)) return;
 
-    trackedImpressionRef.current.add(activeBanner.id);
-    const currentViews = readSessionMap(IMPRESSION_COUNT_KEY);
-    writeSessionMap(IMPRESSION_COUNT_KEY, {
+    const sessionKey = `${activeBanner.id}:${placement}`;
+    if (trackedImpressionRef.current.has(sessionKey)) return;
+    trackedImpressionRef.current.add(sessionKey);
+
+    const currentViews = readPromotionSessionMap(BANNER_IMPRESSION_COUNT_KEY);
+    writePromotionSessionMap(BANNER_IMPRESSION_COUNT_KEY, {
       ...currentViews,
       [activeBanner.id]: (currentViews[activeBanner.id] ?? 0) + 1,
     });
 
-    trackBannerImpressionAction(activeBanner.id, placement).catch(() => {});
+    const trackedImpressions = readPromotionSessionMap(BANNER_TRACKED_IMPRESSIONS_KEY);
+    if (!trackedImpressions[sessionKey]) {
+      writePromotionSessionMap(BANNER_TRACKED_IMPRESSIONS_KEY, {
+        ...trackedImpressions,
+        [sessionKey]: Date.now(),
+      });
+      trackBannerImpressionAction(activeBanner.id, placement).catch(() => {});
+    }
   }, [activeBanner, hydrated, placement]);
 
   if (!activeBanner) {
@@ -179,11 +158,12 @@ export function PromotionalBannerSlot({
 
   const destination = activeBanner.destination_url.trim();
   const isExternal = destination.startsWith("https://");
+  const imageFailed = Boolean(failedImageIds[activeBanner.id]);
 
   function handleDismiss() {
     if (!activeBanner) return;
-    const currentDismissed = readSessionMap(DISMISSED_STORAGE_KEY);
-    writeSessionMap(DISMISSED_STORAGE_KEY, {
+    const currentDismissed = readPromotionSessionMap(BANNER_DISMISSED_STORAGE_KEY);
+    writePromotionSessionMap(BANNER_DISMISSED_STORAGE_KEY, {
       ...currentDismissed,
       [activeBanner.id]: Date.now(),
     });
@@ -202,20 +182,29 @@ export function PromotionalBannerSlot({
   );
 
   const innerContent = (
-    <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-950 shadow-sm">
-      <picture>
-        {desktopSrc && (
-          <source media="(min-width: 768px)" srcSet={desktopSrc} />
-        )}
-        {mobileSrc && (
-          <source media="(max-width: 767px)" srcSet={mobileSrc} />
-        )}
-        <img
-          src={fallbackSrc}
-          alt={activeBanner.title}
-          className="h-44 w-full object-cover opacity-75 transition-transform duration-500 group-hover:scale-[1.02] sm:h-52"
-        />
-      </picture>
+    <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br from-violet-900 via-neutral-950 to-indigo-950 shadow-sm">
+      {imageFailed ? (
+        <div className="flex h-44 w-full items-center justify-end pr-12 text-white/15 sm:h-52">
+          <Sparkles className="h-24 w-24" />
+        </div>
+      ) : (
+        <picture>
+          {desktopSrc && (
+            <source media="(min-width: 768px)" srcSet={desktopSrc} />
+          )}
+          {mobileSrc && (
+            <source media="(max-width: 767px)" srcSet={mobileSrc} />
+          )}
+          <img
+            src={fallbackSrc}
+            alt={activeBanner.title}
+            onError={() =>
+              setFailedImageIds((prev) => ({ ...prev, [activeBanner.id]: true }))
+            }
+            className="h-44 w-full object-cover opacity-75 transition-transform duration-500 group-hover:scale-[1.02] sm:h-52"
+          />
+        </picture>
+      )}
 
       <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/90 via-neutral-950/60 to-transparent" />
 
