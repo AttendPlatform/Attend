@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { registerHooks } from "node:module";
+import * as nodeModule from "node:module";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type * as PromotionsValidationModule from "../../../src/lib/validations/promotions";
@@ -248,7 +248,18 @@ async function runWeek2Day6To8Verification() {
   );
 
   console.log("\n--- 4. Behavioral Unit Tests (Validation, Priority, Targeting) ---");
-  registerHooks({
+  type ResolveFn = (
+    specifier: string,
+    context: Record<string, unknown>,
+    nextResolve: (s: string, c: Record<string, unknown>) => unknown
+  ) => unknown;
+  const registerHooksFn = (
+    nodeModule as unknown as {
+      registerHooks?: (hooks: { resolve: ResolveFn }) => void;
+    }
+  ).registerHooks;
+
+  registerHooksFn?.({
     resolve(specifier, context, nextResolve) {
       if (specifier.startsWith("@/")) {
         const target = resolve(cwd, "src", `${specifier.slice(2)}.ts`);
