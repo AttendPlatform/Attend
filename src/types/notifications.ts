@@ -96,6 +96,9 @@ export interface VisualNotificationPayload {
   recipientUserIds: string[];
   dedupeKeyPrefix: string;
   priority?: NotificationPriority;
+  type?: string;
+  category?: NotificationCategory;
+  presentationFormat?: NotificationPresentationFormat;
 }
 
 export type AbandonedActionType =
