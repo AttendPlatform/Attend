@@ -9,10 +9,17 @@ import { createClient, createPublicClient } from "@/lib/supabase/server";
 import {
   featureEventSchema,
   isWithinActiveWindow,
+  matchesBannerTargeting,
   matchesFeaturedAudience,
+  promotionalBannerSchema,
+  sortBannersByPriority,
   sortFeaturedEventsByPriority,
 } from "@/lib/validations/promotions";
 import type {
+  BannerAnalyticsEventType,
+  BannerPlacement,
+  BannerStatus,
+  BannerTargetingRules,
   FeatureEventInput,
   FeaturedCampaignDispatchResult,
   FeaturedEventMetric,
@@ -23,11 +30,14 @@ import type {
   FeaturedEventSummary,
   FeaturedEventTargetAudience,
   FeaturedEventWithEvent,
+  PromotionalBannerInput,
+  PromotionalBannerRecord,
   PromotionViewerContext,
 } from "@/types/promotions";
 
 type TypedClient = SupabaseClient<Database>;
 type FeaturedRow = Database["public"]["Tables"]["featured_events"]["Row"];
+type BannerRow = Database["public"]["Tables"]["promotional_banners"]["Row"];
 
 const RECIPIENT_CHUNK_SIZE = 100;
 const RECENT_EXPOSURE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -600,6 +610,240 @@ export async function recordFeaturedEventMetric(
 
   if (error) {
     console.error("[promotions] Failed to record featured metric:", error);
+    return false;
+  }
+
+  return Boolean(data);
+}
+
+function mapBannerRow(row: BannerRow): PromotionalBannerRecord {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    image_url: row.image_url,
+    mobile_image_url: row.mobile_image_url,
+    desktop_image_url: row.desktop_image_url,
+    cta_label: row.cta_label,
+    destination_url: row.destination_url,
+    placement: row.placement as BannerPlacement,
+    slot_type: row.slot_type,
+    priority: row.priority,
+    targeting_rules: normalizeObject(row.targeting_rules) as BannerTargetingRules,
+    start_at: row.start_at,
+    end_at: row.end_at,
+    status: row.status as BannerStatus,
+    impressions_count: row.impressions_count,
+    clicks_count: row.clicks_count,
+    created_by: row.created_by,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export async function listPromotionalBannersForAdmin(): Promise<
+  PromotionalBannerRecord[]
+> {
+  const admin = await requirePlatformAdmin();
+  const { data, error } = await admin.supabase
+    .from("promotional_banners")
+    .select("*")
+    .order("priority", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    throw new Error(`Failed to fetch promotional banners: ${error.message}`);
+  }
+
+  return sortBannersByPriority((data ?? []).map(mapBannerRow));
+}
+
+function buildValidatedBannerWrite(input: PromotionalBannerInput) {
+  const parsed = promotionalBannerSchema.safeParse(input);
+
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(issue?.message ?? "Invalid promotional banner configuration.");
+  }
+
+  const payload = parsed.data;
+  const sanitizedImage = sanitizeNotificationImageUrl(payload.imageUrl);
+  if (!sanitizedImage) {
+    throw new Error("Invalid banner image URL.");
+  }
+
+  return {
+    title: payload.title,
+    description: payload.description?.trim() || null,
+    image_url: sanitizedImage,
+    mobile_image_url: payload.mobileImageUrl
+      ? sanitizeNotificationImageUrl(payload.mobileImageUrl)
+      : null,
+    desktop_image_url: payload.desktopImageUrl
+      ? sanitizeNotificationImageUrl(payload.desktopImageUrl)
+      : null,
+    cta_label: payload.ctaLabel?.trim() || null,
+    destination_url: payload.destinationUrl.trim(),
+    placement: payload.placement,
+    slot_type: payload.slotType,
+    priority: payload.priority,
+    targeting_rules: toJson(payload.targetingRules ?? {}),
+    start_at: new Date(payload.startAt).toISOString(),
+    end_at: new Date(payload.endAt).toISOString(),
+    status: payload.status,
+  };
+}
+
+export async function createPromotionalBanner(
+  input: PromotionalBannerInput
+): Promise<PromotionalBannerRecord> {
+  const admin = await requirePlatformAdmin();
+  const writeData = buildValidatedBannerWrite(input);
+
+  const { data: inserted, error } = await admin.supabase
+    .from("promotional_banners")
+    .insert({
+      ...writeData,
+      created_by: admin.userId,
+    })
+    .select("*")
+    .single();
+
+  if (error || !inserted) {
+    throw new Error(error?.message ?? "Failed to create promotional banner.");
+  }
+
+  await recordAdminAuditLog(admin.supabase, {
+    adminId: admin.userId,
+    action: "promotional_banner.created",
+    targetType: "promotional_banner",
+    targetId: inserted.id,
+    metadata: {
+      title: inserted.title,
+      placement: inserted.placement,
+      status: inserted.status,
+      priority: inserted.priority,
+    },
+  });
+
+  return mapBannerRow(inserted);
+}
+
+export async function updatePromotionalBanner(
+  bannerId: string,
+  input: PromotionalBannerInput
+): Promise<PromotionalBannerRecord> {
+  const admin = await requirePlatformAdmin();
+  const writeData = buildValidatedBannerWrite(input);
+
+  const { data: updated, error } = await admin.supabase
+    .from("promotional_banners")
+    .update({
+      ...writeData,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", bannerId)
+    .select("*")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(error?.message ?? "Failed to update promotional banner.");
+  }
+
+  await recordAdminAuditLog(admin.supabase, {
+    adminId: admin.userId,
+    action: "promotional_banner.updated",
+    targetType: "promotional_banner",
+    targetId: bannerId,
+    metadata: {
+      title: updated.title,
+      placement: updated.placement,
+      status: updated.status,
+      priority: updated.priority,
+    },
+  });
+
+  return mapBannerRow(updated);
+}
+
+export async function updateBannerStatus(
+  bannerId: string,
+  status: BannerStatus
+): Promise<PromotionalBannerRecord> {
+  const admin = await requirePlatformAdmin();
+  const { data: updated, error } = await admin.supabase
+    .from("promotional_banners")
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", bannerId)
+    .select("*")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(error?.message ?? "Failed to update banner status.");
+  }
+
+  await recordAdminAuditLog(admin.supabase, {
+    adminId: admin.userId,
+    action: "promotional_banner.status_updated",
+    targetType: "promotional_banner",
+    targetId: bannerId,
+    metadata: { status },
+  });
+
+  return mapBannerRow(updated);
+}
+
+export async function getActiveBannersForPlacement(
+  placement: Exclude<BannerPlacement, "both">,
+  viewerContext?: PromotionViewerContext
+): Promise<PromotionalBannerRecord[]> {
+  const supabase = createPublicClient();
+  const nowIso = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("promotional_banners")
+    .select("*")
+    .eq("status", "published")
+    .in("placement", [placement, "both"])
+    .lte("start_at", nowIso)
+    .gt("end_at", nowIso)
+    .order("priority", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error("[promotions] Failed to load active promotional banners:", error);
+    return [];
+  }
+
+  const mapped = (data ?? []).map(mapBannerRow);
+  const eligible = mapped.filter((banner) =>
+    matchesBannerTargeting(banner, placement, viewerContext)
+  );
+
+  return sortBannersByPriority(eligible);
+}
+
+export async function recordBannerInteraction(
+  bannerId: string,
+  interactionType: BannerAnalyticsEventType,
+  placement: BannerPlacement,
+  audienceSegment?: string
+): Promise<boolean> {
+  if (!bannerId) return false;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("record_banner_interaction", {
+    p_banner_id: bannerId,
+    p_interaction_type: interactionType,
+    p_placement: placement,
+    p_audience_segment: audienceSegment ?? undefined,
+  });
+
+  if (error) {
+    console.error("[promotions] Failed to record banner interaction:", error);
     return false;
   }
 
