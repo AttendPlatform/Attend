@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { registerHooks } from "node:module";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type * as PromotionsValidationModule from "../../../src/lib/validations/promotions";
@@ -247,6 +248,18 @@ async function runWeek2Day6To8Verification() {
   );
 
   console.log("\n--- 4. Behavioral Unit Tests (Validation, Priority, Targeting) ---");
+  registerHooks({
+    resolve(specifier, context, nextResolve) {
+      if (specifier.startsWith("@/")) {
+        const target = resolve(cwd, "src", `${specifier.slice(2)}.ts`);
+        if (existsSync(target)) {
+          return { shortCircuit: true, url: pathToFileURL(target).href };
+        }
+      }
+      return nextResolve(specifier, context);
+    },
+  });
+
   const validations = (await import(
     pathToFileURL(files.validations).href
   )) as typeof PromotionsValidationModule;
