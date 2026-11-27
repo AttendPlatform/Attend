@@ -8,6 +8,7 @@ import {
   getUserEventAttendance,
 } from "@/services/attendance.service";
 import { dispatchRegistrationReceiptNotification } from "@/services/notifications.service";
+import { recordFeaturedMetricForEventIfActive } from "@/services/promotions.service";
 import type { EventParticipationType } from "@/types/attendance";
 
 function extractErrorMessage(error: unknown, fallback: string): string {
@@ -100,6 +101,10 @@ export async function toggleAttendanceAction(
       status: participant.status,
     });
 
+    await recordFeaturedMetricForEventIfActive(eventId, "registration").catch(
+      () => {}
+    );
+
     if (pathname) revalidatePath(pathname);
     revalidatePath(`/events/${eventId}`);
     return { status: "attending" };
@@ -147,6 +152,10 @@ export async function submitRegistrationAction(params: {
       registrationId: participant.id,
       status: participant.status,
     });
+
+    await recordFeaturedMetricForEventIfActive(eventId, "registration").catch(
+      () => {}
+    );
 
     if (pathname) revalidatePath(pathname);
     revalidatePath(`/events/${eventId}`);

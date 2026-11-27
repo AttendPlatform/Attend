@@ -186,7 +186,14 @@ function inferRecipientContext(
   const type = params.type.toLowerCase();
   const category = params.category.toLowerCase();
 
-  if (category === "recommendations" || params.presentationFormat === "image_popup") {
+  if (
+    category === "recommendations" ||
+    category === "featured_promotion" ||
+    category === "system" ||
+    params.presentationFormat === "image_popup" ||
+    params.presentationFormat === "featured_event" ||
+    params.presentationFormat === "system_announcement"
+  ) {
     return null;
   }
 
@@ -334,7 +341,7 @@ export async function dispatchSmartNotification(
 }
 
 export async function dispatchVisualEventNotification(
-  params: VisualNotificationPayload
+  params: VisualNotificationPayload & { supabaseClient?: SupabaseServerClient }
 ): Promise<CreatedNotification[]> {
   if (!params.eventId || !params.eventTitle || params.recipientUserIds.length === 0) {
     return [];
@@ -345,6 +352,9 @@ export async function dispatchVisualEventNotification(
   const whyRecommended =
     params.whyRecommended ?? "You might be interested in this event";
   const actionLabel = params.actionLabel ?? "View event";
+  const presentationFormat = params.presentationFormat ?? "image_popup";
+  const type = params.type ?? "event_recommendation";
+  const category = params.category ?? "recommendations";
   const message =
     params.shortDescription?.trim() ||
     `${whyRecommended}: ${params.eventTitle}`;
@@ -354,9 +364,9 @@ export async function dispatchVisualEventNotification(
   for (const userId of uniqueRecipients) {
     const dispatched = await dispatchSmartNotification({
       userId,
-      type: "event_recommendation",
-      category: "recommendations",
-      presentationFormat: "image_popup",
+      type,
+      category,
+      presentationFormat,
       priority: params.priority ?? "normal",
       title: params.eventTitle,
       message,
@@ -367,6 +377,7 @@ export async function dispatchVisualEventNotification(
       imageAlt: params.eventTitle,
       whyRecommended,
       dedupeKey: `${params.dedupeKeyPrefix}-${userId}`,
+      supabaseClient: params.supabaseClient,
       metadata: {
         event_id: params.eventId,
         short_description: params.shortDescription ?? null,
@@ -375,7 +386,7 @@ export async function dispatchVisualEventNotification(
         venue_name: params.venueName ?? null,
         image_url: sanitizedCover,
         why_recommended: whyRecommended,
-        presentation_format: "image_popup",
+        presentation_format: presentationFormat,
       },
     });
 

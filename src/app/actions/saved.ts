@@ -7,6 +7,7 @@ import {
   toggleSaveEvent,
   toggleSaveCampaign,
 } from "@/services/saved.service";
+import { recordFeaturedMetricForEventIfActive } from "@/services/promotions.service";
 
 export type SaveTargetType = "event" | "campaign";
 
@@ -31,6 +32,10 @@ export async function toggleSavedAction(
       targetType === "event"
         ? await toggleSaveEvent(targetId, data.user.id)
         : await toggleSaveCampaign(targetId, data.user.id);
+
+    if (targetType === "event" && result.saved) {
+      await recordFeaturedMetricForEventIfActive(targetId, "save").catch(() => {});
+    }
 
     if (pathname) {
       revalidatePath(pathname);

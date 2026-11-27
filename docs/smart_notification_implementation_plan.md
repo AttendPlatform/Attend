@@ -5,7 +5,7 @@
 > **Contribution Guide**: [CONTRIBUTING.md](CONTRIBUTING.md)  
 > **Cadence**: 4 hours/day · 4 days/week (16 hours/week · Solo Engineering Execution)  
 > **Ownership**: Single-engineer full-stack execution across weekly parent branches (`feat/w1-*`, `feat/w2-*`, `feat/w3-*`), Supabase schema migrations, SQL RPCs, RLS policies, domain services, UI/UX components, and automated verification suites (`scripts/smart-notifications/week*/verify-sn-*.ts`).  
-> **Timeline**: Week 1 (Days 1-4, Completed) · Week 2 (Days 5-8, 16 hours) · Week 3 (Days 9-12, 16 hours)
+> **Timeline**: Week 1 (Days 1-4, Completed) · Week 2 (Days 5-8, Completed) · Week 3 (Days 9-12, 16 hours)
 
 ---
 
@@ -118,7 +118,7 @@ main (Production Ready - Protected)
   │ (Weekly Milestone PR merged at end of each week)
   │
 feat/w1-smart-notifications-foundation (Week 1 Parent Branch - Completed)
-feat/w2-promotions-banners-admin       (Week 2 Parent Branch - 16 hours, Days 5-8)
+feat/w2-promotions-banners-admin       (Week 2 Parent Branch - Completed, Days 5-8)
 feat/w3-social-discovery-release       (Week 3 Parent Branch - 16 hours, Days 9-12)
 ```
 
@@ -330,8 +330,8 @@ feat/w3-social-discovery-release       (Week 3 Parent Branch - 16 hours, Days 9-
 
 ## 5. Week 2 Roadmap: Featured Events, Promotional Banners & Admin Console
 
-> **Weekly Parent Branch**: `feat/w2-promotions-banners-admin` (Cut from updated `main`)  
-> **Weekly Capacity**: 16 hours (4 days × 4 hours/day)  
+> **Weekly Parent Branch**: `feat/w2-promotions-banners-admin` (Cut from updated `main`) [DONE]  
+> **Status**: Completed (Days 5-8)  
 > **Week 2 Goal**: Deliver platform-admin authorization, Featured Events (service, audience targeting, admin console, and Home/Discover showcase), and Promotional Banners (decoupled impression/click analytics, responsive Home/Discover slots, admin banner manager, and trigger/broadcast controls).
 
 ---
@@ -363,39 +363,39 @@ feat/w3-social-discovery-release       (Week 3 Parent Branch - 16 hours, Days 9-
 
 ---
 
-### Day 6 (4 Hours) - Featured Events Service, Admin Console & Public Showcase
+### Day 6 (4 Hours) - Featured Events Service, Admin Console & Public Showcase [DONE]
 
-1. **Build Featured Events Domain Service & Server Actions** (`src/services/promotions.service.ts`, `src/app/actions/promotions.ts`) (2 hrs):
+1. **Build Featured Events Domain Service & Server Actions** (`src/services/promotions.service.ts`, `src/app/actions/promotions.ts`) (2 hrs) [DONE]:
    - Enforce `requirePlatformAdmin()` on all admin mutations and record every action in `admin_audit_logs`.
-   - Implement `featureEvent()`, `removeFeaturedEvent()`, and `getActiveFeaturedEvents(placement, viewerContext)`.
+   - Implement `featureEvent()`, `removeFeaturedEvent()`, and `getActiveFeaturedEvents(placement, viewerContext)` (backed by `unstable_cache` with explicit column selects and `updateTag` invalidation to protect Supabase egress quota).
    - Implement `dispatchFeaturedEventCampaign(featuredEventId)`:
-     - Skip notification dispatch when `notification_mode === 'platform_only'`.
-     - Batch matching recipients in chunks of 100, exclude already-registered or recently exposed users, and dispatch `"Featured on Attend"` visual notifications via `dispatchVisualEventNotification()`.
-   - Implement `recordFeaturedEventMetric(featuredEventId, metric: 'view' | 'click' | 'save' | 'registration')`.
-2. **Build Admin Featured Events Console & Home/Discover Showcase** (2 hrs):
+     - Skip notification dispatch when `notification_mode === 'platform_only'` or outside the active schedule window.
+     - Push city filters to Postgres, exclude opted-out (`recommendations = false`), already-registered, and recently exposed users, batch matching recipients in chunks of 100 with bounded concurrency, and dispatch `"Featured on Attend"` visual notifications via `dispatchVisualEventNotification()`.
+   - Implement `recordFeaturedEventMetric(featuredEventId, metric: 'view' | 'click' | 'save' | 'registration')` via `public.record_featured_event_metric` RPC, deduplicating views per browser session and wiring `save` / `registration` hooks via `recordFeaturedMetricForEventIfActive()`.
+2. **Build Admin Featured Events Console & Home/Discover Showcase** (2 hrs) [DONE]:
    - Build `src/app/admin/promotions/page.tsx` shell (4 tabs: `Featured Events`, `Promotional Banners`, `Recovery & Social Controls`, `Broadcasts & Analytics`) and `src/components/admin/FeaturedEventsManager.tsx`.
    - Build `src/components/home/FeaturedEventsSection.tsx` and integrate into [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx) ordered by priority (`campaign_level` -> `high_priority` -> `standard`).
 
 ---
 
-### Day 7 (4 Hours) - Promotional Banners, Decoupled Analytics & Slots
+### Day 7 (4 Hours) - Promotional Banners, Decoupled Analytics & Slots [DONE]
 
-1. **Decoupled Banner Analytics RPC & Validation** (1 hr):
+1. **Decoupled Banner Analytics RPC & Validation** (1 hr) [DONE]:
    - Create `public.record_banner_interaction(p_banner_id UUID, p_interaction_type TEXT, p_placement TEXT, p_audience_segment TEXT)` SQL RPC (increments `impressions_count` / `clicks_count` and logs to `banner_analytics`, strictly separate from `notifications` and `campaign_analytics`).
    - Create `src/lib/validations/promotions.ts` validating responsive image URLs, schedule ranges (`end_at > start_at`), and safe destination URLs.
-2. **Promotional Banner CRUD & Targeting Service** (1.5 hrs):
+2. **Promotional Banner CRUD & Targeting Service** (1.5 hrs) [DONE]:
    - Extend `src/services/promotions.service.ts` and `src/app/actions/promotions.ts` with `createPromotionalBanner()`, `updatePromotionalBanner()`, `updateBannerStatus()`, `getActiveBannersForPlacement(placement, viewerContext)`, `trackBannerImpressionAction()`, and `trackBannerClickAction()`.
-3. **Build `PromotionalBannerSlot.tsx` & Integrate** (1.5 hrs):
-   - Render responsive `<picture>` (`desktop_image_url` on `md+`, `mobile_image_url` on mobile), priority ordering, session frequency cap, and non-obstructive dismiss button on [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx).
+3. **Build `PromotionalBannerSlot.tsx` & Integrate** (1.5 hrs) [DONE]:
+   - Render responsive `<picture>` (`desktop_image_url` on `md+`, `mobile_image_url` on mobile) with `onError` gradient fallback, priority ordering, session frequency cap with per-session impression deduplication (`src/lib/utils/promotion-session.ts`), and non-obstructive dismiss button on [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx).
 
 ---
 
-### Day 8 (4 Hours) - Admin Banner/Broadcast Controls & Week 2 Milestone Merge
+### Day 8 (4 Hours) - Admin Banner/Broadcast Controls & Week 2 Milestone Merge [DONE]
 
-1. **Build Admin Banner & Broadcast/Trigger Tabs** (2 hrs):
+1. **Build Admin Banner & Broadcast/Trigger Tabs** (2 hrs) [DONE]:
    - Build `src/components/admin/BannerManagementTab.tsx` (create/edit banners, desktop/mobile preview toggle, status actions, impressions/clicks/conversion metrics).
    - Build `src/components/admin/AdminControlsAndBroadcastTab.tsx` (recovery trigger toggles and delays, template editor, social trigger toggles, and chunked `dispatchAdminBroadcast()` with test preview and approval confirmation).
-2. **Day 6-8 Verification & Week 2 Milestone Merge** (2 hrs):
+2. **Day 6-8 Verification & Week 2 Milestone Merge** (2 hrs) [DONE]:
    - Author `scripts/smart-notifications/week2/verify-sn-w2-d6.ts` testing banner scheduling, priority ordering, decoupled analytics, and admin broadcast/trigger controls.
    - Run `npm test && npx tsc --noEmit && npm run build` and merge `feat/w2-promotions-banners-admin` into `main`.
 

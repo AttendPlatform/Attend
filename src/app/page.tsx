@@ -6,6 +6,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getHomeEvents, getHomeCampaigns } from "@/services";
+import {
+  getActiveBannersForPlacement,
+  getActiveFeaturedEvents,
+} from "@/services/promotions.service";
+import {
+  FeaturedEventsSection,
+  PromotionalBannerSlot,
+} from "@/components/home";
 import HomeDiscover from "@/components/HomeDiscover"
 
 type Category = {
@@ -74,9 +82,11 @@ function getCategory(
 }
 
 export default async function Home() {
-  const [eventData, campaignData] = await Promise.all([
+  const [eventData, campaignData, featuredEvents, homeBanners] = await Promise.all([
     getHomeEvents(50),
     getHomeCampaigns(50),
+    getActiveFeaturedEvents("home"),
+    getActiveBannersForPlacement("home"),
   ]);
 
   /*
@@ -282,6 +292,10 @@ export default async function Home() {
       {/* =====================================================
           DISCOVERY
           ===================================================== */}
+
+      <PromotionalBannerSlot placement="home" initialBanners={homeBanners} />
+
+      <FeaturedEventsSection placement="home" initialItems={featuredEvents} />
 
       <HomeDiscover
         events={events}
