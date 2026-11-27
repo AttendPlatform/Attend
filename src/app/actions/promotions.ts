@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   createPromotionalBanner,
+  dispatchAdminBroadcast,
   dispatchFeaturedEventCampaign,
   featureEvent,
   getActiveBannersForPlacement,
@@ -10,11 +11,16 @@ import {
   recordBannerInteraction,
   recordFeaturedEventMetric,
   removeFeaturedEvent,
+  updateAdminNotificationSettings,
   updateBannerStatus,
   updateFeaturedEventStatus,
+  updateNotificationTemplateForAdmin,
   updatePromotionalBanner,
 } from "@/services/promotions.service";
 import type {
+  AdminBroadcastInput,
+  AdminBroadcastResult,
+  AdminNotificationSettingRecord,
   BannerPlacement,
   BannerStatus,
   FeatureEventInput,
@@ -22,6 +28,7 @@ import type {
   FeaturedEventMetric,
   FeaturedEventStatus,
   FeaturedEventWithEvent,
+  NotificationTemplateRecord,
   PromotionalBannerInput,
   PromotionalBannerRecord,
   PromotionViewerContext,
@@ -244,4 +251,68 @@ export async function trackBannerClickAction(
     audienceSegment
   );
   return { ok: recorded };
+}
+
+export async function updateAdminNotificationSettingsAction(
+  key: string,
+  value: Record<string, unknown>
+): Promise<{
+  ok: boolean;
+  setting?: AdminNotificationSettingRecord;
+  error?: string;
+}> {
+  try {
+    const setting = await updateAdminNotificationSettings(key, value);
+    revalidatePath("/admin/promotions");
+    return { ok: true, setting };
+  } catch (error) {
+    return {
+      ok: false,
+      error: getErrorMessage(error, "Failed to update notification settings."),
+    };
+  }
+}
+
+export async function updateNotificationTemplateAction(
+  templateId: string,
+  updates: {
+    title_template: string;
+    message_template: string;
+    action_label?: string | null;
+    is_active: boolean;
+  }
+): Promise<{
+  ok: boolean;
+  template?: NotificationTemplateRecord;
+  error?: string;
+}> {
+  try {
+    const template = await updateNotificationTemplateForAdmin(templateId, updates);
+    revalidatePath("/admin/promotions");
+    return { ok: true, template };
+  } catch (error) {
+    return {
+      ok: false,
+      error: getErrorMessage(error, "Failed to update notification template."),
+    };
+  }
+}
+
+export async function dispatchAdminBroadcastAction(
+  input: AdminBroadcastInput
+): Promise<{
+  ok: boolean;
+  result?: AdminBroadcastResult;
+  error?: string;
+}> {
+  try {
+    const result = await dispatchAdminBroadcast(input);
+    revalidatePath("/admin/promotions");
+    return { ok: true, result };
+  } catch (error) {
+    return {
+      ok: false,
+      error: getErrorMessage(error, "Failed to dispatch admin broadcast."),
+    };
+  }
 }
