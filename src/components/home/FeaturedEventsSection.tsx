@@ -9,6 +9,11 @@ import {
 } from "@/app/actions/promotions";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { sanitizeNotificationImageUrl } from "@/lib/notifications/visual-rules";
+import {
+  FEATURED_TRACKED_VIEWS_KEY,
+  readPromotionSessionMap,
+  writePromotionSessionMap,
+} from "@/lib/utils/promotion-session";
 import { sortFeaturedEventsByPriority } from "@/lib/validations/promotions";
 import type {
   FeaturedEventPriority,
@@ -71,11 +76,21 @@ export function FeaturedEventsSection({
   }, [initialItems, fetchedItems, maxItems]);
 
   useEffect(() => {
+    const sessionTracked = readPromotionSessionMap(FEATURED_TRACKED_VIEWS_KEY);
+    let updated = false;
+
     for (const item of orderedItems) {
-      if (!trackedViewsRef.current.has(item.id)) {
-        trackedViewsRef.current.add(item.id);
-        recordFeaturedEventMetricAction(item.id, "view").catch(() => {});
+      if (trackedViewsRef.current.has(item.id) || sessionTracked[item.id]) {
+        continue;
       }
+      trackedViewsRef.current.add(item.id);
+      sessionTracked[item.id] = Date.now();
+      updated = true;
+      recordFeaturedEventMetricAction(item.id, "view").catch(() => {});
+    }
+
+    if (updated) {
+      writePromotionSessionMap(FEATURED_TRACKED_VIEWS_KEY, sessionTracked);
     }
   }, [orderedItems]);
 
