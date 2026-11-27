@@ -29,8 +29,9 @@ interface BannerManagementTabProps {
 }
 
 function toLocalDateTimeInput(date: Date): string {
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const offsetMs = safeDate.getTimezoneOffset() * 60_000;
+  return new Date(safeDate.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
 function formatCtr(impressions: number, clicks: number): string {
@@ -106,6 +107,13 @@ export function BannerManagementTab({
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
+    const startMs = Date.parse(startAt);
+    const endMs = Date.parse(endAt);
+    if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
+      toast.error("Please enter a valid schedule where end date is after start date.");
+      return;
+    }
+
     const cities = targetCitiesInput
       .split(",")
       .map((city) => city.trim())
@@ -126,8 +134,8 @@ export function BannerManagementTab({
         ...(cities.length > 0 ? { cities } : {}),
         ...(authenticatedOnly ? { authenticated_only: true } : {}),
       },
-      startAt: new Date(startAt).toISOString(),
-      endAt: new Date(endAt).toISOString(),
+      startAt: new Date(startMs).toISOString(),
+      endAt: new Date(endMs).toISOString(),
       status,
     };
 
