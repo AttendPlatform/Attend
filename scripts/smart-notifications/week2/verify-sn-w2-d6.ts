@@ -130,6 +130,9 @@ async function runWeek2Day6To8Verification() {
     featuredSection: resolve(cwd, "src/components/home/FeaturedEventsSection.tsx"),
     bannerSlot: resolve(cwd, "src/components/home/PromotionalBannerSlot.tsx"),
     homeIndex: resolve(cwd, "src/components/home/index.ts"),
+    promotionSession: resolve(cwd, "src/lib/utils/promotion-session.ts"),
+    savedActions: resolve(cwd, "src/app/actions/saved.ts"),
+    attendanceActions: resolve(cwd, "src/app/actions/attendance.ts"),
     homePage: resolve(cwd, "src/app/page.tsx"),
     discoverPage: resolve(cwd, "src/app/discover/page.tsx"),
     discoverHub: resolve(cwd, "src/components/discover/DiscoverHub.tsx"),
@@ -194,6 +197,30 @@ async function runWeek2Day6To8Verification() {
     serviceContent.includes("requirePlatformAdmin()") &&
       serviceContent.includes("recordAdminAuditLog") &&
       serviceContent.includes("RECIPIENT_CHUNK_SIZE = 100")
+  );
+  check(
+    "promotions.service uses unstable_cache, explicit columns (zero select(*)), and SQL city filters",
+    serviceContent.includes("unstable_cache") &&
+      serviceContent.includes("PROMOTIONS_FEATURED_CACHE_TAG") &&
+      serviceContent.includes("PROMOTIONS_BANNERS_CACHE_TAG") &&
+      !serviceContent.includes('.select("*")') &&
+      serviceContent.includes("buildCityFilterOrClause")
+  );
+  check(
+    "promotions actions invalidate Next.js cache tags via updateTag",
+    actionsContent.includes("updateTag(PROMOTIONS_FEATURED_CACHE_TAG)") &&
+      actionsContent.includes("updateTag(PROMOTIONS_BANNERS_CACHE_TAG)")
+  );
+  check(
+    "FeaturedEventsSection and PromotionalBannerSlot deduplicate views/impressions per session and handle image errors",
+    readFileSync(files.featuredSection, "utf8").includes("FEATURED_TRACKED_VIEWS_KEY") &&
+      bannerSlotContent.includes("BANNER_TRACKED_IMPRESSIONS_KEY") &&
+      bannerSlotContent.includes("onError")
+  );
+  check(
+    "Saved and attendance actions record featured event metrics via cached helper",
+    readFileSync(files.savedActions, "utf8").includes("recordFeaturedMetricForEventIfActive") &&
+      readFileSync(files.attendanceActions, "utf8").includes("recordFeaturedMetricForEventIfActive")
   );
   check(
     "dispatchFeaturedEventCampaign skips platform_only and dispatches visual notifications",
