@@ -1,8 +1,13 @@
 import { z } from "zod";
-import { sanitizeNotificationImageUrl } from "@/lib/notifications/visual-rules";
+import {
+  isSafeNotificationActionUrl,
+  sanitizeNotificationImageUrl,
+} from "@/lib/notifications/visual-rules";
 import type {
+  BannerPlacement,
   FeaturedEventPriority,
   FeaturedEventWithEvent,
+  PromotionalBannerRecord,
   PromotionViewerContext,
 } from "@/types/promotions";
 
@@ -195,4 +200,189 @@ export function sortFeaturedEventsByPriority<
 
     return Date.parse(b.created_at) - Date.parse(a.created_at);
   });
+}
+
+export function isSafeBannerDestinationUrl(url: string | null | undefined): boolean {
+  return isSafeNotificationActionUrl(url);
+}
+
+export const promotionalBannerSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(2, "Banner title must be at least 2 characters.")
+      .max(120, "Banner title must be 120 characters or fewer."),
+    description: z
+      .string()
+      .trim()
+      .max(300, "Banner description must be 300 characters or fewer.")
+      .optional()
+      .nullable(),
+    imageUrl: z.string().trim().min(1, "Fallback image URL is required."),
+    mobileImageUrl: z.string().trim().optional().nullable(),
+    desktopImageUrl: z.string().trim().optional().nullable(),
+    ctaLabel: z
+      .string()
+      .trim()
+      .max(40, "CTA label must be 40 characters or fewer.")
+      .optional()
+      .nullable(),
+    destinationUrl: z.string().trim().min(1, "Destination URL is required."),
+    placement: z.enum(["home", "discover", "both"]).default("both"),
+    slotType: z.string().trim().min(1).max(40).optional().default("hero"),
+    priority: z.coerce.number().int().min(1).max(1000).optional().default(1),
+    targetingRules: z
+      .object({
+        cities: z.array(z.string().trim().min(1)).optional(),
+        categories: z.array(z.string().trim().min(1)).optional(),
+        authenticated_only: z.boolean().optional(),
+      })
+      .passthrough()
+      .optional()
+      .default({}),
+    startAt: z.string().min(1, "Start date is required."),
+    endAt: z.string().min(1, "End date is required."),
+    status: z
+      .enum(["draft", "published", "paused", "archived"])
+      .optional()
+      .default("draft"),
+  })
+  .superRefine((data, ctx) => {
+    const schedule = validateScheduleRange(data.startAt, data.endAt);
+    if (!schedule.valid) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["endAt"],
+        message: schedule.error ?? "Invalid banner schedule range.",
+      });
+    }
+
+    if (!sanitizeNotificationImageUrl(data.imageUrl)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["imageUrl"],
+        message: "Image URL must be HTTPS or an approved local image path.",
+      });
+    }
+
+    if (
+      data.mobileImageUrl &&
+      !sanitizeNotificationImageUrl(data.mobileImageUrl)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["mobileImageUrl"],
+        message:
+          "Mobile image URL must be HTTPS or an approved local image path.",
+      });
+    }
+
+    if (
+      data.desktopImageUrl &&
+      !sanitizeNotificationImageUrl(data.desktopImageUrl)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["desktopImageUrl"],
+        message:
+          "Desktop image URL must be HTTPS or an approved local image path.",
+      });
+    }
+
+    if (!isSafeBannerDestinationUrl(data.destinationUrl)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["destinationUrl"],
+        message:
+          "Destination URL must be a safe relative path or an HTTPS URL.",
+      });
+    }
+  });
+
+export function matchesBannerTargeting(
+  banner: Pick<
+    PromotionalBannerRecord,
+    "placement" | "status" | "start_at" | "end_at" | "targeting_rules"
+  >,
+  placement: Exclude<BannerPlacement, "both">,
+  viewerContext?: PromotionViewerContext,
+  nowMs = Date.now()
+): boolean {
+  if (banner.status !== "published") {
+    return false;
+  }
+
+  if (!isWithinActiveWindow(banner.start_at, banner.end_at, nowMs)) {
+    return false;
+  }
+
+  if (banner.placement !== "both" && banner.placement !== placement) {
+    return false;
+  }
+
+  const rules = banner.targeting_rules ?? {};
+  if (rules.authenticated_only && !viewerContext?.isAuthenticated) {
+    return false;
+  }
+
+  const targetCities = Array.isArray(rules.cities)
+    ? rules.cities.map((c) => c.trim().toLowerCase()).filter(Boolean)
+    : [];
+
+  if (targetCities.length > 0 && viewerContext?.city) {
+    const viewerCity = viewerContext.city.trim().toLowerCase();
+    if (!targetCities.some((c) => viewerCity.includes(c) || c.includes(viewerCity))) {
+      return false;
+    }
+  }
+
+  const targetCategories = Array.isArray(rules.categories)
+    ? rules.categories.map((c) => c.trim().toLowerCase()).filter(Boolean)
+    : [];
+
+  if (
+    targetCategories.length > 0 &&
+    viewerContext?.categoryIds &&
+    viewerContext.categoryIds.length > 0
+  ) {
+    const viewerSet = new Set(
+      viewerContext.categoryIds.map((c) => c.trim().toLowerCase())
+    );
+    if (!targetCategories.some((c) => viewerSet.has(c))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function sortBannersByPriority<
+  T extends Pick<PromotionalBannerRecord, "priority" | "created_at">
+>(banners: readonly T[]): T[] {
+  return [...banners].sort((a, b) => {
+    if (b.priority !== a.priority) {
+      return b.priority - a.priority;
+    }
+    return Date.parse(b.created_at) - Date.parse(a.created_at);
+  });
+}
+
+export function resolveBannerImages(
+  banner: Pick<
+    PromotionalBannerRecord,
+    "image_url" | "mobile_image_url" | "desktop_image_url"
+  >
+): {
+  fallbackSrc: string | null;
+  mobileSrc: string | null;
+  desktopSrc: string | null;
+} {
+  const fallbackSrc = sanitizeNotificationImageUrl(banner.image_url);
+  const mobileSrc =
+    sanitizeNotificationImageUrl(banner.mobile_image_url) ?? fallbackSrc;
+  const desktopSrc =
+    sanitizeNotificationImageUrl(banner.desktop_image_url) ?? fallbackSrc;
+
+  return { fallbackSrc, mobileSrc, desktopSrc };
 }
