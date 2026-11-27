@@ -43,21 +43,20 @@ export function FeaturedEventsSection({
   initialItems,
   maxItems = 3,
 }: FeaturedEventsSectionProps) {
-  const [items, setItems] = useState<FeaturedEventWithEvent[]>(
-    initialItems ?? []
+  const [fetchedItems, setFetchedItems] = useState<FeaturedEventWithEvent[]>(
+    []
   );
   const trackedViewsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (initialItems) {
-      setItems(initialItems);
       return;
     }
 
     let active = true;
     getActiveFeaturedEventsAction(placement).then((res) => {
       if (active && res.ok) {
-        setItems(res.items);
+        setFetchedItems(res.items);
       }
     });
     return () => {
@@ -66,9 +65,10 @@ export function FeaturedEventsSection({
   }, [initialItems, placement]);
 
   const orderedItems = useMemo(() => {
+    const items = initialItems ?? fetchedItems;
     const valid = items.filter((item) => Boolean(item.event));
     return sortFeaturedEventsByPriority(valid).slice(0, maxItems);
-  }, [items, maxItems]);
+  }, [initialItems, fetchedItems, maxItems]);
 
   useEffect(() => {
     for (const item of orderedItems) {
