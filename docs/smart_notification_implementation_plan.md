@@ -367,11 +367,11 @@ feat/w3-social-discovery-release       (Week 3 Parent Branch - 16 hours, Days 9-
 
 1. **Build Featured Events Domain Service & Server Actions** (`src/services/promotions.service.ts`, `src/app/actions/promotions.ts`) (2 hrs) [DONE]:
    - Enforce `requirePlatformAdmin()` on all admin mutations and record every action in `admin_audit_logs`.
-   - Implement `featureEvent()`, `removeFeaturedEvent()`, and `getActiveFeaturedEvents(placement, viewerContext)`.
+   - Implement `featureEvent()`, `removeFeaturedEvent()`, and `getActiveFeaturedEvents(placement, viewerContext)` (backed by `unstable_cache` with explicit column selects and `updateTag` invalidation to protect Supabase egress quota).
    - Implement `dispatchFeaturedEventCampaign(featuredEventId)`:
-     - Skip notification dispatch when `notification_mode === 'platform_only'`.
-     - Batch matching recipients in chunks of 100, exclude already-registered or recently exposed users, and dispatch `"Featured on Attend"` visual notifications via `dispatchVisualEventNotification()`.
-   - Implement `recordFeaturedEventMetric(featuredEventId, metric: 'view' | 'click' | 'save' | 'registration')`.
+     - Skip notification dispatch when `notification_mode === 'platform_only'` or outside the active schedule window.
+     - Push city filters to Postgres, exclude opted-out (`recommendations = false`), already-registered, and recently exposed users, batch matching recipients in chunks of 100 with bounded concurrency, and dispatch `"Featured on Attend"` visual notifications via `dispatchVisualEventNotification()`.
+   - Implement `recordFeaturedEventMetric(featuredEventId, metric: 'view' | 'click' | 'save' | 'registration')` via `public.record_featured_event_metric` RPC, deduplicating views per browser session and wiring `save` / `registration` hooks via `recordFeaturedMetricForEventIfActive()`.
 2. **Build Admin Featured Events Console & Home/Discover Showcase** (2 hrs) [DONE]:
    - Build `src/app/admin/promotions/page.tsx` shell (4 tabs: `Featured Events`, `Promotional Banners`, `Recovery & Social Controls`, `Broadcasts & Analytics`) and `src/components/admin/FeaturedEventsManager.tsx`.
    - Build `src/components/home/FeaturedEventsSection.tsx` and integrate into [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx) ordered by priority (`campaign_level` -> `high_priority` -> `standard`).
@@ -386,7 +386,7 @@ feat/w3-social-discovery-release       (Week 3 Parent Branch - 16 hours, Days 9-
 2. **Promotional Banner CRUD & Targeting Service** (1.5 hrs) [DONE]:
    - Extend `src/services/promotions.service.ts` and `src/app/actions/promotions.ts` with `createPromotionalBanner()`, `updatePromotionalBanner()`, `updateBannerStatus()`, `getActiveBannersForPlacement(placement, viewerContext)`, `trackBannerImpressionAction()`, and `trackBannerClickAction()`.
 3. **Build `PromotionalBannerSlot.tsx` & Integrate** (1.5 hrs) [DONE]:
-   - Render responsive `<picture>` (`desktop_image_url` on `md+`, `mobile_image_url` on mobile), priority ordering, session frequency cap, and non-obstructive dismiss button on [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx).
+   - Render responsive `<picture>` (`desktop_image_url` on `md+`, `mobile_image_url` on mobile) with `onError` gradient fallback, priority ordering, session frequency cap with per-session impression deduplication (`src/lib/utils/promotion-session.ts`), and non-obstructive dismiss button on [src/app/page.tsx](src/app/page.tsx) and [src/components/discover/DiscoverHub.tsx](src/components/discover/DiscoverHub.tsx).
 
 ---
 
