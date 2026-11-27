@@ -200,11 +200,12 @@ export interface AdminBroadcastResult {
 
 export interface NotificationTemplateRecord {
   id: string;
-  key: string;
+  type: string;
   category: string;
   title_template: string;
   message_template: string;
-  default_action_label: string | null;
+  action_label: string | null;
   is_active: boolean;
+  is_smart: boolean;
   updated_at: string;
 }
