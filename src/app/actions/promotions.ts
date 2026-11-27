@@ -2,19 +2,28 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  createPromotionalBanner,
   dispatchFeaturedEventCampaign,
   featureEvent,
+  getActiveBannersForPlacement,
   getActiveFeaturedEvents,
+  recordBannerInteraction,
   recordFeaturedEventMetric,
   removeFeaturedEvent,
+  updateBannerStatus,
   updateFeaturedEventStatus,
+  updatePromotionalBanner,
 } from "@/services/promotions.service";
 import type {
+  BannerPlacement,
+  BannerStatus,
   FeatureEventInput,
   FeaturedCampaignDispatchResult,
   FeaturedEventMetric,
   FeaturedEventStatus,
   FeaturedEventWithEvent,
+  PromotionalBannerInput,
+  PromotionalBannerRecord,
   PromotionViewerContext,
 } from "@/types/promotions";
 
@@ -132,4 +141,107 @@ export async function recordFeaturedEventMetricAction(
 ): Promise<{ ok: boolean }> {
   const updated = await recordFeaturedEventMetric(featuredEventId, metric);
   return { ok: updated };
+}
+
+export async function createPromotionalBannerAction(
+  input: PromotionalBannerInput
+): Promise<{
+  ok: boolean;
+  banner?: PromotionalBannerRecord;
+  error?: string;
+}> {
+  try {
+    const banner = await createPromotionalBanner(input);
+    revalidatePromotionSurfaces();
+    return { ok: true, banner };
+  } catch (error) {
+    return {
+      ok: false,
+      error: getErrorMessage(error, "Failed to create promotional banner."),
+    };
+  }
+}
+
+export async function updatePromotionalBannerAction(
+  bannerId: string,
+  input: PromotionalBannerInput
+): Promise<{
+  ok: boolean;
+  banner?: PromotionalBannerRecord;
+  error?: string;
+}> {
+  try {
+    const banner = await updatePromotionalBanner(bannerId, input);
+    revalidatePromotionSurfaces();
+    return { ok: true, banner };
+  } catch (error) {
+    return {
+      ok: false,
+      error: getErrorMessage(error, "Failed to update promotional banner."),
+    };
+  }
+}
+
+export async function updateBannerStatusAction(
+  bannerId: string,
+  status: BannerStatus
+): Promise<{
+  ok: boolean;
+  banner?: PromotionalBannerRecord;
+  error?: string;
+}> {
+  try {
+    const banner = await updateBannerStatus(bannerId, status);
+    revalidatePromotionSurfaces();
+    return { ok: true, banner };
+  } catch (error) {
+    return {
+      ok: false,
+      error: getErrorMessage(error, "Failed to update banner status."),
+    };
+  }
+}
+
+export async function getActiveBannersAction(
+  placement: Exclude<BannerPlacement, "both">,
+  viewerContext?: PromotionViewerContext
+): Promise<{ ok: boolean; banners: PromotionalBannerRecord[]; error?: string }> {
+  try {
+    const banners = await getActiveBannersForPlacement(placement, viewerContext);
+    return { ok: true, banners };
+  } catch (error) {
+    return {
+      ok: false,
+      banners: [],
+      error: getErrorMessage(error, "Failed to load promotional banners."),
+    };
+  }
+}
+
+export async function trackBannerImpressionAction(
+  bannerId: string,
+  placement: BannerPlacement,
+  audienceSegment?: string
+): Promise<{ ok: boolean }> {
+  const recorded = await recordBannerInteraction(
+    bannerId,
+    "impression",
+    placement,
+    audienceSegment
+  );
+  return { ok: recorded };
+}
+
+export async function trackBannerClickAction(
+  bannerId: string,
+  placement: BannerPlacement,
+  audienceSegment?: string
+): Promise<{ ok: boolean }> {
+  const recorded = await recordBannerInteraction(
+    bannerId,
+    "click",
+    placement,
+    audienceSegment
+  );
+  return { ok: recorded };
 }
