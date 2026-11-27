@@ -1,7 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import {
+  PROMOTIONS_BANNERS_CACHE_TAG,
+  PROMOTIONS_FEATURED_CACHE_TAG,
   createPromotionalBanner,
   dispatchAdminBroadcast,
   dispatchFeaturedEventCampaign,
@@ -35,6 +37,8 @@ import type {
 } from "@/types/promotions";
 
 function revalidatePromotionSurfaces() {
+  updateTag(PROMOTIONS_FEATURED_CACHE_TAG);
+  updateTag(PROMOTIONS_BANNERS_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/discover");
   revalidatePath("/admin/promotions");
