@@ -77,6 +77,13 @@ export function FeaturedEventsManager({
       return;
     }
 
+    const startMs = Date.parse(startAt);
+    const endMs = Date.parse(endAt);
+    if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
+      toast.error("Please enter a valid schedule where end date is after start date.");
+      return;
+    }
+
     const cities = targetCitiesInput
       .split(",")
       .map((city) => city.trim())
@@ -93,8 +100,8 @@ export function FeaturedEventsManager({
           ...(cities.length > 0 ? { cities } : {}),
           ...(pastAttendeesOnly ? { past_attendees: true } : {}),
         },
-        startAt: new Date(startAt).toISOString(),
-        endAt: new Date(endAt).toISOString(),
+        startAt: new Date(startMs).toISOString(),
+        endAt: new Date(endMs).toISOString(),
         status: "active",
       });
 
@@ -305,10 +312,10 @@ export function FeaturedEventsManager({
               Promotional image URL (optional)
             </label>
             <input
-              type="url"
+              type="text"
               value={promotionalImageUrl}
               onChange={(e) => setPromotionalImageUrl(e.target.value)}
-              placeholder="https://..."
+              placeholder="https://... or /images/promo.jpg"
               className="mt-1.5 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-violet-500 focus:outline-none"
             />
           </div>
