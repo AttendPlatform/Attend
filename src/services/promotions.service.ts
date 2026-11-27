@@ -2,11 +2,15 @@ import "server-only";
 
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requirePlatformAdmin } from "@/lib/auth/admin";
-import { dispatchVisualEventNotification } from "@/lib/notifications/engine";
+import {
+  dispatchSmartNotification,
+  dispatchVisualEventNotification,
+} from "@/lib/notifications/engine";
 import { sanitizeNotificationImageUrl } from "@/lib/notifications/visual-rules";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import {
+  adminBroadcastSchema,
   featureEventSchema,
   isWithinActiveWindow,
   matchesBannerTargeting,
@@ -16,6 +20,10 @@ import {
   sortFeaturedEventsByPriority,
 } from "@/lib/validations/promotions";
 import type {
+  AdminAuditLogRecord,
+  AdminBroadcastInput,
+  AdminBroadcastResult,
+  AdminNotificationSettingRecord,
   BannerAnalyticsEventType,
   BannerPlacement,
   BannerStatus,
@@ -30,6 +38,7 @@ import type {
   FeaturedEventSummary,
   FeaturedEventTargetAudience,
   FeaturedEventWithEvent,
+  NotificationTemplateRecord,
   PromotionalBannerInput,
   PromotionalBannerRecord,
   PromotionViewerContext,
@@ -848,4 +857,286 @@ export async function recordBannerInteraction(
   }
 
   return Boolean(data);
+}
+
+export async function getAdminNotificationSettings(): Promise<
+  AdminNotificationSettingRecord[]
+> {
+  const admin = await requirePlatformAdmin();
+  const { data, error } = await admin.supabase
+    .from("admin_notification_settings")
+    .select("*")
+    .order("key", { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to load admin notification settings: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => ({
+    key: row.key,
+    value: normalizeObject(row.value),
+    updated_by: row.updated_by,
+    updated_at: row.updated_at,
+  }));
+}
+
+export async function updateAdminNotificationSettings(
+  key: string,
+  value: Record<string, unknown>
+): Promise<AdminNotificationSettingRecord> {
+  const admin = await requirePlatformAdmin();
+  if (!key.trim()) {
+    throw new Error("Setting key is required.");
+  }
+
+  const { data: updated, error } = await admin.supabase
+    .from("admin_notification_settings")
+    .upsert(
+      {
+        key: key.trim(),
+        value: toJson(value),
+        updated_by: admin.userId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" }
+    )
+    .select("*")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(error?.message ?? "Failed to update admin settings.");
+  }
+
+  await recordAdminAuditLog(admin.supabase, {
+    adminId: admin.userId,
+    action: "admin_settings.updated",
+    targetType: "admin_notification_settings",
+    metadata: { key: updated.key, value },
+  });
+
+  return {
+    key: updated.key,
+    value: normalizeObject(updated.value),
+    updated_by: updated.updated_by,
+    updated_at: updated.updated_at,
+  };
+}
+
+export async function listNotificationTemplatesForAdmin(): Promise<
+  NotificationTemplateRecord[]
+> {
+  const admin = await requirePlatformAdmin();
+  const { data, error } = await admin.supabase
+    .from("notification_templates")
+    .select("id, type, category, title_template, message_template, action_label, is_active, is_smart, updated_at")
+    .order("category", { ascending: true })
+    .order("type", { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to load notification templates: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+export async function updateNotificationTemplateForAdmin(
+  templateId: string,
+  updates: {
+    title_template: string;
+    message_template: string;
+    action_label?: string | null;
+    is_active: boolean;
+  }
+): Promise<NotificationTemplateRecord> {
+  const admin = await requirePlatformAdmin();
+  const titleTemplate = updates.title_template.trim();
+  const messageTemplate = updates.message_template.trim();
+
+  if (!titleTemplate || !messageTemplate) {
+    throw new Error("Template title and message are required.");
+  }
+
+  const { data: updated, error } = await admin.supabase
+    .from("notification_templates")
+    .update({
+      title_template: titleTemplate,
+      message_template: messageTemplate,
+      action_label: updates.action_label?.trim() || null,
+      is_active: updates.is_active,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", templateId)
+    .select("id, type, category, title_template, message_template, action_label, is_active, is_smart, updated_at")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(error?.message ?? "Failed to update notification template.");
+  }
+
+  await recordAdminAuditLog(admin.supabase, {
+    adminId: admin.userId,
+    action: "notification_template.updated",
+    targetType: "notification_template",
+    targetId: templateId,
+    metadata: {
+      type: updated.type,
+      is_active: updated.is_active,
+    },
+  });
+
+  return updated;
+}
+
+export async function listAdminAuditLogs(
+  limit = 25
+): Promise<AdminAuditLogRecord[]> {
+  const admin = await requirePlatformAdmin();
+  const { data, error } = await admin.supabase
+    .from("admin_audit_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(Math.min(limit, 100));
+
+  if (error) {
+    throw new Error(`Failed to fetch admin audit logs: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    admin_id: row.admin_id,
+    action: row.action,
+    target_type: row.target_type,
+    target_id: row.target_id,
+    metadata: normalizeObject(row.metadata),
+    created_at: row.created_at,
+  }));
+}
+
+export async function dispatchAdminBroadcast(
+  input: AdminBroadcastInput
+): Promise<AdminBroadcastResult> {
+  const admin = await requirePlatformAdmin();
+  const parsed = adminBroadcastSchema.safeParse(input);
+
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(issue?.message ?? "Invalid broadcast payload.");
+  }
+
+  const payload = parsed.data;
+  const privilegedClient = getPrivilegedClient(admin.supabase);
+
+  if (!payload.testPreview) {
+    const { data: broadcastRuleRow } = await admin.supabase
+      .from("admin_notification_settings")
+      .select("value")
+      .eq("key", "broadcast_rules")
+      .maybeSingle();
+
+    const rules = normalizeObject(broadcastRuleRow?.value);
+    const maxDaily =
+      typeof rules.max_daily_broadcasts === "number"
+        ? rules.max_daily_broadcasts
+        : 2;
+
+    const oneDayAgoIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await admin.supabase
+      .from("admin_audit_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("action", "admin_broadcast.dispatched")
+      .gte("created_at", oneDayAgoIso);
+
+    if ((recentCount ?? 0) >= maxDaily) {
+      throw new Error(
+        `Daily broadcast limit reached (${maxDaily} per 24 hours). Use test preview or try later.`
+      );
+    }
+  }
+
+  let recipientIds: string[] = [];
+  if (payload.testPreview) {
+    recipientIds = [admin.userId];
+  } else {
+    const targetCities = (payload.cities ?? [])
+      .map((city) => city.trim().toLowerCase())
+      .filter(Boolean);
+
+    const { data: profiles, error: profilesError } = await privilegedClient
+      .from("profiles")
+      .select("id, city, state")
+      .limit(5000);
+
+    if (profilesError) {
+      throw new Error(`Failed to resolve broadcast audience: ${profilesError.message}`);
+    }
+
+    recipientIds = (profiles ?? [])
+      .filter((profile) => {
+        if (targetCities.length === 0) return true;
+        const loc = [profile.city, profile.state]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return Boolean(loc && targetCities.some((city) => loc.includes(city)));
+      })
+      .map((profile) => profile.id);
+  }
+
+  const broadcastBatchKey = `${Date.now()}`;
+  let dispatchedCount = 0;
+  let batchesProcessed = 0;
+
+  for (let i = 0; i < recipientIds.length; i += RECIPIENT_CHUNK_SIZE) {
+    const chunk = recipientIds.slice(i, i + RECIPIENT_CHUNK_SIZE);
+    batchesProcessed += 1;
+
+    for (const userId of chunk) {
+      const created = await dispatchSmartNotification({
+        userId,
+        type: "system_announcement",
+        category: "system",
+        presentationFormat: "system_announcement",
+        priority: payload.priority,
+        title: payload.testPreview ? `[Preview] ${payload.title}` : payload.title,
+        message: payload.message,
+        actionUrl: payload.actionUrl?.trim() || "/discover",
+        actionLabel: payload.actionLabel?.trim() || "Explore",
+        dedupeKey: payload.testPreview
+          ? `admin-broadcast-preview-${broadcastBatchKey}-${userId}`
+          : `admin-broadcast-${broadcastBatchKey}-${userId}`,
+        supabaseClient: privilegedClient,
+        metadata: {
+          broadcast_batch: broadcastBatchKey,
+          test_preview: payload.testPreview,
+        },
+      });
+
+      if (created) {
+        dispatchedCount += 1;
+      }
+    }
+  }
+
+  await recordAdminAuditLog(admin.supabase, {
+    adminId: admin.userId,
+    action: payload.testPreview
+      ? "admin_broadcast.preview_sent"
+      : "admin_broadcast.dispatched",
+    targetType: "broadcast",
+    metadata: {
+      title: payload.title,
+      priority: payload.priority,
+      cities: payload.cities ?? [],
+      eligible_recipients: recipientIds.length,
+      dispatched_count: dispatchedCount,
+      batches_processed: batchesProcessed,
+    },
+  });
+
+  return {
+    testPreview: payload.testPreview,
+    eligibleRecipients: recipientIds.length,
+    dispatchedCount,
+    batchesProcessed,
+  };
 }
