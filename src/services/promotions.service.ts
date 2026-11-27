@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import {
@@ -48,7 +49,12 @@ type TypedClient = SupabaseClient<Database>;
 type FeaturedRow = Database["public"]["Tables"]["featured_events"]["Row"];
 type BannerRow = Database["public"]["Tables"]["promotional_banners"]["Row"];
 
+export const PROMOTIONS_FEATURED_CACHE_TAG = "promotions:featured";
+export const PROMOTIONS_BANNERS_CACHE_TAG = "promotions:banners";
+
+const PUBLIC_CACHE_REVALIDATE_SECONDS = 300;
 const RECIPIENT_CHUNK_SIZE = 100;
+const DISPATCH_CONCURRENCY = 10;
 const RECENT_EXPOSURE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const ACTIVE_PARTICIPANT_STATUSES = [
   "attending",
@@ -56,6 +62,86 @@ const ACTIVE_PARTICIPANT_STATUSES = [
   "ticketed",
   "attended",
 ] as const;
+
+const FEATURED_EVENT_COLUMNS =
+  "id, event_id, priority, promotional_message, promotional_image_url, target_audience, notification_channels, notification_mode, scheduled_notification_at, start_at, end_at, status, views_count, clicks_count, saves_count, registrations_count, created_by, created_at, updated_at";
+
+const PUBLIC_FEATURED_EVENT_COLUMNS =
+  "id, event_id, priority, promotional_message, promotional_image_url, target_audience, notification_mode, start_at, end_at, status, created_at, updated_at";
+
+const PROMOTIONAL_BANNER_COLUMNS =
+  "id, title, description, image_url, mobile_image_url, desktop_image_url, cta_label, destination_url, placement, slot_type, priority, targeting_rules, start_at, end_at, status, impressions_count, clicks_count, created_by, created_at, updated_at";
+
+const PUBLIC_PROMOTIONAL_BANNER_COLUMNS =
+  "id, title, description, image_url, mobile_image_url, desktop_image_url, cta_label, destination_url, placement, slot_type, priority, targeting_rules, start_at, end_at, status, created_at, updated_at";
+
+const ADMIN_SETTING_COLUMNS = "key, value, updated_by, updated_at";
+const ADMIN_AUDIT_LOG_COLUMNS =
+  "id, admin_id, action, target_type, target_id, metadata, created_at";
+
+function escapePostgrestIlike(value: string): string {
+  return value.replace(/[%_,()]/g, " ").trim();
+}
+
+function buildCityFilterOrClause(cities: string[]): string | null {
+  const filters = cities
+    .map(escapePostgrestIlike)
+    .filter(Boolean)
+    .flatMap((city) => [`city.ilike.%${city}%`, `state.ilike.%${city}%`]);
+
+  return filters.length > 0 ? filters.join(",") : null;
+}
+
+async function runInBatches<T, R>(
+  items: readonly T[],
+  batchSize: number,
+  worker: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const slice = items.slice(i, i + batchSize);
+    const settled = await Promise.allSettled(slice.map(worker));
+    for (const outcome of settled) {
+      if (outcome.status === "fulfilled") {
+        results.push(outcome.value);
+      }
+    }
+  }
+  return results;
+}
+
+async function resolveViewerContextFromSession(
+  needsCity: boolean
+): Promise<PromotionViewerContext> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { isAuthenticated: false };
+    }
+
+    if (!needsCity) {
+      return { userId: user.id, isAuthenticated: true };
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("city, state")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    return {
+      userId: user.id,
+      isAuthenticated: true,
+      city: profile?.city ?? profile?.state ?? null,
+    };
+  } catch {
+    return { isAuthenticated: false };
+  }
+}
 
 function toJson(value: Record<string, unknown>): Json {
   return value as Json;
@@ -80,7 +166,30 @@ function normalizeObject(value: Json | null | undefined): Record<string, unknown
   return {};
 }
 
-function mapFeaturedRow(row: FeaturedRow): FeaturedEventRecord {
+type FeaturedLikeRow = Omit<
+  FeaturedRow,
+  | "views_count"
+  | "clicks_count"
+  | "saves_count"
+  | "registrations_count"
+  | "created_by"
+  | "notification_channels"
+  | "scheduled_notification_at"
+> &
+  Partial<
+    Pick<
+      FeaturedRow,
+      | "views_count"
+      | "clicks_count"
+      | "saves_count"
+      | "registrations_count"
+      | "created_by"
+      | "notification_channels"
+      | "scheduled_notification_at"
+    >
+  >;
+
+function mapFeaturedRow(row: FeaturedLikeRow): FeaturedEventRecord {
   return {
     id: row.id,
     event_id: row.event_id,
@@ -90,15 +199,15 @@ function mapFeaturedRow(row: FeaturedRow): FeaturedEventRecord {
     target_audience: normalizeObject(row.target_audience) as FeaturedEventTargetAudience,
     notification_channels: row.notification_channels ?? ["in_app", "push"],
     notification_mode: row.notification_mode as FeaturedEventNotificationMode,
-    scheduled_notification_at: row.scheduled_notification_at,
+    scheduled_notification_at: row.scheduled_notification_at ?? null,
     start_at: row.start_at,
     end_at: row.end_at,
     status: row.status as FeaturedEventStatus,
-    views_count: row.views_count,
-    clicks_count: row.clicks_count,
-    saves_count: row.saves_count,
-    registrations_count: row.registrations_count,
-    created_by: row.created_by,
+    views_count: row.views_count ?? 0,
+    clicks_count: row.clicks_count ?? 0,
+    saves_count: row.saves_count ?? 0,
+    registrations_count: row.registrations_count ?? 0,
+    created_by: row.created_by ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -129,7 +238,7 @@ export async function recordAdminAuditLog(
 
 async function hydrateFeaturedEvents(
   supabase: TypedClient,
-  rows: FeaturedRow[]
+  rows: FeaturedLikeRow[]
 ): Promise<FeaturedEventWithEvent[]> {
   if (rows.length === 0) return [];
 
@@ -196,7 +305,7 @@ export async function listFeaturedEventsForAdmin(): Promise<FeaturedEventWithEve
   const admin = await requirePlatformAdmin();
   const { data, error } = await admin.supabase
     .from("featured_events")
-    .select("*")
+    .select(FEATURED_EVENT_COLUMNS)
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -213,7 +322,7 @@ export async function listPublishedEventsForPromotion(): Promise<FeaturedEventSu
   const { data: events, error } = await admin.supabase
     .from("events")
     .select(
-      "id, title, slug, description, cover_image, start_at, end_at, city, state, venue_name, is_online, category_id, participant_count, status"
+      "id, title, slug, cover_image, start_at, end_at, city, state, venue_name, is_online, category_id, participant_count, status"
     )
     .eq("status", "published")
     .order("start_at", { ascending: true })
@@ -239,6 +348,7 @@ export async function listPublishedEventsForPromotion(): Promise<FeaturedEventSu
 
   return (events ?? []).map((ev) => ({
     ...ev,
+    description: null,
     category_name: ev.category_id ? categoryMap.get(ev.category_id) ?? null : null,
   }));
 }
@@ -289,7 +399,7 @@ export async function featureEvent(
       status: payload.status,
       created_by: admin.userId,
     })
-    .select("*")
+    .select(FEATURED_EVENT_COLUMNS)
     .single();
 
   if (insertError || !inserted) {
@@ -325,7 +435,7 @@ export async function updateFeaturedEventStatus(
       updated_at: new Date().toISOString(),
     })
     .eq("id", featuredEventId)
-    .select("*")
+    .select(FEATURED_EVENT_COLUMNS)
     .single();
 
   if (error || !updated) {
@@ -363,43 +473,75 @@ export async function removeFeaturedEvent(featuredEventId: string): Promise<void
   });
 }
 
+const getCachedActiveFeaturedEventsRaw = unstable_cache(
+  async (): Promise<FeaturedEventWithEvent[]> => {
+    const supabase = createPublicClient();
+    const nowIso = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("featured_events")
+      .select(PUBLIC_FEATURED_EVENT_COLUMNS)
+      .eq("status", "active")
+      .lte("start_at", nowIso)
+      .gt("end_at", nowIso)
+      .order("created_at", { ascending: false })
+      .limit(24);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const hydrated = await hydrateFeaturedEvents(supabase, data ?? []);
+    return sortFeaturedEventsByPriority(
+      hydrated.filter((item) => item.event && item.event.status === "published")
+    );
+  },
+  ["active-featured-events-v1"],
+  {
+    revalidate: PUBLIC_CACHE_REVALIDATE_SECONDS,
+    tags: [PROMOTIONS_FEATURED_CACHE_TAG],
+  }
+);
+
 export async function getActiveFeaturedEvents(
   _placement: "home" | "discover",
   viewerContext?: PromotionViewerContext
 ): Promise<FeaturedEventWithEvent[]> {
-  const supabase = createPublicClient();
-  const nowIso = new Date().toISOString();
-
-  const { data, error } = await supabase
-    .from("featured_events")
-    .select("*")
-    .eq("status", "active")
-    .lte("start_at", nowIso)
-    .gt("end_at", nowIso)
-    .order("created_at", { ascending: false })
-    .limit(24);
-
-  if (error) {
+  let cached: FeaturedEventWithEvent[];
+  try {
+    cached = await getCachedActiveFeaturedEventsRaw();
+  } catch (error) {
     console.error("[promotions] Failed to load active featured events:", error);
     return [];
   }
 
-  const hydrated = await hydrateFeaturedEvents(supabase, data ?? []);
-  const activeOnly = hydrated.filter(
-    (item) =>
-      item.event &&
-      item.event.status === "published" &&
-      isWithinActiveWindow(item.start_at, item.end_at) &&
-      matchesFeaturedAudience(item, viewerContext)
+  const activeWindowOnly = cached.filter((item) =>
+    isWithinActiveWindow(item.start_at, item.end_at)
   );
+  if (activeWindowOnly.length === 0) {
+    return [];
+  }
 
-  return sortFeaturedEventsByPriority(activeOnly);
+  const needsCityContext =
+    !viewerContext &&
+    activeWindowOnly.some(
+      (item) =>
+        Array.isArray(item.target_audience?.cities) &&
+        item.target_audience.cities.length > 0
+    );
+
+  const resolvedContext =
+    viewerContext ??
+    (needsCityContext ? await resolveViewerContextFromSession(true) : undefined);
+
+  return activeWindowOnly.filter((item) =>
+    matchesFeaturedAudience(item, resolvedContext)
+  );
 }
 
 async function resolveFeaturedCampaignRecipients(
   client: TypedClient,
-  featured: FeaturedEventWithEvent,
-  adminUserId: string
+  featured: FeaturedEventWithEvent
 ): Promise<string[]> {
   const audience = featured.target_audience ?? {};
   const targetCities = Array.isArray(audience.cities)
@@ -409,36 +551,21 @@ async function resolveFeaturedCampaignRecipients(
     ? audience.categories.map((c) => c.trim()).filter(Boolean)
     : [];
 
-  const { data: profiles, error: profilesError } = await client
-    .from("profiles")
-    .select("id, city, state")
-    .limit(2000);
+  let profilesQuery = client.from("profiles").select("id");
+  if (featured.notification_mode === "selected_audience" && targetCities.length > 0) {
+    const cityFilter = buildCityFilterOrClause(targetCities);
+    if (cityFilter) {
+      profilesQuery = profilesQuery.or(cityFilter);
+    }
+  }
+
+  const { data: profiles, error: profilesError } = await profilesQuery.limit(2000);
 
   if (profilesError) {
     throw new Error(`Failed to load candidate profiles: ${profilesError.message}`);
   }
 
-  let candidateIds = (profiles ?? [])
-    .filter((profile) => {
-      if (profile.id === adminUserId && featured.notification_mode === "broad_announcement") {
-        return true;
-      }
-      if (
-        featured.notification_mode === "selected_audience" &&
-        targetCities.length > 0
-      ) {
-        const locationText = [profile.city, profile.state]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!locationText || !targetCities.some((c) => locationText.includes(c))) {
-          return false;
-        }
-      }
-      return true;
-    })
-    .map((p) => p.id);
-
+  let candidateIds = (profiles ?? []).map((p) => p.id);
   if (candidateIds.length === 0) {
     return [];
   }
@@ -447,35 +574,42 @@ async function resolveFeaturedCampaignRecipients(
     featured.notification_mode === "selected_audience" &&
     (audience.past_attendees || targetCategories.length > 0)
   ) {
-    const { data: pastRows } = await client
-      .from("event_participants")
-      .select("user_id, event_id")
-      .in("status", [...ACTIVE_PARTICIPANT_STATUSES])
-      .not("user_id", "is", null)
-      .limit(4000);
-
     let matchingEventIds: Set<string> | null = null;
     if (targetCategories.length > 0) {
       const { data: catEvents } = await client
         .from("events")
         .select("id")
-        .in("category_id", targetCategories);
+        .eq("status", "published")
+        .in("category_id", targetCategories)
+        .limit(500);
       matchingEventIds = new Set((catEvents ?? []).map((e) => e.id));
+      if (matchingEventIds.size === 0) {
+        return [];
+      }
     }
 
+    let pastQuery = client
+      .from("event_participants")
+      .select("user_id, event_id")
+      .in("status", [...ACTIVE_PARTICIPANT_STATUSES])
+      .in("user_id", candidateIds);
+
+    if (matchingEventIds) {
+      pastQuery = pastQuery.in("event_id", Array.from(matchingEventIds));
+    }
+
+    const { data: pastRows } = await pastQuery.limit(4000);
     const pastUserIds = new Set(
       (pastRows ?? [])
-        .filter(
-          (row) =>
-            Boolean(row.user_id) &&
-            (!matchingEventIds || matchingEventIds.has(row.event_id))
-        )
-        .map((row) => row.user_id as string)
+        .map((row) => row.user_id)
+        .filter((id): id is string => Boolean(id))
     );
 
-    if (pastUserIds.size > 0) {
-      candidateIds = candidateIds.filter((id) => pastUserIds.has(id));
+    if (pastUserIds.size === 0) {
+      return [];
     }
+
+    candidateIds = candidateIds.filter((id) => pastUserIds.has(id));
   }
 
   const { data: registeredRows } = await client
@@ -483,13 +617,25 @@ async function resolveFeaturedCampaignRecipients(
     .select("user_id")
     .eq("event_id", featured.event_id)
     .in("status", [...ACTIVE_PARTICIPANT_STATUSES])
-    .not("user_id", "is", null);
+    .in("user_id", candidateIds);
 
   const excludedUserIds = new Set(
     (registeredRows ?? [])
       .map((row) => row.user_id)
       .filter((id): id is string => Boolean(id))
   );
+
+  const { data: optedOutPrefs } = await client
+    .from("notification_preferences")
+    .select("user_id")
+    .eq("recommendations", false)
+    .in("user_id", candidateIds);
+
+  for (const row of optedOutPrefs ?? []) {
+    if (row.user_id) {
+      excludedUserIds.add(row.user_id);
+    }
+  }
 
   const recentCutoffIso = new Date(
     Date.now() - RECENT_EXPOSURE_WINDOW_MS
@@ -500,7 +646,8 @@ async function resolveFeaturedCampaignRecipients(
     .select("user_id")
     .eq("event_id", featured.event_id)
     .in("category", ["recommendations", "featured_promotion"])
-    .gte("created_at", recentCutoffIso);
+    .gte("created_at", recentCutoffIso)
+    .in("user_id", candidateIds);
 
   for (const row of recentNotifications ?? []) {
     if (row.user_id) {
@@ -519,7 +666,7 @@ export async function dispatchFeaturedEventCampaign(
 
   const { data: row, error } = await admin.supabase
     .from("featured_events")
-    .select("*")
+    .select(FEATURED_EVENT_COLUMNS)
     .eq("id", featuredEventId)
     .maybeSingle();
 
@@ -547,6 +694,16 @@ export async function dispatchFeaturedEventCampaign(
     };
   }
 
+  if (!isWithinActiveWindow(row.start_at, row.end_at)) {
+    return {
+      featuredEventId,
+      skipped: true,
+      reason: "outside_active_window",
+      eligibleRecipients: 0,
+      dispatchedCount: 0,
+    };
+  }
+
   const hydrated = await hydrateFeaturedEvents(admin.supabase, [row]);
   const featured = hydrated[0];
   if (!featured?.event) {
@@ -555,34 +712,41 @@ export async function dispatchFeaturedEventCampaign(
 
   const recipientIds = await resolveFeaturedCampaignRecipients(
     privilegedClient,
-    featured,
-    admin.userId
+    featured
   );
 
   let dispatchedCount = 0;
   for (let i = 0; i < recipientIds.length; i += RECIPIENT_CHUNK_SIZE) {
     const chunk = recipientIds.slice(i, i + RECIPIENT_CHUNK_SIZE);
-    const created = await dispatchVisualEventNotification({
-      eventId: featured.event.id,
-      eventTitle: featured.event.title,
-      coverImage: featured.promotional_image_url ?? featured.event.cover_image,
-      shortDescription:
-        featured.promotional_message ?? featured.event.description,
-      startAt: featured.event.start_at,
-      city: featured.event.city,
-      venueName: featured.event.venue_name,
-      actionUrl: `/events/${featured.event.id}`,
-      actionLabel: "Explore event",
-      whyRecommended: "Featured on Attend",
-      recipientUserIds: chunk,
-      dedupeKeyPrefix: `featured-event-${featured.id}`,
-      priority: featured.priority === "campaign_level" ? "high" : "normal",
-      type: "featured_event_visual",
-      category: "featured_promotion",
-      presentationFormat: "featured_event",
-      supabaseClient: privilegedClient,
-    });
-    dispatchedCount += created.length;
+    const chunkResults = await runInBatches(
+      chunk,
+      DISPATCH_CONCURRENCY,
+      async (userId) => {
+        const created = await dispatchVisualEventNotification({
+          eventId: featured.event!.id,
+          eventTitle: featured.event!.title,
+          coverImage:
+            featured.promotional_image_url ?? featured.event!.cover_image,
+          shortDescription:
+            featured.promotional_message ?? featured.event!.description,
+          startAt: featured.event!.start_at,
+          city: featured.event!.city,
+          venueName: featured.event!.venue_name,
+          actionUrl: `/events/${featured.event!.id}`,
+          actionLabel: "Explore event",
+          whyRecommended: "Featured on Attend",
+          recipientUserIds: [userId],
+          dedupeKeyPrefix: `featured-event-${featured.id}`,
+          priority: featured.priority === "campaign_level" ? "high" : "normal",
+          type: "featured_event_visual",
+          category: "featured_promotion",
+          presentationFormat: "featured_event",
+          supabaseClient: privilegedClient,
+        });
+        return created.length;
+      }
+    );
+    dispatchedCount += chunkResults.reduce((sum, count) => sum + count, 0);
   }
 
   await recordAdminAuditLog(admin.supabase, {
@@ -625,7 +789,37 @@ export async function recordFeaturedEventMetric(
   return Boolean(data);
 }
 
-function mapBannerRow(row: BannerRow): PromotionalBannerRecord {
+export async function recordFeaturedMetricForEventIfActive(
+  eventId: string,
+  metric: Extract<FeaturedEventMetric, "save" | "registration">
+): Promise<boolean> {
+  if (!eventId) return false;
+  let cached: FeaturedEventWithEvent[];
+  try {
+    cached = await getCachedActiveFeaturedEventsRaw();
+  } catch {
+    return false;
+  }
+
+  const activeFeatured = cached.find(
+    (item) =>
+      item.event_id === eventId &&
+      isWithinActiveWindow(item.start_at, item.end_at)
+  );
+  if (!activeFeatured) {
+    return false;
+  }
+
+  return recordFeaturedEventMetric(activeFeatured.id, metric);
+}
+
+type BannerLikeRow = Omit<
+  BannerRow,
+  "impressions_count" | "clicks_count" | "created_by"
+> &
+  Partial<Pick<BannerRow, "impressions_count" | "clicks_count" | "created_by">>;
+
+function mapBannerRow(row: BannerLikeRow): PromotionalBannerRecord {
   return {
     id: row.id,
     title: row.title,
@@ -642,9 +836,9 @@ function mapBannerRow(row: BannerRow): PromotionalBannerRecord {
     start_at: row.start_at,
     end_at: row.end_at,
     status: row.status as BannerStatus,
-    impressions_count: row.impressions_count,
-    clicks_count: row.clicks_count,
-    created_by: row.created_by,
+    impressions_count: row.impressions_count ?? 0,
+    clicks_count: row.clicks_count ?? 0,
+    created_by: row.created_by ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -656,7 +850,7 @@ export async function listPromotionalBannersForAdmin(): Promise<
   const admin = await requirePlatformAdmin();
   const { data, error } = await admin.supabase
     .from("promotional_banners")
-    .select("*")
+    .select(PROMOTIONAL_BANNER_COLUMNS)
     .order("priority", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(100);
@@ -716,7 +910,7 @@ export async function createPromotionalBanner(
       ...writeData,
       created_by: admin.userId,
     })
-    .select("*")
+    .select(PROMOTIONAL_BANNER_COLUMNS)
     .single();
 
   if (error || !inserted) {
@@ -753,7 +947,7 @@ export async function updatePromotionalBanner(
       updated_at: new Date().toISOString(),
     })
     .eq("id", bannerId)
-    .select("*")
+    .select(PROMOTIONAL_BANNER_COLUMNS)
     .single();
 
   if (error || !updated) {
@@ -788,7 +982,7 @@ export async function updateBannerStatus(
       updated_at: new Date().toISOString(),
     })
     .eq("id", bannerId)
-    .select("*")
+    .select(PROMOTIONAL_BANNER_COLUMNS)
     .single();
 
   if (error || !updated) {
@@ -806,31 +1000,73 @@ export async function updateBannerStatus(
   return mapBannerRow(updated);
 }
 
+const getCachedActiveBannersRaw = unstable_cache(
+  async (): Promise<PromotionalBannerRecord[]> => {
+    const supabase = createPublicClient();
+    const nowIso = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("promotional_banners")
+      .select(PUBLIC_PROMOTIONAL_BANNER_COLUMNS)
+      .eq("status", "published")
+      .lte("start_at", nowIso)
+      .gt("end_at", nowIso)
+      .order("priority", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return sortBannersByPriority((data ?? []).map(mapBannerRow));
+  },
+  ["active-promotional-banners-v1"],
+  {
+    revalidate: PUBLIC_CACHE_REVALIDATE_SECONDS,
+    tags: [PROMOTIONS_BANNERS_CACHE_TAG],
+  }
+);
+
 export async function getActiveBannersForPlacement(
   placement: Exclude<BannerPlacement, "both">,
   viewerContext?: PromotionViewerContext
 ): Promise<PromotionalBannerRecord[]> {
-  const supabase = createPublicClient();
-  const nowIso = new Date().toISOString();
-
-  const { data, error } = await supabase
-    .from("promotional_banners")
-    .select("*")
-    .eq("status", "published")
-    .in("placement", [placement, "both"])
-    .lte("start_at", nowIso)
-    .gt("end_at", nowIso)
-    .order("priority", { ascending: false })
-    .limit(20);
-
-  if (error) {
+  let cached: PromotionalBannerRecord[];
+  try {
+    cached = await getCachedActiveBannersRaw();
+  } catch (error) {
     console.error("[promotions] Failed to load active promotional banners:", error);
     return [];
   }
 
-  const mapped = (data ?? []).map(mapBannerRow);
-  const eligible = mapped.filter((banner) =>
-    matchesBannerTargeting(banner, placement, viewerContext)
+  const placementCandidates = cached.filter(
+    (banner) =>
+      (banner.placement === "both" || banner.placement === placement) &&
+      isWithinActiveWindow(banner.start_at, banner.end_at)
+  );
+  if (placementCandidates.length === 0) {
+    return [];
+  }
+
+  const needsAuth =
+    !viewerContext &&
+    placementCandidates.some((b) => Boolean(b.targeting_rules?.authenticated_only));
+  const needsCity =
+    !viewerContext &&
+    placementCandidates.some(
+      (b) =>
+        Array.isArray(b.targeting_rules?.cities) &&
+        b.targeting_rules.cities.length > 0
+    );
+
+  const resolvedContext =
+    viewerContext ??
+    (needsAuth || needsCity
+      ? await resolveViewerContextFromSession(needsCity)
+      : undefined);
+
+  const eligible = placementCandidates.filter((banner) =>
+    matchesBannerTargeting(banner, placement, resolvedContext)
   );
 
   return sortBannersByPriority(eligible);
@@ -865,7 +1101,7 @@ export async function getAdminNotificationSettings(): Promise<
   const admin = await requirePlatformAdmin();
   const { data, error } = await admin.supabase
     .from("admin_notification_settings")
-    .select("*")
+    .select(ADMIN_SETTING_COLUMNS)
     .order("key", { ascending: true });
 
   if (error) {
@@ -885,22 +1121,41 @@ export async function updateAdminNotificationSettings(
   value: Record<string, unknown>
 ): Promise<AdminNotificationSettingRecord> {
   const admin = await requirePlatformAdmin();
-  if (!key.trim()) {
+  const trimmedKey = key.trim();
+  if (!trimmedKey) {
     throw new Error("Setting key is required.");
+  }
+
+  if (trimmedKey === "abandoned_action_delays") {
+    const stage1 = Number(value.stage_1_hours ?? 24);
+    const stage2 = Number(value.stage_2_hours ?? 72);
+    const maxRem = Number(value.max_reminders ?? 2);
+    if (
+      !Number.isFinite(stage1) ||
+      !Number.isFinite(stage2) ||
+      stage1 < 1 ||
+      stage2 < stage1 ||
+      maxRem < 1 ||
+      maxRem > 5
+    ) {
+      throw new Error(
+        "Stage 2 delay must be greater than or equal to Stage 1 delay, and max reminders must be between 1 and 5."
+      );
+    }
   }
 
   const { data: updated, error } = await admin.supabase
     .from("admin_notification_settings")
     .upsert(
       {
-        key: key.trim(),
+        key: trimmedKey,
         value: toJson(value),
         updated_by: admin.userId,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "key" }
     )
-    .select("*")
+    .select(ADMIN_SETTING_COLUMNS)
     .single();
 
   if (error || !updated) {
@@ -993,7 +1248,7 @@ export async function listAdminAuditLogs(
   const admin = await requirePlatformAdmin();
   const { data, error } = await admin.supabase
     .from("admin_audit_logs")
-    .select("*")
+    .select(ADMIN_AUDIT_LOG_COLUMNS)
     .order("created_at", { ascending: false })
     .limit(Math.min(limit, 100));
 
@@ -1061,25 +1316,21 @@ export async function dispatchAdminBroadcast(
       .map((city) => city.trim().toLowerCase())
       .filter(Boolean);
 
-    const { data: profiles, error: profilesError } = await privilegedClient
-      .from("profiles")
-      .select("id, city, state")
-      .limit(5000);
+    let profilesQuery = privilegedClient.from("profiles").select("id");
+    if (targetCities.length > 0) {
+      const cityFilter = buildCityFilterOrClause(targetCities);
+      if (cityFilter) {
+        profilesQuery = profilesQuery.or(cityFilter);
+      }
+    }
+
+    const { data: profiles, error: profilesError } = await profilesQuery.limit(5000);
 
     if (profilesError) {
       throw new Error(`Failed to resolve broadcast audience: ${profilesError.message}`);
     }
 
-    recipientIds = (profiles ?? [])
-      .filter((profile) => {
-        if (targetCities.length === 0) return true;
-        const loc = [profile.city, profile.state]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return Boolean(loc && targetCities.some((city) => loc.includes(city)));
-      })
-      .map((profile) => profile.id);
+    recipientIds = (profiles ?? []).map((profile) => profile.id);
   }
 
   const broadcastBatchKey = `${Date.now()}`;
@@ -1090,31 +1341,34 @@ export async function dispatchAdminBroadcast(
     const chunk = recipientIds.slice(i, i + RECIPIENT_CHUNK_SIZE);
     batchesProcessed += 1;
 
-    for (const userId of chunk) {
-      const created = await dispatchSmartNotification({
-        userId,
-        type: "system_announcement",
-        category: "system",
-        presentationFormat: "system_announcement",
-        priority: payload.priority,
-        title: payload.testPreview ? `[Preview] ${payload.title}` : payload.title,
-        message: payload.message,
-        actionUrl: payload.actionUrl?.trim() || "/discover",
-        actionLabel: payload.actionLabel?.trim() || "Explore",
-        dedupeKey: payload.testPreview
-          ? `admin-broadcast-preview-${broadcastBatchKey}-${userId}`
-          : `admin-broadcast-${broadcastBatchKey}-${userId}`,
-        supabaseClient: privilegedClient,
-        metadata: {
-          broadcast_batch: broadcastBatchKey,
-          test_preview: payload.testPreview,
-        },
-      });
-
-      if (created) {
-        dispatchedCount += 1;
+    const batchResults = await runInBatches(
+      chunk,
+      DISPATCH_CONCURRENCY,
+      async (userId) => {
+        const created = await dispatchSmartNotification({
+          userId,
+          type: "system_announcement",
+          category: "system",
+          presentationFormat: "system_announcement",
+          priority: payload.priority,
+          title: payload.testPreview ? `[Preview] ${payload.title}` : payload.title,
+          message: payload.message,
+          actionUrl: payload.actionUrl?.trim() || "/discover",
+          actionLabel: payload.actionLabel?.trim() || "Explore",
+          dedupeKey: payload.testPreview
+            ? `admin-broadcast-preview-${broadcastBatchKey}-${userId}`
+            : `admin-broadcast-${broadcastBatchKey}-${userId}`,
+          supabaseClient: privilegedClient,
+          metadata: {
+            broadcast_batch: broadcastBatchKey,
+            test_preview: payload.testPreview,
+          },
+        });
+        return created ? 1 : 0;
       }
-    }
+    );
+
+    dispatchedCount += batchResults.reduce<number>((sum, n) => sum + n, 0);
   }
 
   await recordAdminAuditLog(admin.supabase, {
