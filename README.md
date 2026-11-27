@@ -242,6 +242,7 @@ npm test
 | Command | Scope | Coverage |
 | :--- | :--- | :--- |
 | `npm test` | Complete Test Suite | Runs all active milestone verification suites (M0, M1, M2, M3, M4: 325 automated checks) |
+| `npm run verify:sn-w2-d6` | Smart Notifications Week 2 Days 6-8 | Featured events service/showcase, responsive promotional banners, decoupled banner analytics RPC, admin 4-tab console, trigger/template/broadcast controls, and zero em dashes |
 | `npm run verify:sn-w2-d5` | Smart Notifications Week 2 Day 5 | Platform-admin auth guard, promotions & banners schema, RLS boundaries, social privacy view, and TypeScript contracts |
 | `npm run verify:sn-m1` | Smart Notifications Week 1 Milestone 1 | End-to-end Week 1 audit: bell/dropdown/center, quiet hours, scheduled promotion, lifecycle & campaign analytics preservation, abandoned recovery rules, visual popup security/queue precedence, and Web Push |
 | `npm run verify:sn-w1-d3` | Smart Notifications Week 1 Day 3 | Abandoned-action eligibility rules, empty-form rejection, 24h/72h delay enforcement, payment status verification, completion auto-suppression, and anti-surveillance copy guard |
