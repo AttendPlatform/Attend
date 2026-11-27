@@ -10,11 +10,19 @@ import { parseDiscoverFiltersFromSearchParams, serializeDiscoverFiltersToSearchP
 import { DiscoverFilterBar } from "@/components/discover/DiscoverFilterBar";
 import { DiscoverCardSkeletons } from "@/components/discover/DiscoverCardSkeletons";
 import { EventCard } from "@/components/home/EventCard";
+import { FeaturedEventsSection } from "@/components/home/FeaturedEventsSection";
 import { CampaignCard } from "@/components/campaigns/CampaignCard";
+import type { FeaturedEventWithEvent } from "@/types/promotions";
 
 const EMPTY_RESULTS: DiscoverResults = { events: [], campaigns: [], categories: [] };
 
-export default function DiscoverHub() {
+interface DiscoverHubProps {
+  initialFeaturedEvents?: FeaturedEventWithEvent[];
+}
+
+export default function DiscoverHub({
+  initialFeaturedEvents,
+}: DiscoverHubProps = {}) {
   const [filters, setFilters] = useState<DiscoverFilters>({ dateFilter: "all", sortBy: "upcoming" });
   const [results, setResults] = useState<DiscoverResults>(EMPTY_RESULTS);
   const [loading, setLoading] = useState(true);
@@ -104,6 +112,11 @@ export default function DiscoverHub() {
           onFiltersChange={handleFiltersChange}
           categories={results.categories}
           isPending={loading}
+        />
+
+        <FeaturedEventsSection
+          placement="discover"
+          initialItems={initialFeaturedEvents}
         />
 
         {error && (
