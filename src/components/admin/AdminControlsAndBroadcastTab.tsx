@@ -129,7 +129,27 @@ export function AdminControlsAndBroadcastTab({
     }
   }
 
+  function appendLocalAudit(action: string, targetType: string) {
+    setAuditLogs((prev) => [
+      {
+        id: `local-${Date.now()}`,
+        admin_id: "self",
+        action,
+        target_type: targetType,
+        target_id: null,
+        metadata: {},
+        created_at: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
+  }
+
   function handleSaveRecoverySettings() {
+    if (stage1Hours < 1 || stage2Hours < stage1Hours) {
+      toast.error("Stage 2 delay must be greater than or equal to Stage 1 delay.");
+      return;
+    }
+
     startTransition(async () => {
       const res = await updateAdminNotificationSettingsAction(
         "abandoned_action_delays",
@@ -144,6 +164,7 @@ export function AdminControlsAndBroadcastTab({
         toast.error(res.error ?? "Failed to save recovery settings.");
         return;
       }
+      appendLocalAudit("admin_settings.updated", "admin_notification_settings");
       toast.success("Recovery trigger settings updated.");
     });
   }
@@ -159,6 +180,7 @@ export function AdminControlsAndBroadcastTab({
         toast.error(res.error ?? "Failed to save social trigger settings.");
         return;
       }
+      appendLocalAudit("admin_settings.updated", "admin_notification_settings");
       toast.success("Social trigger settings updated.");
     });
   }
@@ -174,6 +196,7 @@ export function AdminControlsAndBroadcastTab({
         toast.error(res.error ?? "Failed to save broadcast rules.");
         return;
       }
+      appendLocalAudit("admin_settings.updated", "admin_notification_settings");
       toast.success("Broadcast rules updated.");
     });
   }
@@ -198,6 +221,7 @@ export function AdminControlsAndBroadcastTab({
       setTemplates((prev) =>
         prev.map((row) => (row.id === res.template!.id ? res.template! : row))
       );
+      appendLocalAudit("notification_template.updated", "notification_template");
       toast.success(`Template "${res.template.type}" updated.`);
     });
   }
