@@ -386,3 +386,46 @@ export function resolveBannerImages(
 
   return { fallbackSrc, mobileSrc, desktopSrc };
 }
+
+export const adminBroadcastSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(2, "Broadcast title must be at least 2 characters.")
+      .max(120, "Broadcast title must be 120 characters or fewer."),
+    message: z
+      .string()
+      .trim()
+      .min(4, "Broadcast message must be at least 4 characters.")
+      .max(500, "Broadcast message must be 500 characters or fewer."),
+    actionUrl: z.string().trim().optional().nullable(),
+    actionLabel: z
+      .string()
+      .trim()
+      .max(40, "Action label must be 40 characters or fewer.")
+      .optional()
+      .nullable(),
+    priority: z.enum(["normal", "high", "urgent"]).optional().default("normal"),
+    cities: z.array(z.string().trim().min(1)).optional(),
+    testPreview: z.boolean().optional().default(false),
+    confirmBroadcast: z.boolean().optional().default(false),
+  })
+  .superRefine((data, ctx) => {
+    if (data.actionUrl && !isSafeBannerDestinationUrl(data.actionUrl)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["actionUrl"],
+        message: "Broadcast action URL must be a safe relative path or HTTPS URL.",
+      });
+    }
+
+    if (!data.testPreview && !data.confirmBroadcast) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmBroadcast"],
+        message:
+          "Please confirm broadcast approval before sending to all matching users.",
+      });
+    }
+  });
