@@ -4,14 +4,19 @@ import type { Metadata } from "next";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { PlatformAdminError, requirePlatformAdmin } from "@/lib/auth/admin";
 import {
+  getAdminNotificationSettings,
+  listAdminAuditLogs,
   listFeaturedEventsForAdmin,
+  listNotificationTemplatesForAdmin,
+  listPromotionalBannersForAdmin,
   listPublishedEventsForPromotion,
 } from "@/services/promotions.service";
 import { AdminPromotionsConsole } from "@/components/admin";
 
 export const metadata: Metadata = {
   title: "Admin Promotions | Attend",
-  description: "Manage featured events, promotional banners, notification controls, and broadcasts.",
+  description:
+    "Manage featured events, promotional banners, notification controls, and broadcasts.",
 };
 
 export default async function AdminPromotionsPage() {
@@ -45,9 +50,20 @@ export default async function AdminPromotionsPage() {
     );
   }
 
-  const [featuredEvents, availableEvents] = await Promise.all([
+  const [
+    featuredEvents,
+    availableEvents,
+    banners,
+    settings,
+    templates,
+    auditLogs,
+  ] = await Promise.all([
     listFeaturedEventsForAdmin(),
     listPublishedEventsForPromotion(),
+    listPromotionalBannersForAdmin(),
+    getAdminNotificationSettings(),
+    listNotificationTemplatesForAdmin(),
+    listAdminAuditLogs(25),
   ]);
 
   return (
@@ -71,6 +87,10 @@ export default async function AdminPromotionsPage() {
         <AdminPromotionsConsole
           initialFeaturedEvents={featuredEvents}
           availableEvents={availableEvents}
+          initialBanners={banners}
+          initialSettings={settings}
+          initialTemplates={templates}
+          initialAuditLogs={auditLogs}
         />
       </div>
     </main>

@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 import { Sparkles, Image as ImageIcon, SlidersHorizontal, Megaphone } from "lucide-react";
+import { AdminControlsAndBroadcastTab } from "./AdminControlsAndBroadcastTab";
+import { BannerManagementTab } from "./BannerManagementTab";
 import { FeaturedEventsManager } from "./FeaturedEventsManager";
 import type {
+  AdminAuditLogRecord,
+  AdminNotificationSettingRecord,
   FeaturedEventSummary,
   FeaturedEventWithEvent,
+  NotificationTemplateRecord,
+  PromotionalBannerRecord,
 } from "@/types/promotions";
 
 export type AdminPromotionsTab =
@@ -17,6 +23,10 @@ export type AdminPromotionsTab =
 interface AdminPromotionsConsoleProps {
   initialFeaturedEvents: FeaturedEventWithEvent[];
   availableEvents: FeaturedEventSummary[];
+  initialBanners: PromotionalBannerRecord[];
+  initialSettings: AdminNotificationSettingRecord[];
+  initialTemplates: NotificationTemplateRecord[];
+  initialAuditLogs: AdminAuditLogRecord[];
 }
 
 const TABS: {
@@ -33,6 +43,10 @@ const TABS: {
 export function AdminPromotionsConsole({
   initialFeaturedEvents,
   availableEvents,
+  initialBanners,
+  initialSettings,
+  initialTemplates,
+  initialAuditLogs,
 }: AdminPromotionsConsoleProps) {
   const [activeTab, setActiveTab] = useState<AdminPromotionsTab>("featured");
 
@@ -72,21 +86,29 @@ export function AdminPromotionsConsole({
       )}
 
       {activeTab === "banners" && (
-        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-500">
-          Promotional Banners manager is scheduled in the next milestone step.
-        </div>
+        <BannerManagementTab initialBanners={initialBanners} />
       )}
 
       {activeTab === "controls" && (
-        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-500">
-          Recovery & Social trigger controls are scheduled in the next milestone step.
-        </div>
+        <AdminControlsAndBroadcastTab
+          section="controls"
+          initialSettings={initialSettings}
+          initialTemplates={initialTemplates}
+          initialAuditLogs={initialAuditLogs}
+          featuredEvents={initialFeaturedEvents}
+          banners={initialBanners}
+        />
       )}
 
       {activeTab === "broadcasts" && (
-        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-500">
-          Broadcasts & Analytics console is scheduled in the next milestone step.
-        </div>
+        <AdminControlsAndBroadcastTab
+          section="broadcasts"
+          initialSettings={initialSettings}
+          initialTemplates={initialTemplates}
+          initialAuditLogs={initialAuditLogs}
+          featuredEvents={initialFeaturedEvents}
+          banners={initialBanners}
+        />
       )}
     </div>
   );
