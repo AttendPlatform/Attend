@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowRight, X } from "lucide-react";
 import {
@@ -23,6 +23,7 @@ interface PromotionalBannerSlotProps {
 
 const DISMISSED_STORAGE_KEY = "attend_dismissed_banners_v1";
 const IMPRESSION_COUNT_KEY = "attend_banner_session_views_v1";
+const SESSION_SYNC_EVENT = "attend:banner-session-sync";
 
 function readSessionMap(key: string): Record<string, number> {
   if (typeof window === "undefined") return {};
@@ -43,9 +44,20 @@ function writeSessionMap(key: string, value: Record<string, number>) {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(key, JSON.stringify(value));
+    window.dispatchEvent(new Event(SESSION_SYNC_EVENT));
   } catch {
     // Ignore storage quota errors in restricted browsing contexts.
   }
+}
+
+function subscribeSessionStorage(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(SESSION_SYNC_EVENT, callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(SESSION_SYNC_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
 }
 
 export function PromotionalBannerSlot({
@@ -53,30 +65,66 @@ export function PromotionalBannerSlot({
   initialBanners,
   sessionViewCap = 5,
 }: PromotionalBannerSlotProps) {
-  const [banners, setBanners] = useState<PromotionalBannerRecord[]>(
-    initialBanners ?? []
+  const [fetchedBanners, setFetchedBanners] = useState<PromotionalBannerRecord[]>(
+    []
   );
-  const [dismissedIds, setDismissedIds] = useState<Record<string, number>>({});
-  const [sessionViews, setSessionViews] = useState<Record<string, number>>({});
-  const [hydrated, setHydrated] = useState(false);
   const trackedImpressionRef = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    setDismissedIds(readSessionMap(DISMISSED_STORAGE_KEY));
-    setSessionViews(readSessionMap(IMPRESSION_COUNT_KEY));
-    setHydrated(true);
-  }, []);
+  const hydrated = useSyncExternalStore(
+    subscribeSessionStorage,
+    () => true,
+    () => false
+  );
+
+  const dismissedRaw = useSyncExternalStore(
+    subscribeSessionStorage,
+    () =>
+      typeof window === "undefined"
+        ? "{}"
+        : window.sessionStorage.getItem(DISMISSED_STORAGE_KEY) ?? "{}",
+    () => "{}"
+  );
+
+  const sessionViewsRaw = useSyncExternalStore(
+    subscribeSessionStorage,
+    () =>
+      typeof window === "undefined"
+        ? "{}"
+        : window.sessionStorage.getItem(IMPRESSION_COUNT_KEY) ?? "{}",
+    () => "{}"
+  );
+
+  const dismissedIds = useMemo(() => {
+    try {
+      const parsed = JSON.parse(dismissedRaw) as unknown;
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, number>)
+        : {};
+    } catch {
+      return {};
+    }
+  }, [dismissedRaw]);
+
+  const sessionViews = useMemo(() => {
+    try {
+      const parsed = JSON.parse(sessionViewsRaw) as unknown;
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, number>)
+        : {};
+    } catch {
+      return {};
+    }
+  }, [sessionViewsRaw]);
 
   useEffect(() => {
     if (initialBanners) {
-      setBanners(initialBanners);
       return;
     }
 
     let active = true;
     getActiveBannersAction(placement).then((res) => {
       if (active && res.ok) {
-        setBanners(res.banners);
+        setFetchedBanners(res.banners);
       }
     });
     return () => {
@@ -85,6 +133,7 @@ export function PromotionalBannerSlot({
   }, [initialBanners, placement]);
 
   const activeBanner = useMemo(() => {
+    const banners = initialBanners ?? fetchedBanners;
     const ordered = sortBannersByPriority(banners);
     for (const banner of ordered) {
       if (!isSafeBannerDestinationUrl(banner.destination_url)) {
@@ -103,18 +152,18 @@ export function PromotionalBannerSlot({
       return banner;
     }
     return null;
-  }, [banners, dismissedIds, sessionViews, sessionViewCap]);
+  }, [initialBanners, fetchedBanners, dismissedIds, sessionViews, sessionViewCap]);
 
   useEffect(() => {
     if (!hydrated || !activeBanner) return;
     if (trackedImpressionRef.current.has(activeBanner.id)) return;
 
     trackedImpressionRef.current.add(activeBanner.id);
-    const updatedCounts = {
-      ...readSessionMap(IMPRESSION_COUNT_KEY),
-      [activeBanner.id]: (readSessionMap(IMPRESSION_COUNT_KEY)[activeBanner.id] ?? 0) + 1,
-    };
-    writeSessionMap(IMPRESSION_COUNT_KEY, updatedCounts);
+    const currentViews = readSessionMap(IMPRESSION_COUNT_KEY);
+    writeSessionMap(IMPRESSION_COUNT_KEY, {
+      ...currentViews,
+      [activeBanner.id]: (currentViews[activeBanner.id] ?? 0) + 1,
+    });
 
     trackBannerImpressionAction(activeBanner.id, placement).catch(() => {});
   }, [activeBanner, hydrated, placement]);
@@ -133,9 +182,11 @@ export function PromotionalBannerSlot({
 
   function handleDismiss() {
     if (!activeBanner) return;
-    const next = { ...dismissedIds, [activeBanner.id]: Date.now() };
-    setDismissedIds(next);
-    writeSessionMap(DISMISSED_STORAGE_KEY, next);
+    const currentDismissed = readSessionMap(DISMISSED_STORAGE_KEY);
+    writeSessionMap(DISMISSED_STORAGE_KEY, {
+      ...currentDismissed,
+      [activeBanner.id]: Date.now(),
+    });
   }
 
   function handleBannerClick() {
@@ -159,7 +210,6 @@ export function PromotionalBannerSlot({
         {mobileSrc && (
           <source media="(max-width: 767px)" srcSet={mobileSrc} />
         )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={fallbackSrc}
           alt={activeBanner.title}
